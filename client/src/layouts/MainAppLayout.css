@@ -1,0 +1,13 @@
+/* client/src/layouts/MainAppLayout.css */
+.main-app-layout {
+  display: flex;
+  height: 100vh;
+  padding-top: 80px; /* Space for the fixed global navbar */
+  box-sizing: border-box;
+}
+
+.main-content-area {
+  flex-grow: 1;
+  overflow-y: auto;
+  padding: 40px;
+}

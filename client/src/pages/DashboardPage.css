@@ -1,0 +1,109 @@
+/* client/src/pages/DashboardPage.css */
+.page-container {
+    padding-top: 120px;
+    padding-bottom: 40px;
+    min-height: 100vh;
+    box-sizing: border-box;
+    position: relative;
+}
+.loading-page {
+    display: flex; justify-content: center; align-items: center; height: 100vh;
+}
+.dashboard-header {
+    text-align: center;
+    margin-bottom: 50px;
+    position: relative;
+    z-index: 1;
+}
+.dashboard-header h1 { font-size: 3rem; margin: 0; }
+.dashboard-header p { font-size: 1.2rem; color: #B0BEC5; }
+.dashboard-grid-insane {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    grid-template-rows: auto;
+    gap: 30px;
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 0 20px;
+    position: relative;
+    z-index: 1;
+}
+.dashboard-card-insane {
+    background: rgba(44, 62, 80, 0.7);
+    border-radius: 16px;
+    padding: 30px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    backdrop-filter: blur(10px);
+}
+.dashboard-card-insane h2 {
+    margin-top: 0;
+    font-weight: 500;
+    border-bottom: 1px solid var(--grid-lines);
+    padding-bottom: 15px;
+    margin-bottom: 20px;
+}
+.time-controls-insane {
+    display: flex;
+    gap: 15px;
+}
+.time-controls-insane button {
+    flex-grow: 1;
+    background-color: var(--panel-bg);
+    border: 1px solid transparent;
+    color: white;
+    padding: 20px 10px;
+    font-size: 1.2rem;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+.time-controls-insane button:hover {
+    border-color: var(--highlight-color);
+    transform: translateY(-3px);
+}
+.time-controls-insane button span {
+    font-size: 2rem;
+    font-weight: bold;
+    display: block;
+}
+.history-card-insane {
+    grid-column: 1 / 3; /* Make history span both columns */
+}
+.stats-content { display: flex; align-items: center; gap: 30px; }
+.stats-chart { width: 120px; height: 120px; flex-shrink: 0; }
+.donut-chart {
+    width: 100%; height: 100%; border-radius: 50%;
+    display: flex; justify-content: center; align-items: center;
+}
+
+/* client/src/pages/DashboardPage.css */
+.dashboard-content {
+  padding: 40px 50px;
+}
+/* ... all other styles (.stats-grid, etc.) are correct */
+
+.donut-chart-inner {
+    width: 80px; height: 80px;
+    background-color: var(--panel-bg);
+    border-radius: 50%;
+    display: flex; justify-content: center; align-items: center;
+    font-size: 1.5rem; font-weight: bold;
+}
+.stats-legend p { margin: 10px 0; display: flex; align-items: center; font-size: 1.1rem; }
+.legend-dot { display: inline-block; width: 12px; height: 12px; border-radius: 50%; margin-right: 10px; }
+.legend-dot.green { background-color: #A5D6A7; }
+.legend-dot.red { background-color: #EF9A9A; }
+.legend-dot.grey { background-color: #90A4AE; }
+.game-history-list { display: flex; flex-direction: column; gap: 10px; }
+.game-history-item { display: flex; align-items: center; background-color: #263238; padding: 15px; border-radius: 6px; gap: 15px; }
+.result-indicator { width: 8px; height: 40px; border-radius: 4px; }
+.result-indicator.win { background-color: #A5D6A7; }
+.result-indicator.loss { background-color: #EF9A9A; }
+.result-indicator.draw { background-color: #90A4AE; }
+.game-details { flex-grow: 1; display: flex; flex-direction: column; }
+.game-opponent { font-weight: 500; }
+.game-timecontrol { font-size: 0.8rem; color: #B0BEC5; }
+.game-result { font-weight: bold; }
+.game-result.win { color: #A5D6A7; }
+.game-result.loss { color: #EF9A9A; }
+.game-result.draw { color: #B0BEC5; }

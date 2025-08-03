@@ -1,0 +1,79 @@
+/* client/src/components/Sidebar.css */
+
+.sidebar {
+  display: flex;
+  flex-direction: column;
+  background-color: var(--panel-bg);
+  padding: 30px;
+  border-radius: 12px;
+  height: 100%; /* Make it fill the grid cell's height */
+  box-sizing: border-box; /* Include padding in height calculation */
+}
+
+.sidebar-logo {
+  font-size: 2.5rem;
+  font-weight: bold;
+  margin-bottom: 40px;
+}
+.sidebar-logo a {
+  color: var(--text-color);
+  text-decoration: none;
+}
+
+.sidebar-nav {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+  flex-grow: 1; /* Pushes the footer to the bottom */
+}
+.sidebar-nav a {
+  color: #CFD8DC;
+  text-decoration: none;
+  font-size: 1.2rem;
+  font-weight: 500;
+  padding: 10px;
+  border-radius: 6px;
+  transition: background-color 0.2s, color 0.2s;
+}
+.sidebar-nav a:hover {
+  background-color: #455A64;
+  color: white;
+}
+.sidebar-nav a.active {
+  background-color: #546E7A;
+  color: white;
+}
+
+.sidebar-footer {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.sidebar-button {
+  width: 100%;
+  padding: 12px;
+  border-radius: 6px;
+  border: none;
+  font-size: 1rem;
+  font-weight: bold;
+  text-align: center;
+  text-decoration: none;
+  cursor: pointer;
+  background-color: #455A64;
+  color: var(--text-color);
+  transition: background-color 0.2s;
+  box-sizing: border-box;
+}
+.sidebar-button:hover {
+  background-color: #607D8B;
+}
+.sidebar-button.active-button {
+    background-color: #78909C;
+}
+.sidebar-button.primary {
+  background-color: var(--highlight-color);
+  color: #1a2a29;
+}
+.sidebar-button.primary:hover {
+  background-color: #81C784;
+}

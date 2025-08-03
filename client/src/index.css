@@ -1,0 +1,22 @@
+/* client/src/index.css */
+:root {
+  /* --- The New "Midnight & Mint" Color Palette --- */
+  --midnight-dark: #191E24;  /* Deepest background */
+  --slate-panel: #242C37;   /* Panels, sidebars, etc. */
+  --slate-light: #354150;   /* Borders, hover states */
+  --off-white: #E6E6E6;      /* Main text and marks (X, O) */
+  --mint-accent: #6EE7B7;    /* Highlights, buttons, active states */
+  --mint-dark: #1A5D43;      /* Text on mint buttons */
+}
+html, body, #root {
+  height: 100%;
+  margin: 0;
+  padding: 0;
+  background-color: var(--midnight-dark);
+  color: var(--off-white);
+}
+body {
+  font-family: 'Poppins', sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}

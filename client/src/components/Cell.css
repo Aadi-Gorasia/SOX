@@ -1,0 +1,26 @@
+/* client/src/components/Cell.css */
+.cell {
+  background-color: var(--midnight-dark);
+  border: none;
+  border-radius: 2px;
+  position: relative;
+  transition: background-color 0.2s ease;
+}
+.cell:is(button) { cursor: pointer; }
+.cell:is(button):hover { background-color: var(--slate-panel); }
+
+.cell.x::before, .cell.x::after {
+  content: ''; position: absolute; top: 50%; left: 18%;
+  width: 64%; height: 5px; background-color: var(--off-white);
+  border-radius: 2px;
+}
+.cell.x::before { transform: translateY(-50%) rotate(45deg); }
+.cell.x::after { transform: translateY(-50%) rotate(-45deg); }
+
+.cell.o::before {
+  content: ''; position: absolute; top: 50%; left: 50%;
+  transform: translate(-50%, -50%);
+  width: 45%; height: 45%;
+  border: 5px solid var(--off-white);
+  border-radius: 50%;
+}

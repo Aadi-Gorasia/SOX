@@ -1,0 +1,42 @@
+/* client/src/layouts/MainLayout.css */
+.main-layout {
+  display: grid;
+  height: 100vh;
+  /* Dashboard/Profile: 2 columns */
+  grid-template-columns: 240px 1fr;
+  grid-template-rows: 1fr;
+  grid-template-areas: "sidebar main";
+}
+/* Game View: 3 columns */
+.main-layout.game-view {
+  grid-template-columns: 240px 1fr 240px;
+  grid-template-rows: 1fr auto;
+  grid-template-areas: 
+    "sidebar main timestamps"
+    "footer footer footer";
+  padding: 20px;
+  gap: 20px;
+  box-sizing: border-box;
+}
+
+.main-layout > .sidebar { grid-area: sidebar; }
+.main-content {
+  grid-area: main;
+  overflow-y: auto; /* THIS IS THE KEY */
+}
+.game-view .main-content {
+  background-color: var(--panel-bg);
+  border-radius: 12px;
+  padding: 30px;
+  overflow: hidden;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+.main-layout > .timestamps-panel { grid-area: timestamps; }
+.main-layout > .footer-bar { grid-area: footer; }
+.sidebar, .timestamps-panel {
+  background-color: var(--panel-bg);
+  padding: 20px;
+  border-radius: 12px;
+}

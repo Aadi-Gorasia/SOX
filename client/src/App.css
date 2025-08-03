@@ -1,0 +1,75 @@
+/* client/src/App.css */
+
+/* Global Loader */
+.global-loader {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100vh;
+  background-color: var(--main-bg);
+}
+.loader-spinner {
+  border: 5px solid #f3f3f3;
+  border-top: 5px solid var(--highlight-color);
+  border-radius: 50%;
+  width: 50px;
+  height: 50px;
+  animation: spin 1s linear infinite;
+}
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+/* The new, definitive game screen layout */
+.game-screen-container {
+  display: grid;
+  height: 100vh;
+  grid-template-rows: 1fr auto; /* Content row, Footer row */
+  padding: 100px 40px 20px 40px; /* More top padding for navbar, less on sides */
+  box-sizing: border-box;
+  position: relative;
+  overflow: hidden;
+}
+
+/* We re-use the animated background here */
+.animated-bg {
+  position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+  background: linear-gradient(45deg, #1f2931, #2a3640, #32414e);
+  background-size: 400% 400%;
+  animation: gradientAnimation 25s ease infinite;
+  z-index: -1;
+}
+@keyframes gradientAnimation {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
+.main-game-content {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.loading-text {
+  font-size: 1.5rem;
+  color: var(--text-color);
+}
+
+.game-screen-container .player-info-bar {
+  width: 80%;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+
+/* --- Main App Layout (for Dashboard/Profile) --- */
+.main-app-layout {
+  display: flex;
+  height: 100vh;
+}
+.main-content-area {
+  flex-grow: 1;
+  overflow-y: auto;
+}
