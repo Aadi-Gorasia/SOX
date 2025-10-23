@@ -1,0 +1,63 @@
+/* client/src/components/MoveHistory.css */
+
+.move-history-container {
+    /* CRITICAL: This positions the component in the master grid */
+    grid-column: 3 / 4; /* Place it in the right-most column */
+    grid-row: 1 / 2;    /* Place it in the top row */
+
+    background-color: var(--panel-bg);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border: 1px solid var(--panel-border);
+    border-radius: var(--radius-lg);
+    padding: var(--spacing-xl);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden; /* Prevent content from spilling out */
+}
+
+.move-history-container h2 {
+    text-align: center;
+    font-size: 1.2rem;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin: 0 0 var(--spacing-lg) 0;
+    flex-shrink: 0; /* Prevents the title from shrinking */
+}
+
+.move-list {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-md);
+    overflow-y: auto; /* Enable scrolling for the list */
+    padding-right: 10px; /* Add some space for the scrollbar */
+    margin-right: -10px; /* Counteract the padding to keep alignment */
+}
+
+.move-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background-color: var(--bg-primary);
+    padding: 12px var(--spacing-lg);
+    border-radius: var(--radius-md);
+    border: 1px solid var(--panel-border);
+    font-size: 1.1rem;
+    font-weight: 500;
+    flex-shrink: 0; /* Prevents items from shrinking */
+}
+
+.move-player-mark {
+    width: 24px;
+    height: 24px;
+    color: var(--text-secondary);
+}
+
+.move-player-mark svg {
+    width: 100%;
+    height: 100%;
+}
+
+.move-time {
+    color: var(--text-primary);
+}

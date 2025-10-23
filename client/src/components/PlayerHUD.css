@@ -1,0 +1,94 @@
+/* client/src/components/PlayerHUD.css */
+
+.player-hud-container {
+    /* CRITICAL: This positions the component in the master grid */
+    grid-column: 2 / 4; /* Span the center and right columns */
+    grid-row: 2 / 3;    /* Place it in the bottom row */
+
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background-color: var(--panel-bg);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border: 1px solid var(--panel-border);
+    border-radius: var(--radius-lg);
+    padding: var(--spacing-md) var(--spacing-xl);
+}
+
+.player-hud-container.placeholder {
+    /* A style to make it invisible but still occupy space while loading */
+    opacity: 0;
+}
+
+.player-info {
+    color: var(--text-primary);
+    width: 200px; /* Give it a fixed width to prevent layout shifts */
+}
+
+.player-info.left {
+    text-align: left;
+}
+.player-info.right {
+    text-align: right;
+}
+
+.player-info h3 {
+    margin: 0;
+    font-size: 1.2rem;
+    font-weight: 600;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.player-info span {
+    font-size: 1rem;
+    color: var(--text-secondary);
+}
+
+.clocks-container {
+    display: flex;
+    gap: var(--spacing-lg);
+}
+
+.clock-wrapper {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    opacity: 0.6; /* Inactive clocks are dimmed */
+    transition: var(--transition-medium);
+}
+
+.clock-wrapper.active {
+    opacity: 1; /* Active clock is fully visible */
+    transform: scale(1.05);
+}
+
+.clock-time {
+    background-color: var(--bg-primary);
+    padding: var(--spacing-sm) var(--spacing-xl);
+    border-radius: var(--radius-md);
+    font-size: 1.5rem;
+    font-weight: 700;
+    margin-bottom: var(--spacing-sm);
+    font-family: 'Roboto Mono', monospace;
+    color: var(--text-primary);
+    border: 1px solid var(--panel-border);
+}
+
+.time-bar {
+    width: 140px;
+    height: 8px;
+    background-color: var(--bg-primary);
+    border-radius: 4px;
+    overflow: hidden;
+    border: 1px solid var(--panel-border);
+}
+
+.time-bar-fill {
+    height: 100%;
+    background-color: var(--color-win); /* Using 'win' color for the green bar */
+    border-radius: 4px;
+    transition: width 0.5s linear; /* Smooth transition for time decrease */
+}

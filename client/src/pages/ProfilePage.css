@@ -1,0 +1,78 @@
+/* ProfilePage.css — user profile, tabs, stats, history (scoped) */
+
+.profile-page.page-container { max-width: 900px; }
+
+.profile-header {
+  display:flex; flex-wrap:wrap; justify-content:space-between; align-items:center;
+  gap: var(--spacing-lg); padding-bottom: var(--spacing-lg);
+  border-bottom: 1px solid var(--panel-border);
+}
+
+.profile-username { font-size: clamp(2rem, 6vw, 3rem); font-weight: 800; color: var(--text-primary); }
+
+.profile-elo { text-align: right; }
+.profile-elo span { font-size: 0.9rem; color: var(--text-secondary); text-transform: uppercase; }
+.profile-elo p {
+  font-size: 3rem; font-weight: 700; margin:0;
+  background: var(--brand-gradient); -webkit-background-clip: text; background-clip: text; color: transparent;
+}
+
+/* tabs */
+.profile-tabs { display:flex; gap: var(--spacing-sm); margin: var(--spacing-xl) 0; border-bottom: 1px solid var(--panel-border); }
+.tab-btn {
+  background: transparent; border: none; color: var(--text-secondary);
+  padding: var(--spacing-md) var(--spacing-lg); font-size: 1.05rem; font-weight:600;
+  cursor:pointer; position:relative; transition: color 0.18s ease;
+}
+.tab-btn::after {
+  content: ''; position:absolute; bottom:-1px; left:0; right:0; height:2px;
+  background: var(--accent-primary); transform: scaleX(0); transform-origin: left center;
+  transition: transform 0.28s cubic-bezier(0.165,0.84,0.44,1);
+}
+.tab-btn:hover { color: var(--text-primary); }
+.tab-btn.active { color: var(--text-primary); }
+.tab-btn.active::after { transform: scaleX(1); }
+
+/* profile content */
+.profile-grid { display:flex; flex-direction:column; gap: var(--spacing-xxl); }
+
+.stats-grid { display:grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: var(--spacing-lg); }
+.stat-card { padding: var(--spacing-lg); text-align:center; border-radius: var(--radius-md); background: var(--bg-secondary); border:1px solid var(--panel-border); }
+.stat-card h3 { margin:0 0 var(--spacing-md) 0; font-size:1rem; font-weight:500; color:var(--text-secondary); }
+.stat-card .stat-value { margin:0; font-size:2.2rem; font-weight:700; line-height:1; color:var(--text-primary); }
+
+.stat-value .win { color: var(--color-win); }
+.stat-value .loss { color: var(--color-loss); }
+.stat-value .draw { color: var(--color-draw); }
+.stat-value .rank { color: var(--color-warning); }
+
+/* game history (reused from dashboard for consistency) */
+.game-history-list { display:flex; flex-direction:column; gap: var(--spacing-md); max-height:400px; overflow-y:auto; padding-right: var(--spacing-sm); }
+.game-history-item {
+  display:flex; align-items:center; background-color: var(--bg-secondary);
+  padding: var(--spacing-md); border-radius: var(--radius-md); border:1px solid var(--panel-border);
+  position: relative; overflow:hidden; transition: var(--transition-fast);
+}
+.game-history-item::before, .game-history-item::after {
+  content:''; position:absolute; left:0; top:0; bottom:0; width:6px; opacity:0.85; filter: blur(4px);
+}
+.game-history-item.win::before, .game-history-item.win::after { background: var(--color-win); }
+.game-history-item.loss::before, .game-history-item.loss::after { background: var(--color-loss); }
+.game-history-item.draw::before, .game-history-item.draw::after { background: var(--color-draw); }
+
+.game-history-item:hover { transform: scale(1.02); background-color: var(--panel-bg); border-color: var(--panel-border-hover); }
+
+.game-details { flex-grow:1; padding-left: var(--spacing-lg); }
+.game-opponent { font-weight:500; font-size:1.05rem; color: var(--text-primary); }
+.game-timecontrol { font-size:0.9rem; color:var(--text-secondary); }
+.game-result { font-weight:700; font-size:1.05rem; }
+
+.game-history-item.win .game-result { color: var(--color-win); }
+.game-history-item.loss .game-result { color: var(--color-loss); }
+.game-history-item.draw .game-result { color: var(--text-secondary); }
+
+/* responsive */
+@media (max-width: 576px) {
+  .profile-header { flex-direction: column; align-items: flex-start; gap: var(--spacing-md); }
+  .profile-elo { text-align: left; }
+}

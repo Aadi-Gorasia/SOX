@@ -1,3 +1,6 @@
+
+console.log('--- The users.js route file was successfully loaded! ---');
+
 // server/routes/users.js
 const express = require('express');
 const router = express.Router();

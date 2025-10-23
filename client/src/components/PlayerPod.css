@@ -1,0 +1,51 @@
+.player-pod-container {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    background-color: #2c2f33;
+    padding: 12px 18px;
+    border-radius: 12px;
+    border: 2px solid transparent;
+    transition: all 0.3s ease;
+    width: 280px; /* Fixed width */
+}
+
+.player-pod-container.active-turn {
+    border-color: #23d183;
+    box-shadow: 0 0 15px rgba(35, 209, 131, 0.4);
+}
+
+.player-avatar {
+    width: 50px;
+    height: 50px;
+    border-radius: 50%;
+    background-color: #4f545c;
+    flex-shrink: 0;
+}
+
+.player-details {
+    display: flex;
+    flex-direction: column;
+    color: #ffffff;
+    flex-grow: 1;
+}
+
+.player-name {
+    font-size: 1.1rem;
+    font-weight: 600;
+}
+
+.player-elo {
+    font-size: 0.9rem;
+    color: #99aab5;
+}
+
+.player-clock {
+    background-color: #23272a;
+    color: #ffffff;
+    font-size: 1.8rem;
+    font-weight: 700;
+    padding: 10px 20px;
+    border-radius: 8px;
+    font-family: 'Roboto Mono', monospace; /* Use a monospaced font for clocks */
+}

@@ -1,138 +1,157 @@
 // client/src/pages/PlayPage.js
-import React, { useState, useEffect, useContext, useRef } from 'react';
-import { useGame } from '../context/GameContext';
+import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { motion } from 'framer-motion';
 import { useSocket } from '../context/SocketContext';
-import { AuthContext } from '../context/AuthContext';
-import SuperBoard from '../components/SuperBoard';
+import DisplayBoard from '../components/DisplayBoard';
 import './PlayPage.css';
 
-const formatTime = (ms) => {
-  if (!ms || ms < 0) ms = 0;
-  const totalSeconds = Math.floor(ms / 1000);
-  const minutes = Math.floor(totalSeconds / 60);
-  const seconds = totalSeconds % 60;
-  return `${minutes}:${seconds < 10 ? '0' : ''}${seconds}`;
-};
+// --- Reusable Time Control Card (No changes) ---
+const TimeControlCard = ({ time, increment, name, onClick }) => (
+    <motion.div
+        className="time-control-card"
+        onClick={onClick}
+        whileHover={{ scale: 1.05, y: -5 }}
+        whileTap={{ scale: 0.98 }}
+    >
+        <div className="time-display">{time}|{increment}</div>
+        <div className="time-name">{name}</div>
+    </motion.div>
+);
 
-// --- PlayerPod Sub-component ---
-const PlayerPod = ({ player, time, timeControl, isTurn, mark }) => {
-  if (!player) return <div className="player-pod"></div>;
-  const timePercentage = (time / timeControl.base) * 100;
-  return (
-    <div className={`player-pod ${isTurn ? 'active' : ''}`}>
-      <div className="player-avatar"></div>
-      <div className="player-details">
-        <span className="player-name">{player.username} ({mark})</span>
-        <span className="player-elo">{player.elo}</span>
-      </div>
-      <div className={`player-clock ${time < 10000 ? 'low-time' : ''}`}>
-        <div className="time-bar" style={{ width: `${timePercentage}%` }}></div>
-        <span className="time-text">{formatTime(time)}</span>
-      </div>
-    </div>
-  );
-};
+const timeControls = [
+    { time: '3', increment: '2', name: 'Blitz' },
+    { time: '5', increment: '0', name: 'Blitz' },
+    { time: '10', increment: '0', name: 'Rapid' },
+];
 
-// --- GameChat Sub-component ---
-const GameChat = ({ gameId, chat }) => {
+// --- Main Page Component (FIXED) ---
+const PlayPage = () => {
     const socket = useSocket();
-    const { user } = useContext(AuthContext);
-    const [message, setMessage] = useState('');
-    const chatBodyRef = useRef(null);
+    const navigate = useNavigate();
+    const [lobbyState, setLobbyState] = useState({ type: 'idle' });
 
     useEffect(() => {
-        if (chatBodyRef.current) {
-            chatBodyRef.current.scrollTop = chatBodyRef.current.scrollHeight;
-        }
-    }, [chat]);
+        if (!socket) return;
 
-    const handleSendMessage = (e) => {
-        e.preventDefault();
-        if (message.trim() && socket) {
-            socket.emit('sendChatMessage', { gameId, message });
-            setMessage('');
+        const handleGameNavigation = ({ gameId }) => {
+            if (gameId) {
+                navigate(`/game/${gameId}`);
+            }
+        };
+
+        // Listen for BOTH events that mean a game is ready to be joined
+        socket.on('gameStarted', handleGameNavigation);
+        socket.on('friendJoined', handleGameNavigation); // <-- BUG FIX: Listen for friend joining
+
+        // Cleanup function to prevent memory leaks and duplicate listeners
+        return () => {
+            socket.off('gameStarted', handleGameNavigation);
+            socket.off('friendJoined', handleGameNavigation);
+        };
+    }, [socket, navigate]);
+
+    const handleFindGame = (timeControl) => {
+        socket?.emit('findGame', { timeControl });
+        setLobbyState({ type: 'waiting', timeControl });
+    };
+
+    const handleCreateFriendGame = (timeControl) => {
+        socket?.emit('createFriendGame', { timeControl }, ({ gameId, error }) => {
+            if (error) {
+                alert(`Error: ${error}`);
+                setLobbyState({ type: 'idle' });
+            } else if (gameId) {
+                setLobbyState({ type: 'friend-game', gameId, timeControl });
+            }
+        });
+    };
+
+    const handleCancel = () => {
+        // We should also tell the server we are cancelling,
+        // especially if we are waiting for a random game.
+        // This requires a 'cancelFindGame' event on the server, which is good practice.
+        // For now, we just reset the UI state.
+        setLobbyState({ type: 'idle' });
+    };
+
+    const handleCopyLink = (gameId) => {
+        const url = `${window.location.origin}/game/${gameId}`;
+        navigator.clipboard.writeText(url).then(() => alert('Game link copied!'));
+    };
+
+    // No changes to the JSX rendering part
+    const renderLobbyOrMenu = () => {
+        if (lobbyState.type !== 'idle') {
+            return (
+                <div className="lobby-container">
+                    <div className="insane-card game-lobby-view">
+                        <div className="card-content">
+                            {lobbyState.type === 'waiting' && (
+                                <>
+                                    <h2 className="lobby-title">Searching...</h2>
+                                    <p className="lobby-subtitle">Mode: {lobbyState.timeControl}</p>
+                                    <div className="spinner"></div>
+                                    <button className="btn btn-danger" onClick={handleCancel}>Cancel</button>
+                                </>
+                            )}
+                            {lobbyState.type === 'friend-game' && (
+                                <>
+                                    <h2 className="lobby-title">Game Created!</h2>
+                                    <p className="lobby-subtitle">Share the link with a friend:</p>
+                                    <div className="link-container">
+                                        <input type="text" readOnly className="form-input" value={`${window.location.origin}/game/${lobbyState.gameId}`} />
+                                        <button className="btn btn-primary" onClick={() => handleCopyLink(lobbyState.gameId)}>Copy</button>
+                                    </div>
+                                    <p className="lobby-subtitle" style={{marginTop: '1rem'}}>Waiting for friend to join...</p>
+                                    <button className="btn btn-secondary" onClick={handleCancel}>Back</button>
+                                </>
+                            )}
+                        </div>
+                    </div>
+                </div>
+            );
         }
+
+        return (
+            <motion.div
+                className="play-options-container"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ duration: 0.5 }}
+            >
+                <section className="insane-card play-panel">
+                    <h2 className="card-header">Play Online</h2>
+                    <div className="card-content">
+                        <p className="panel-description">Challenge a random opponent.</p>
+                        <div className="time-control-grid">
+                            {timeControls.map(tc => <TimeControlCard key={`${tc.time}-${tc.increment}-online`} {...tc} onClick={() => handleFindGame(`${tc.time}+${tc.increment}`)} />)}
+                        </div>
+                    </div>
+                </section>
+                <section className="insane-card play-panel">
+                    <h2 className="card-header">Play with a Friend</h2>
+                    <div className="card-content">
+                        <p className="panel-description">Create a private game link.</p>
+                        <div className="time-control-grid">
+                            {timeControls.map(tc => <TimeControlCard key={`${tc.time}-${tc.increment}-friend`} {...tc} onClick={() => handleCreateFriendGame(`${tc.time}+${tc.increment}`)} />)}
+                        </div>
+                    </div>
+                </section>
+            </motion.div>
+        );
     };
 
     return (
-        <div className="game-chat">
-            <div className="chat-body" ref={chatBodyRef}>
-                {(chat || []).map((msg, index) => (
-                    <div key={index} className={`chat-message ${msg.sender === user.username ? 'my-message' : ''}`}>
-                        <strong>{msg.sender}:</strong> {msg.text}
-                    </div>
-                ))}
+        <div className="page-container play-page-container">
+            <div className="play-page-grid">
+                <div className="play-page-board-viewer">
+                    <DisplayBoard />
+                </div>
+                {renderLobbyOrMenu()}
             </div>
-            <form onSubmit={handleSendMessage} className="chat-form">
-                <input type="text" value={message} onChange={(e) => setMessage(e.target.value)} placeholder="Type a message..." autoComplete="off"/>
-                <button type="submit">Send</button>
-            </form>
         </div>
     );
 };
 
-// --- Main Play Page Component ---
-const PlayPage = () => {
-  const { gameState } = useGame();
-  const socket = useSocket();
-  const gameId = gameState?.id;
-
-  useEffect(() => {
-    if (!socket || !gameId) return;
-    const handleDrawOffer = () => {
-      if (window.confirm("Your opponent has offered a draw. Do you accept?")) {
-        socket.emit('acceptDraw', gameId);
-      } else {
-        socket.emit('declineDraw', gameId);
-      }
-    };
-    socket.on('drawOffered', handleDrawOffer);
-    return () => socket.off('drawOffered', handleDrawOffer);
-  }, [socket, gameId]);
-
-  const handleResign = () => {
-      if (window.confirm("Are you sure you want to resign?")) {
-          socket.emit('resign', { gameId });
-      }
-  };
-
-  const handleOfferDraw = () => {
-      socket.emit('offerDraw', gameId);
-      alert("Draw offer sent.");
-  };
-
-  if (!gameState) {
-    return <div className="loading-text-centered">Waiting for game data...</div>;
-  }
-
-  const { players, playerDetails, playerToMove, gameWinner, chat, drawOffer } = gameState;
-  const isPlayer1Turn = playerToMove === players[0];
-  const [player1, player2] = playerDetails;
-
-  return (
-    <div className="play-page-grid">
-      <div className="player-top">
-        <PlayerPod player={player2} time={gameState.playerTimes[1]} timeControl={gameState.timeControl} isTurn={!isPlayer1Turn} mark="O" />
-      </div>
-      <div className="game-board-area">
-        {/* THIS IS THE FIX: The SuperBoard is now rendered here */}
-        <SuperBoard gameState={gameState} />
-      </div>
-      <div className="side-panel-area">
-        <GameChat gameId={gameId} chat={chat} />
-        <div className="game-actions-hud">
-            { !gameWinner && (
-              <>
-                <button onClick={handleOfferDraw} disabled={!!drawOffer}>Offer Draw</button>
-                <button onClick={handleResign} className="resign-btn">Resign</button>
-              </>
-            )}
-        </div>
-      </div>
-      <div className="player-bottom">
-        <PlayerPod player={player1} time={gameState.playerTimes[0]} timeControl={gameState.timeControl} isTurn={isPlayer1Turn} mark="X" />
-      </div>
-    </div>
-  );
-};
 export default PlayPage;

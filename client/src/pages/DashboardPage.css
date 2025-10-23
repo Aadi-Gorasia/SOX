@@ -1,109 +1,87 @@
-/* client/src/pages/DashboardPage.css */
-.page-container {
-    padding-top: 120px;
-    padding-bottom: 40px;
-    min-height: 100vh;
-    box-sizing: border-box;
-    position: relative;
+/* DashboardPage.css — dashboard layout & components (scoped) */
+
+.dashboard-container { width: 100%; }
+
+.welcome-header {
+  text-align: center;
+  margin-bottom: var(--spacing-xxl);
 }
-.loading-page {
-    display: flex; justify-content: center; align-items: center; height: 100vh;
+.welcome-header h1 {
+  font-size: clamp(1.8rem, 3.6vw, 3rem);
+  font-weight: 700;
+  margin-bottom: var(--spacing-sm);
 }
-.dashboard-header {
-    text-align: center;
-    margin-bottom: 50px;
-    position: relative;
-    z-index: 1;
+.welcome-header .gradient-text {
+  background: var(--brand-gradient);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  color: transparent;
 }
-.dashboard-header h1 { font-size: 3rem; margin: 0; }
-.dashboard-header p { font-size: 1.2rem; color: #B0BEC5; }
-.dashboard-grid-insane {
-    display: grid;
-    grid-template-columns: repeat(2, 1fr);
-    grid-template-rows: auto;
-    gap: 30px;
-    max-width: 1200px;
-    margin: 0 auto;
-    padding: 0 20px;
-    position: relative;
-    z-index: 1;
-}
-.dashboard-card-insane {
-    background: rgba(44, 62, 80, 0.7);
-    border-radius: 16px;
-    padding: 30px;
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    backdrop-filter: blur(10px);
-}
-.dashboard-card-insane h2 {
-    margin-top: 0;
-    font-weight: 500;
-    border-bottom: 1px solid var(--grid-lines);
-    padding-bottom: 15px;
-    margin-bottom: 20px;
-}
-.time-controls-insane {
-    display: flex;
-    gap: 15px;
-}
-.time-controls-insane button {
-    flex-grow: 1;
-    background-color: var(--panel-bg);
-    border: 1px solid transparent;
-    color: white;
-    padding: 20px 10px;
-    font-size: 1.2rem;
-    border-radius: 8px;
-    cursor: pointer;
-    transition: all 0.2s ease;
-}
-.time-controls-insane button:hover {
-    border-color: var(--highlight-color);
-    transform: translateY(-3px);
-}
-.time-controls-insane button span {
-    font-size: 2rem;
-    font-weight: bold;
-    display: block;
-}
-.history-card-insane {
-    grid-column: 1 / 3; /* Make history span both columns */
-}
-.stats-content { display: flex; align-items: center; gap: 30px; }
-.stats-chart { width: 120px; height: 120px; flex-shrink: 0; }
-.donut-chart {
-    width: 100%; height: 100%; border-radius: 50%;
-    display: flex; justify-content: center; align-items: center;
+.welcome-header p {
+  font-size: 1.05rem;
+  color: var(--text-secondary);
+  font-weight: 500;
 }
 
-/* client/src/pages/DashboardPage.css */
-.dashboard-content {
-  padding: 40px 50px;
+/* grid layout */
+.dashboard-grid {
+  display: grid;
+  grid-template-columns: 2fr 1fr;
+  gap: var(--spacing-xl);
+  align-items: start;
 }
-/* ... all other styles (.stats-grid, etc.) are correct */
+@media (max-width: 920px) {
+  .dashboard-grid { grid-template-columns: 1fr; }
+}
 
-.donut-chart-inner {
-    width: 80px; height: 80px;
-    background-color: var(--panel-bg);
-    border-radius: 50%;
-    display: flex; justify-content: center; align-items: center;
-    font-size: 1.5rem; font-weight: bold;
+/* cards */
+.new-game-card { grid-column: 1 / 2; grid-row: 1 / 2; }
+.stats-card { grid-column: 2 / 3; grid-row: 1 / 3; }
+.recent-games-card { grid-column: 1 / 2; grid-row: 2 / 3; }
+
+/* Time control cards */
+.time-controls { display:flex; gap: var(--spacing-md); margin-top: var(--spacing-lg); }
+.time-control-card {
+  flex: 1;
+  padding: var(--spacing-md);
+  background-color: var(--bg-secondary);
+  border: 1px solid var(--panel-border);
+  border-radius: var(--radius-md);
+  text-align: center;
+  cursor: pointer;
+  transition: var(--transition-fast);
 }
-.stats-legend p { margin: 10px 0; display: flex; align-items: center; font-size: 1.1rem; }
-.legend-dot { display: inline-block; width: 12px; height: 12px; border-radius: 50%; margin-right: 10px; }
-.legend-dot.green { background-color: #A5D6A7; }
-.legend-dot.red { background-color: #EF9A9A; }
-.legend-dot.grey { background-color: #90A4AE; }
-.game-history-list { display: flex; flex-direction: column; gap: 10px; }
-.game-history-item { display: flex; align-items: center; background-color: #263238; padding: 15px; border-radius: 6px; gap: 15px; }
-.result-indicator { width: 8px; height: 40px; border-radius: 4px; }
-.result-indicator.win { background-color: #A5D6A7; }
-.result-indicator.loss { background-color: #EF9A9A; }
-.result-indicator.draw { background-color: #90A4AE; }
-.game-details { flex-grow: 1; display: flex; flex-direction: column; }
-.game-opponent { font-weight: 500; }
-.game-timecontrol { font-size: 0.8rem; color: #B0BEC5; }
-.game-result { font-weight: bold; }
-.game-result.win { color: #A5D6A7; }
-.game-result.loss { color: #EF9A9A; }
-.game-result.draw { color: #B0BEC5; }
+.time-control-card:hover {
+  border-color: var(--accent-primary);
+  transform: translateY(-4px);
+  background-color: var(--bg-primary);
+}
+.time-control-card span { display:block; font-weight:600; font-size:1.05rem; color:var(--text-primary); }
+.time-control-card .type { font-size:0.9rem; color:var(--text-secondary); }
+
+/* stats card */
+.stats-content { display:flex; flex-direction:column; align-items:center; gap: var(--spacing-xl); }
+.win-rate-chart { width:150px; position:relative; text-align:center; }
+.win-rate-chart span {
+  position:absolute; bottom:-20px; left:50%; transform:translateX(-50%);
+  font-size:0.8rem; color:var(--text-secondary); font-weight:600;
+}
+
+/* stats list */
+.stats-list { list-style:none; width:100%; display:flex; flex-direction:column; gap: var(--spacing-md); }
+.stats-list li { display:flex; align-items:center; font-size:1rem; color:var(--text-secondary); }
+.stats-list strong { color:var(--text-primary); margin-left:auto; }
+.stats-list .dot { width:10px; height:10px; border-radius:50%; margin-right:12px; flex-shrink:0; }
+.dot.win { background-color: var(--color-win); }
+.dot.loss { background-color: var(--color-loss); }
+.dot.draw { background-color: var(--color-draw); }
+
+/* recent games card */
+.recent-games { display:flex; flex-direction:column; gap: var(--spacing-md); }
+
+/* small responsive tweaks */
+@media (max-width: 520px) {
+  .welcome-header h1 { font-size: 1.6rem; }
+  .time-controls { flex-direction: column; }
+}

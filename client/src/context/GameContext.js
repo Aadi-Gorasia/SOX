@@ -19,23 +19,41 @@ export const GameProvider = ({ children }) => {
 
   useEffect(() => {
     if (!socket) return;
+
+    const gameId = window.location.pathname.split("/").pop();
+
+    const handleConnect = () => {
+      console.log("CLIENT: Connected, joining game", gameId);
+      socket.emit("joinGame", gameId); // always plain string
+    };
+
+    if (socket.connected) {
+      handleConnect();
+    } else {
+      socket.once("connect", handleConnect);
+    }
+
     const handleUpdateGame = (newGameState) => {
-      console.log('CLIENT: Received full game update');
+      console.log("CLIENT: Received game update", newGameState);
       updateGameState(newGameState);
     };
+
     const handleTimeUpdate = (timeData) => {
-      // console.log('CLIENT: Received time update');
+      console.log("CLIENT: Received time update", timeData);
       setPlayerTimes(timeData.playerTimes);
     };
-    socket.on('updateGame', handleUpdateGame);
-    socket.on('timeUpdate', handleTimeUpdate);
+
+    socket.on("updateGame", handleUpdateGame);
+    socket.on("timeUpdate", handleTimeUpdate);
+
     return () => {
-      socket.off('updateGame', handleUpdateGame);
-      socket.off('timeUpdate', handleTimeUpdate);
+      socket.off("updateGame", handleUpdateGame);
+      socket.off("timeUpdate", handleTimeUpdate);
     };
   }, [socket, updateGameState]);
-  
+
   const value = { gameState, playerTimes, setGameState: updateGameState };
+
   return (
     <GameContext.Provider value={value}>
       {children}

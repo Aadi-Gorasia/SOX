@@ -1,0 +1,320 @@
+/* src/styles/global.css */
+
+/* ==========================================================================
+   UNIFIED DESIGN SYSTEM (Based on "INSANE EDITION V3")
+   ========================================================================== */
+
+/* --- 1. THEME & COLOR PALETTE --- */
+:root {
+  /* Core Palette */
+  --bg-primary: #0a0c10;
+  --bg-secondary: #12161d;
+  --panel-bg: rgba(18, 22, 29, 0.6);
+  --panel-border: rgba(137, 160, 204, 0.15);
+  --panel-border-hover: rgba(137, 160, 204, 0.4);
+
+  /* Text & Accents */
+  --text-primary: #e1e8f5;
+  --text-secondary: #89a0cc;
+  --accent-primary: #6c8ee3;
+  --accent-secondary: #a855f7;
+  --brand-gradient: linear-gradient(45deg, var(--accent-primary) 0%, var(--accent-secondary) 100%);
+
+  /* Semantic Colors */
+  --color-win: #22c55e;
+  --color-loss: #ef4444;
+  --color-draw: #64748b;
+  --color-warning: #f59e0b;
+
+  /* Sizing, Spacing & Radii */
+  --navbar-height: 70px;
+  --spacing-sm: 8px;
+  --spacing-md: 16px;
+  --spacing-lg: 24px;
+  --spacing-xl: 32px;
+  --spacing-xxl: 48px;
+  --radius-sm: 8px;
+  --radius-md: 16px;
+  --radius-lg: 24px;
+
+  /* Effects & Transitions */
+  --shadow-card: 0 10px 40px rgba(0, 0, 0, 0.4);
+  --shadow-glow: 0 0 24px -4px var(--accent-primary);
+  --transition-fast: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  --transition-medium: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+
+/* --- 2. GLOBAL RESETS & BASE STYLES --- */
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html, body, #root {
+  height: 100%;
+}
+
+html {
+  scrollbar-width: thin;
+  scrollbar-color: var(--panel-border-hover) var(--bg-secondary);
+}
+
+body {
+  background-color: var(--bg-primary);
+  color: var(--text-primary);
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+h1, h2, h3, h4, h5, h6 { font-weight: 700; line-height: 1.2; }
+p { line-height: 1.6; margin-bottom: var(--spacing-md); color: var(--text-secondary); }
+
+a {
+  color: var(--accent-primary);
+  text-decoration: none;
+  transition: var(--transition-fast);
+}
+a:hover {
+  filter: brightness(1.2);
+  text-decoration: none;
+}
+
+
+/* --- 3. HOLOGRAPHIC BACKGROUND & GRID --- */
+.holographic-background {
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
+  z-index: -1;
+  overflow: hidden;
+  background-color: var(--bg-primary);
+}
+.holographic-background::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-image:
+    linear-gradient(to right, var(--panel-border) 1px, transparent 1px),
+    linear-gradient(to bottom, var(--panel-border) 1px, transparent 1px);
+  background-size: 50px 50px;
+  mask-image: radial-gradient(ellipse 80% 50% at 50% 0%, black 40%, transparent 100%);
+  animation: pan-grid 20s linear infinite;
+}
+@keyframes pan-grid {
+  0% { background-position: 0% 0%; }
+  100% { background-position: 100% 0%; }
+}
+.animated-blobs {
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
+  z-index: -2;
+}
+.animated-blobs div {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(150px);
+  opacity: 0.3;
+  will-change: transform;
+}
+.animated-blobs div:nth-child(1) {
+  width: 500px; height: 500px;
+  background: var(--accent-primary);
+  top: 5%; left: 10%;
+  animation: move 15s infinite alternate;
+}
+.animated-blobs div:nth-child(2) {
+  width: 400px; height: 400px;
+  background: var(--accent-secondary);
+  bottom: 5%; right: 15%;
+  animation: move 18s infinite alternate-reverse;
+}
+@keyframes move {
+  from { transform: translate(0, 0) rotate(0deg) scale(1); }
+  to { transform: translate(100px, 50px) rotate(45deg) scale(1.2); }
+}
+
+
+/* --- 4. REUSABLE COMPONENTS & UTILITIES --- */
+/* Base Page Container */
+.page-container {
+  padding: calc(var(--navbar-height) + var(--spacing-xl)) var(--spacing-xl);
+  min-height: 100vh;
+  width: 100%;
+  max-width: 1400px;
+  margin: 0 auto;
+}
+
+/* Insane Card Style */
+.insane-card {
+  background: var(--panel-bg);
+  border-radius: var(--radius-lg);
+  padding: var(--spacing-xl);
+  border: 1px solid var(--panel-border);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  box-shadow: var(--shadow-card);
+  transition: var(--transition-medium);
+  position: relative;
+  overflow: hidden;
+}
+.insane-card::before {
+  content: "";
+  position: absolute;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background-image: radial-gradient(circle at var(--mouse-x, 50%) var(--mouse-y, -50%), rgba(255,255,255,0.08), transparent 40%);
+  opacity: 0;
+  transition: opacity 0.4s ease;
+  z-index: 1;
+}
+.insane-card:hover {
+  border-color: var(--panel-border-hover);
+  transform: translateY(-8px) scale(1.01);
+}
+.insane-card:hover::before { opacity: 1; }
+
+.card-header {
+  position: relative;
+  z-index: 2;
+  font-weight: 600;
+  font-size: 1.5rem;
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-md);
+  padding-bottom: var(--spacing-md);
+  margin-bottom: var(--spacing-lg);
+  border-bottom: 1px solid var(--panel-border);
+}
+
+.card-content {
+  position: relative;
+  z-index: 2;
+}
+
+/* Unified Button Styles */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--spacing-sm);
+  padding: 12px 24px;
+  border-radius: var(--radius-md);
+  text-decoration: none;
+  font-size: 1rem;
+  font-weight: 700;
+  border: 1px solid var(--panel-border-hover);
+  cursor: pointer;
+  transition: var(--transition-fast);
+  position: relative;
+  overflow: hidden;
+  background: var(--bg-secondary);
+  color: var(--text-primary);
+}
+.btn::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(120deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+    transition: left 0.5s ease;
+}
+.btn:hover {
+  transform: translateY(-3px);
+  box-shadow: var(--shadow-glow);
+  border-color: var(--accent-primary);
+}
+.btn:hover::before { left: 100%; }
+.btn-primary {
+  background: var(--brand-gradient);
+  color: #fff;
+  border: none;
+}
+.btn-primary:hover {
+    filter: brightness(1.2);
+    box-shadow: 0 0 24px -4px var(--accent-secondary);
+}
+
+/* Unified Form Styles (NEW) */
+.form-group {
+  margin-bottom: var(--spacing-lg);
+}
+.form-group label {
+  display: block;
+  margin-bottom: var(--spacing-sm);
+  font-size: 0.9rem;
+  font-weight: 500;
+  color: var(--text-secondary);
+}
+.form-input {
+  width: 100%;
+  padding: 12px var(--spacing-md);
+  background-color: var(--bg-secondary);
+  border: 1px solid var(--panel-border);
+  border-radius: var(--radius-sm);
+  color: var(--text-primary);
+  font-size: 1rem;
+  transition: var(--transition-fast);
+}
+.form-input:focus {
+  outline: none;
+  border-color: var(--accent-primary);
+  box-shadow: 0 0 0 3px rgba(108, 142, 227, 0.3);
+}
+
+/* Spinner & Loading States */
+.spinner {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  display: inline-block;
+  position: relative;
+  border: 3px solid;
+  border-color: var(--panel-border) var(--panel-border) transparent transparent;
+  animation: rotation 1s linear infinite;
+}
+.spinner::after, .spinner::before {
+  content: '';
+  position: absolute;
+  left: 0; right: 0; top: 0; bottom: 0;
+  margin: auto;
+  border: 3px solid;
+  border-color: transparent transparent var(--accent-primary) var(--accent-primary);
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  animation: rotation-back 0.5s linear infinite;
+  transform-origin: center center;
+}
+@keyframes rotation { to { transform: rotate(360deg); } }
+@keyframes rotation-back { to { transform: rotate(-360deg); } }
+
+
+/* --- 5. UNIFIED SCROLLBAR STYLES --- */
+::-webkit-scrollbar {
+  width: 10px;
+}
+::-webkit-scrollbar-track {
+  background: var(--bg-secondary);
+}
+::-webkit-scrollbar-thumb {
+  background-color: var(--panel-border-hover);
+  border-radius: 10px;
+  border: 2px solid var(--bg-secondary);
+}
+::-webkit-scrollbar-thumb:hover {
+  background-color: var(--accent-primary);
+}
+
+
+/* --- 6. MASTER APPLICATION LAYOUT --- */
+.app-layout {
+    display: grid;
+    grid-template-columns: 260px 1fr 280px;
+    grid-template-rows: 1fr auto;
+    height: 100vh;
+    padding: var(--spacing-lg);
+    gap: var(--spacing-lg);
+}

@@ -1,148 +1,62 @@
-/* client/src/pages/PlayPage.css */
+/* PlayPage.css — lobby / play UI (scoped) */
 
-.game-screen-wrapper {
-  height: 100vh;
-  width: 100vw;
-  position: relative;
-  overflow: hidden;
-}
-.loading-text-centered {
-    width: 100%;
-    height: 100%;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    font-size: 1.5rem;
-    color: white;
-    position: relative;
-    z-index: 1;
+.play-page-container .page-container {
+  max-width: 1200px;
+  padding-top: var(--navbar-height);
 }
 
-/* The Definitive Game Screen Grid */
+/* grid */
 .play-page-grid {
   display: grid;
-  height: 100%;
-  width: 100%;
-  
-  /* --- THIS IS THE FIX --- */
-  /* Add padding to the top to push content below the fixed navbar. */
-  /* Add padding on all sides for breathing room. */
-  padding: 100px 50px 40px 50px; 
-  box-sizing: border-box;
-  /* ---------------------- */
-
-  grid-template-columns: 320px 1fr 320px;
-  grid-template-rows: auto 1fr auto;
-  grid-template-areas:
-    "player-top   board   side-panel"
-    ".            board   side-panel"
-    "player-bottom board   side-panel";
-  gap: 30px 40px; /* row-gap column-gap */
-  position: relative;
-  z-index: 1;
-}
-
-.player-top { grid-area: player-top; display: flex; align-items: flex-end; }
-.player-bottom { grid-area: player-bottom; display: flex; align-items: flex-start; }
-.game-board-area { grid-area: board; display: flex; justify-content: center; align-items: center; }
-.side-panel-area { grid-area: side-panel; display: flex; flex-direction: column; gap: 20px; }
-
-/* --- Player Pod Styling --- */
-.player-pod {
-  display: flex;
+  grid-template-columns: 1fr;
   align-items: center;
-  gap: 15px;
-  background: rgba(0,0,0,0.2);
-  padding: 12px 20px;
-  border-radius: 12px;
-  border: 1px solid transparent;
-  width: 100%;
-  transition: all 0.3s ease;
-  backdrop-filter: blur(5px);
-  -webkit-backdrop-filter: blur(5px);
+  min-height: calc(100vh - var(--navbar-height) - (var(--spacing-xl) * 2));
+  gap: var(--spacing-xxl);
 }
-.player-pod.active {
-  background: rgba(255,255,255,0.08);
-  box-shadow: 0 0 15px rgba(110, 231, 183, 0.2);
-  border-color: rgba(110, 231, 183, 0.3);
-}
-.player-avatar {
-    width: 50px;
-    height: 50px;
-    border-radius: 50%;
-    background-color: var(--slate-light);
-    flex-shrink: 0;
-}
-.player-details { flex-grow: 1; }
-.player-name { font-size: 1.2rem; font-weight: 500; }
-.player-elo { font-size: 0.9rem; color: #B0BEC5; }
-.player-clock {
-  font-size: 1.8rem; font-weight: bold; background-color: #263238;
-  border-radius: 8px; min-width: 110px; text-align: center;
-  position: relative; overflow: hidden; line-height: 50px;
-}
-.player-clock .time-bar {
-  position: absolute; top: 0; left: 0; height: 100%;
-  background-color: #455A64;
-  transition: width 0.5s linear;
-}
-.player-clock .time-text { position: relative; z-index: 1; }
-.player-clock.low-time .time-bar { background-color: #E57373; }
 
-/* --- Game Chat & Actions --- */
-.game-chat {
-  background: rgba(0,0,0,0.2);
-  border-radius: 12px;
-  flex-grow: 1;
-  display: flex;
-  flex-direction: column;
-  padding: 15px;
-  overflow: hidden;
+/* board viewer (hidden on mobile) */
+.play-page-board-viewer { display: none; perspective: 1200px; }
+.play-page-board-viewer > div {
+  transform: rotateY(-30deg) rotateX(10deg) scale(0.9);
+  transition: var(--transition-medium);
+  box-shadow: 0 30px 60px -15px rgba(0,0,0,0.6);
 }
-.chat-body {
-  flex-grow: 1;
-  overflow-y: auto;
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-  padding-right: 5px;
+.play-page-board-viewer:hover > div { transform: rotateY(-5deg) rotateX(5deg) scale(1); }
+
+/* options/lobby */
+.play-options-container,
+.lobby-container { display:flex; flex-direction:column; gap: var(--spacing-xl); width:100%; }
+
+.play-panel, .game-lobby-view { text-align:center; }
+.panel-description { margin-bottom: var(--spacing-xl); }
+
+.time-control-grid {
+  display:grid;
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  gap: var(--spacing-lg);
 }
-.chat-message {
-  padding: 8px 12px;
-  background: #37474E;
-  border-radius: 8px;
-  max-width: 80%;
-  align-self: flex-start;
-  word-wrap: break-word;
+.time-control-card {
+  background-color: var(--bg-secondary);
+  border: 1px solid var(--panel-border);
+  border-radius: var(--radius-md);
+  padding: var(--spacing-lg);
+  cursor: pointer;
+  transition: var(--transition-fast);
 }
-.chat-message strong {
-    font-weight: 600;
+.time-control-card:hover { background-color: var(--panel-bg); border-color: var(--accent-primary); }
+.time-display { font-size: 1.8rem; font-weight:700; color: var(--accent-primary); }
+.time-name { font-size:1rem; color: var(--text-secondary); }
+
+/* lobby specifics */
+.game-lobby-view { padding: var(--spacing-xxl); }
+.lobby-title { font-size:1.6rem; font-weight:700; }
+.lobby-subtitle { font-size:1rem; color:var(--text-secondary); margin-top:-6px; margin-bottom: var(--spacing-lg); }
+
+.link-container { display:flex; width:100%; gap: var(--spacing-md); margin-bottom: var(--spacing-lg); }
+.link-container .form-input { text-align:center; }
+
+/* responsive: show board viewer on large screens */
+@media (min-width: 992px) {
+  .play-page-grid { grid-template-columns: 1.2fr 1fr; }
+  .play-page-board-viewer { display:block; }
 }
-.chat-message.my-message {
-  background: var(--highlight-color);
-  color: var(--mint-dark);
-  align-self: flex-end;
-}
-.chat-form { display: flex; gap: 10px; margin-top: 10px; }
-.chat-form input {
-  flex-grow: 1; background-color: #263238; border: 1px solid var(--grid-lines);
-  border-radius: 6px; color: white; padding: 10px; font-size: 1rem;
-}
-.chat-form button {
-  background-color: #455A64; color: white; border: none;
-  padding: 0 20px; border-radius: 6px; font-weight: bold; cursor: pointer;
-}
-.game-actions-hud {
-  background: rgba(0,0,0,0.2);
-  border-radius: 12px;
-  padding: 15px;
-  display: flex;
-  justify-content: space-around;
-  gap: 10px;
-}
-.game-actions-hud button {
-  flex-grow: 1; background: #455A64; color: white; border: none;
-  padding: 12px; border-radius: 6px; font-weight: bold; cursor: pointer;
-}
-.game-actions-hud button.resign-btn { background-color: #c0392b; }
-.game-actions-hud button:disabled { background-color: #263238; color: #78909C; cursor: not-allowed; }

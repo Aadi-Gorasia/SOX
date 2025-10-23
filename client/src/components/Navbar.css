@@ -1,67 +1,43 @@
 /* client/src/components/Navbar.css */
-
-.global-nav {
-  position: fixed;
-  top: 20px;
-  left: 50%;
-  transform: translateX(-50%);
-  width: 95%;
-  max-width: 1400px;
-  padding: 15px 30px;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  background: rgba(0, 0, 0, 0.25);
-  border-radius: 12px;
-  box-shadow: 0 4px 30px rgba(0, 0, 0, 0.1);
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  z-index: 1000;
-  box-sizing: border-box;
+.dashboard-header {
+    width: 100%;
+    padding: var(--spacing-lg) 0; /* Vertical padding, no horizontal */
+    margin-bottom: var(--spacing-xxl);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 1px solid var(--panel-border);
 }
 
-.nav-logo a {
-  font-size: 1.8rem;
-  font-weight: bold;
-  color: white;
-  text-decoration: none;
+.header-logo a {
+    font-size: 2rem;
+    font-weight: 700;
+    color: var(--text-primary);
+    text-decoration: none;
 }
 
-.nav-links {
-  display: flex;
-  align-items: center;
-  gap: 25px;
+.header-nav {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-xl);
 }
 
-.nav-links a, .nav-button {
-  font-family: 'Poppins', sans-serif;
-  color: white;
-  text-decoration: none;
-  font-weight: 500;
-  padding: 10px 20px;
-  border-radius: 8px;
-  transition: background-color 0.3s, color 0.3s; /* Added color transition */
-  font-size: 1rem;
+.header-nav a, .nav-logout-button {
+    font-size: 1rem;
+    font-weight: 600;
+    color: var(--text-secondary);
+    text-decoration: none;
+    transition: var(--transition-fast);
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 0; /* Remove padding for a cleaner look */
 }
 
-.nav-button {
-  background: none;
-  border: none;
-  cursor: pointer;
+.header-nav a:hover, .nav-logout-button:hover {
+    color: var(--text-primary);
 }
 
-/* --- THIS IS THE FIX --- */
-/* When hovering over any link or button, change BOTH the background and text color */
-.nav-links a:hover,
-.nav-button:hover {
-  background-color: var(--highlight-color);
-  color: var(--mint-dark); /* Use our dark mint color for text */
+.header-nav a.active {
+    color: var(--accent-primary);
 }
-
-/* The primary button has the hover styles by default */
-.nav-button.primary {
-  background-color: red;
-  color: var(--mint-dark);
-}
-/* ----------------------- */

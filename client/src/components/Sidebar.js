@@ -1,52 +1,66 @@
 // client/src/components/Sidebar.js
 import React, { useContext } from 'react';
-import { Link, useNavigate, useLocation } from 'react-router-dom';
+import { NavLink, useNavigate } from 'react-router-dom';
 import { AuthContext } from '../context/AuthContext';
 import './Sidebar.css';
 
 const Sidebar = () => {
   const { isAuthenticated, user, logout } = useContext(AuthContext);
   const navigate = useNavigate();
-  const location = useLocation();
 
   const handleLogout = () => {
     logout();
-    navigate('/');
+    navigate('/'); // Redirect to home page after logout
   };
 
-  // Helper to determine if a link's path is active
-  const isActive = (path) => location.pathname.startsWith(path);
+  // The 'end' prop on NavLink ensures it's only active for the exact path match
+  // The function in 'className' is a feature of NavLink to apply classes conditionally
+  const getNavLinkClass = ({ isActive }) => isActive ? 'nav-link active' : 'nav-link';
+
+  const getProfileLinkClass = ({ isActive }) => isActive ? 'nav-link active' : 'nav-link';
+
 
   return (
-    <div className="sidebar"> {/* Use a simple class name */}
-      <div className="sidebar-logo">
-        <Link to={isAuthenticated ? "/dashboard" : "/"}>SOX</Link>
+    <nav className="main-nav">
+      <header className="nav-header">
+        <div className="hamburger-icon">
+          <div />
+          <div />
+          <div />
+        </div>
+      </header>
+
+      {/* Main navigation links */}
+      <div className="nav-links">
+        <NavLink to="/dashboard" className={getNavLinkClass} end>Home</NavLink>
+        <NavLink to="/play" className={getNavLinkClass}>New Game</NavLink>
+        <NavLink to="/social" className={getNavLinkClass}>Social</NavLink>
+        <NavLink to="/watch" className={getNavLinkClass}>Watch</NavLink>
+        <NavLink to="/news" className={getNavLinkClass}>News</NavLink>
+        <button className="nav-link more-button">...</button>
       </div>
-      <nav className="sidebar-nav">
-        <Link to="/play" className={isActive('/play') ? 'active' : ''}>Play</Link>
-        <Link to="/puzzles" className={isActive('/puzzles') ? 'active' : ''}>Puzzles</Link>
-        <Link to="/learn" className={isActive('/learn') ? 'active' : ''}>Learn</Link>
-        <Link to="/watch" className={isActive('/watch') ? 'active' : ''}>Watch</Link>
-      </nav>
-      <div className="sidebar-footer">
+
+      {/* Footer with user-specific links */}
+      <footer className="nav-footer">
         {isAuthenticated && user ? (
           <>
-            <Link 
+            <NavLink 
               to={`/profile/${user.username}`} 
-              className={`sidebar-button ${isActive(`/profile`) ? 'active-button' : ''}`}
+              className={getProfileLinkClass}
             >
               Profile
-            </Link>
-            <button onClick={handleLogout} className="sidebar-button">Logout</button>
+            </NavLink>
+            <button onClick={handleLogout} className="nav-link">Logout</button>
           </>
         ) : (
           <>
-            <Link to="/register" className="sidebar-button primary">Sign Up</Link>
-            <Link to="/login" className="sidebar-button">Log In</Link>
+            {/* You can add login/signup links here if needed for logged-out users */}
+            <NavLink to="/login" className={getNavLinkClass}>Log In</NavLink>
+            <NavLink to="/register" className={getNavLinkClass}>Sign Up</NavLink>
           </>
         )}
-      </div>
-    </div>
+      </footer>
+    </nav>
   );
 };
 

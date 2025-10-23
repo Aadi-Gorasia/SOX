@@ -1,79 +1,78 @@
 /* client/src/components/Sidebar.css */
 
-.sidebar {
-  display: flex;
-  flex-direction: column;
-  background-color: var(--panel-bg);
-  padding: 30px;
-  border-radius: 12px;
-  height: 100%; /* Make it fill the grid cell's height */
-  box-sizing: border-box; /* Include padding in height calculation */
+.main-nav {
+    grid-row: 1 / 3; /* CRITICAL: Makes the sidebar span both rows of the app layout */
+    background-color: var(--panel-bg);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border: 1px solid var(--panel-border);
+    border-radius: var(--radius-lg);
+    padding: var(--spacing-xl);
+    display: flex;
+    flex-direction: column;
 }
 
-.sidebar-logo {
-  font-size: 2.5rem;
-  font-weight: bold;
-  margin-bottom: 40px;
-}
-.sidebar-logo a {
-  color: var(--text-color);
-  text-decoration: none;
+.nav-header {
+    margin-bottom: var(--spacing-xxl);
 }
 
-.sidebar-nav {
-  display: flex;
-  flex-direction: column;
-  gap: 15px;
-  flex-grow: 1; /* Pushes the footer to the bottom */
-}
-.sidebar-nav a {
-  color: #CFD8DC;
-  text-decoration: none;
-  font-size: 1.2rem;
-  font-weight: 500;
-  padding: 10px;
-  border-radius: 6px;
-  transition: background-color 0.2s, color 0.2s;
-}
-.sidebar-nav a:hover {
-  background-color: #455A64;
-  color: white;
-}
-.sidebar-nav a.active {
-  background-color: #546E7A;
-  color: white;
+.hamburger-icon {
+    width: 28px;
+    height: 24px;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    cursor: pointer;
 }
 
-.sidebar-footer {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
+.hamburger-icon div {
+    width: 100%;
+    height: 4px;
+    background-color: var(--text-primary);
+    border-radius: 2px;
 }
-.sidebar-button {
-  width: 100%;
-  padding: 12px;
-  border-radius: 6px;
-  border: none;
-  font-size: 1rem;
-  font-weight: bold;
-  text-align: center;
-  text-decoration: none;
-  cursor: pointer;
-  background-color: #455A64;
-  color: var(--text-color);
-  transition: background-color 0.2s;
-  box-sizing: border-box;
+
+.nav-links {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-md);
+    flex-grow: 1; /* This is the magic that pushes the footer down */
 }
-.sidebar-button:hover {
-  background-color: #607D8B;
+
+/* This is a unified style for all links and buttons inside the nav */
+.nav-link {
+    display: block;
+    width: 100%;
+    text-decoration: none;
+    color: var(--text-primary);
+    font-size: 1.1rem;
+    font-weight: 600;
+    padding: 12px 18px;
+    border-radius: var(--radius-md);
+    transition: var(--transition-fast);
+    text-align: left; /* Ensures buttons align with links */
+    background: none;
+    border: none;
+    cursor: pointer;
 }
-.sidebar-button.active-button {
-    background-color: #78909C;
+
+.nav-link:hover {
+    background-color: rgba(255, 255, 255, 0.05);
+    color: #fff;
 }
-.sidebar-button.primary {
-  background-color: var(--highlight-color);
-  color: #1a2a29;
+
+.nav-link.active {
+    background-color: var(--panel-border-hover);
+    color: var(--color-win); /* Using your 'win' color for the green accent */
 }
-.sidebar-button.primary:hover {
-  background-color: #81C784;
+
+.more-button {
+    font-size: 1.5rem;
+    line-height: 1;
+}
+
+.nav-footer {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-sm);
 }
