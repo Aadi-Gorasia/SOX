@@ -1,61 +1,410 @@
-/* GamePage.css — game canvas / content area (scoped) */
+/* GamePage.css — Sharp Tactical Theme & Modern Chat */
 
-/* The game-content-container is intended to sit in the middle column of .app-layout */
-.game-content-container {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  width: 100%;
+/* --- ROOT LAYOUT --- */
+.gamepage {
+  flex: 1;
   height: 100%;
+  display: flex;
+  flex-direction: column;
   overflow: hidden;
-  padding: var(--spacing-lg);
+  background: transparent; /* Allows global background to show */
 }
 
-/* Loading state centers spinner */
-.game-content-container.loading {
+.gamepage-inner {
+  width: 100%;
+  height: 100%;
+  max-width: 1800px;
+  margin: 0 auto;
+  padding: 10px;
+  
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+/* =========================================================
+   TOP AREA: MAIN SCREEN (Left) + SIDEBAR (Right)
+   ========================================================= */
+.game-main-area {
+  flex: 1; 
+  display: flex;
+  gap: 12px;
+  min-height: 0; /* Crucial for scrolling */
+}
+
+/* --- LEFT: THE BOARD CONTAINER --- */
+.board-container {
+  flex: 1;
   display: flex;
   align-items: center;
   justify-content: center;
-}
-
-/* Game canvas wrapper */
-.game-canvas {
-  width: 100%;
-  max-width: 960px;
-  height: 100%;
-  max-height: calc(100vh - var(--navbar-height) - 120px);
-  display: grid;
-  grid-template-rows: 1fr auto;
-  gap: var(--spacing-md);
-  align-items: stretch;
-}
-
-/* board area */
-.display-board {
-  background: var(--panel-bg);
+  
+  /* SHARP TACTICAL LOOK */
+  background: rgba(5, 3, 10, 0.5);
   border: 1px solid var(--panel-border);
-  border-radius: var(--radius-md);
-  padding: var(--spacing-md);
-  box-shadow: var(--shadow-card);
+  border-radius: 0px; /* Sharp corners as requested */
+  
+  /* Glow only on the edges */
+  box-shadow: inset 0 0 20px rgba(0,0,0,0.8);
+  
+  position: relative;
+  overflow: hidden;
+}
+
+/* Background Grid (Subtle) */
+.board-container::before {
+  content: "";
+  position: absolute; inset: 0;
+  background-image: 
+    linear-gradient(rgba(100, 200, 255, 0.05) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(100, 200, 255, 0.05) 1px, transparent 1px);
+  background-size: 60px 60px;
+  pointer-events: none;
+}
+
+/* Corner Accents (Decorative "Brackets") */
+.board-container::after {
+  content: "";
+  position: absolute; inset: 0;
+  border: 2px solid transparent;
+  /* Create corner brackets using gradients */
+  background: 
+    linear-gradient(to right, var(--accent-primary) 2px, transparent 2px) 0 0,
+    linear-gradient(to bottom, var(--accent-primary) 2px, transparent 2px) 0 0,
+    linear-gradient(to left, var(--accent-primary) 2px, transparent 2px) 100% 0,
+    linear-gradient(to bottom, var(--accent-primary) 2px, transparent 2px) 100% 0,
+    linear-gradient(to right, var(--accent-primary) 2px, transparent 2px) 0 100%,
+    linear-gradient(to top, var(--accent-primary) 2px, transparent 2px) 0 100%,
+    linear-gradient(to left, var(--accent-primary) 2px, transparent 2px) 100% 100%,
+    linear-gradient(to top, var(--accent-primary) 2px, transparent 2px) 100% 100%;
+  background-repeat: no-repeat;
+  background-size: 20px 20px;
+  opacity: 0.5;
+  pointer-events: none;
+}
+
+.board-shell {
+  position: relative; z-index: 2;
+  
+  /* MAXIMIZE SIZE */
+  height: 100%;
+  width: 100%;
+  padding: 4px; /* Tiny buffer */
+  
+  aspect-ratio: 1/1;
   display: flex;
   align-items: center;
   justify-content: center;
+}
+
+/* --- RIGHT: THE SIDEBAR COLUMN --- */
+.side-column {
+  width: 300px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+/* Generic Panel Style */
+.tech-panel {
+  display: flex;
+  flex-direction: column;
+  background: rgba(12, 10, 25, 0.9);
+  border: 1px solid var(--panel-border);
+  border-radius: 4px;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.5);
   overflow: hidden;
-  transition: var(--transition-medium);
+  backdrop-filter: blur(5px);
 }
-.display-board:hover { transform: translateY(-4px); }
 
-/* controls & info under board */
+.panel-header {
+  padding: 8px 12px;
+  background: rgba(0, 0, 0, 0.4);
+  border-bottom: 1px solid var(--panel-border);
+  
+  font-family: 'Press Start 2P', cursive;
+  font-size: 0.6rem;
+  color: var(--accent-secondary);
+  letter-spacing: 1px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.panel-header::before {
+  content: "";
+  width: 6px; height: 6px;
+  background: var(--accent-secondary);
+  box-shadow: 0 0 5px var(--accent-secondary);
+}
+
+/* --- MODULE 1: HISTORY --- */
+.history-module {
+  flex: 1; /* Takes ~50% of sidebar */
+  min-height: 0;
+}
+.history-content {
+  flex: 1;
+  overflow-y: auto;
+  padding: 10px;
+}
+
+/* --- MODULE 2: GAME CONTROLS --- */
 .game-controls {
-  display:flex;
-  gap: var(--spacing-md);
-  align-items:center;
-  justify-content: space-between;
+  display: flex;
+  gap: 10px;
+  height: 40px;
+  flex-shrink: 0;
 }
-.control-group { display:flex; gap: var(--spacing-sm); align-items:center; }
+.ctrl-btn {
+  flex: 1;
+  background: rgba(20, 20, 35, 0.9);
+  border: 1px solid var(--panel-border);
+  color: #aaa;
+  font-family: 'Press Start 2P', cursive;
+  font-size: 0.6rem;
+  cursor: pointer;
+  transition: all 0.2s;
+  border-radius: 4px;
+}
+.ctrl-btn:hover:not(:disabled) {
+  background: rgba(255,255,255,0.1);
+  color: #fff;
+}
+.ctrl-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+.resign-btn:hover:not(:disabled) {
+  border-color: #ff4444;
+  color: #ff4444;
+  box-shadow: 0 0 10px rgba(255, 68, 68, 0.2);
+}
+.draw-btn:hover:not(:disabled) {
+  border-color: var(--accent-primary);
+  color: var(--accent-primary);
+}
 
-/* small device adjustments */
-@media (max-width: 720px) {
-  .game-canvas { max-width: 100%; gap: var(--spacing-sm); }
-  .game-controls { flex-direction: column; align-items: stretch; gap: var(--spacing-sm); }
+/* --- MODULE 3: CHAT --- */
+.chat-module {
+  flex: 1; /* Takes remaining ~50% of sidebar */
+  min-height: 0;
+}
+
+.chat-messages {
+  flex: 1;
+  overflow-y: auto;
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.system-msg {
+  opacity: 0.5;
+  text-align: center;
+  margin-top: 20px;
+  font-size: 0.7rem;
+  color: #888;
+}
+
+/* Chat Row wrapper */
+.chat-bubble-row {
+  display: flex;
+  width: 100%;
+}
+.row-right { justify-content: flex-end; }
+.row-left { justify-content: flex-start; }
+
+/* The Chat Bubble */
+.chat-bubble {
+  max-width: 85%;
+  padding: 8px 10px;
+  border-radius: 6px;
+  font-family: 'Verdana', sans-serif;
+  font-size: 0.8rem;
+  line-height: 1.4;
+  word-wrap: break-word;
+  position: relative;
+  box-shadow: 0 2px 5px rgba(0,0,0,0.3);
+  display: flex;
+  flex-direction: column;
+}
+
+/* Name Header Inside Bubble */
+.chat-name-header {
+  font-size: 0.6rem;
+  font-weight: bold;
+  margin-bottom: 2px;
+  text-transform: uppercase;
+  opacity: 0.8;
+}
+
+/* My Messages (Right) */
+.bubble-self {
+  background: #232946; 
+  border: 1px solid var(--accent-primary);
+  color: #fff;
+  border-bottom-right-radius: 0;
+}
+.bubble-self .chat-name-header {
+  color: var(--accent-primary);
+  text-align: right;
+}
+
+/* Opponent Messages (Left) */
+.bubble-opp {
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: #ddd;
+  border-bottom-left-radius: 0;
+}
+.bubble-opp .chat-name-header {
+  color: var(--accent-secondary);
+  text-align: left;
+}
+
+.chat-text {
+  word-break: break-word;
+}
+
+/* Chat Input */
+.chat-input-area {
+  padding: 10px;
+  background: rgba(0,0,0,0.3);
+  border-top: 1px solid var(--panel-border);
+}
+
+.chat-input {
+  width: 100%;
+  background: rgba(0,0,0,0.3);
+  border: 1px solid rgba(255,255,255,0.1);
+  color: #fff;
+  padding: 10px;
+  border-radius: 4px;
+  font-family: monospace;
+  font-size: 0.8rem;
+  outline: none;
+  transition: border 0.2s;
+}
+
+.chat-input:focus {
+  border-color: var(--accent-primary);
+  background: rgba(0,0,0,0.5);
+}
+
+/* =========================================================
+   BOTTOM AREA: HUD BAR
+   ========================================================= */
+.game-bottom-hud {
+  height: 90px;
+  flex-shrink: 0;
+  
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 20px;
+  
+  background: rgba(12, 10, 25, 0.95);
+  border: 1px solid var(--panel-border);
+  border-top: 2px solid var(--accent-primary); 
+  border-radius: 4px;
+  box-shadow: 0 10px 40px rgba(0,0,0,0.6);
+}
+
+/* Player Info Block */
+.hud-player-block {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+  min-width: 220px;
+}
+.hud-player-block.right-align {
+  flex-direction: row-reverse;
+  text-align: right;
+}
+
+/* Avatar */
+.hud-avatar {
+  width: 50px; 
+  height: 50px;
+  background: #111;
+  border: 2px solid var(--panel-border);
+  border-radius: 6px;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.hud-avatar-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.hud-details { display: flex; flex-direction: column; gap: 4px; }
+
+.hud-name { 
+  font-family: 'Press Start 2P', cursive; 
+  font-size: 0.9rem;
+  color: #fff;
+  text-transform: uppercase;
+  max-width: 180px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.hud-elo { 
+  font-size: 0.75rem; 
+  color: #888; 
+  font-family: monospace; 
+  font-weight: bold;
+}
+
+/* Timers */
+.hud-timers { display: flex; gap: 30px; }
+
+.hud-timer-box {
+  background: #000;
+  border: 2px solid #333;
+  color: #666;
+  padding: 10px 20px;
+  border-radius: 4px;
+  font-family: 'Press Start 2P', monospace;
+  font-size: 1.4rem; /* Big Timer Font */
+  min-width: 140px;
+  text-align: center;
+  position: relative;
+  transition: all 0.2s;
+}
+
+/* Active Timer State */
+.hud-timer-box.active {
+  color: var(--accent-primary);
+  border-color: var(--accent-primary);
+  box-shadow: 0 0 15px rgba(255, 255, 0, 0.2);
+  transform: scale(1.05);
+}
+
+/* =========================================================
+   SCROLLBARS & RESPONSIVE
+   ========================================================= */
+::-webkit-scrollbar { width: 4px; }
+::-webkit-scrollbar-thumb { background: #444; border-radius: 2px; }
+::-webkit-scrollbar-thumb:hover { background: #666; }
+
+@media (max-width: 900px) {
+  .game-main-area { flex-direction: column; }
+  .side-column { width: 100%; height: 350px; }
+  
+  .game-bottom-hud { 
+    height: auto; 
+    padding: 15px; 
+    flex-direction: column; 
+    gap: 15px; 
+  }
+  
+  .hud-timers { 
+    width: 100%; 
+    justify-content: space-around; 
+  }
 }

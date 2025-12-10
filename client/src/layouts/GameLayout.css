@@ -1,0 +1,16 @@
+.game-layout-wrapper {
+  display: flex;
+  width: 100vw;
+  height: 100vh;
+  overflow: hidden; /* Stop entire page scroll */
+  background: transparent;
+}
+
+.game-layout-main {
+  flex: 1; /* Take all remaining width after Sidebar */
+  height: 100%;
+  overflow: hidden; /* Let GamePage handle its own scrolling */
+  position: relative;
+  display: flex;
+  flex-direction: column;
+}

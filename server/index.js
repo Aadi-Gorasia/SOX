@@ -8,6 +8,7 @@ const mongoose = require('mongoose');
 const { v4: uuidv4 } = require('uuid');
 const jwt = require('jsonwebtoken');
 
+// Import your services
 const { updateEloAndStats } = require('./services/eloService');
 const { saveGameResult } = require('./services/gameService');
 const User = require('./models/User');
@@ -38,12 +39,14 @@ const server = http.createServer(app);
 const io = new Server(server, { cors: { origin: "http://localhost:3000" } });
 
 // In-memory game storage
-const games = new Map();            // gameId -> gameObject
-const waitingPlayers = new Map();  // timeControl -> socket
-const gameIntervals = new Map();   // gameId -> intervalId
+const games = new Map();
+// waitingPlayers: timeControl -> array of { socket, preferredSymbol }
+const waitingPlayers = new Map();
+// gameId -> interval
+const gameIntervals = new Map();
 
 /**
- * Helper: calculate small/overall winner for tic-tac-toe style board
+ * Helper: calculate winner (small board or big board)
  */
 function calculateWinner(squares) {
   const lines = [
@@ -64,22 +67,113 @@ function calculateWinner(squares) {
 }
 
 /**
+ * Helper: clean up on game end
+ */
+async function finalizeGameAndCleanup(game) {
+  // Remove active game mapping for both players
+  try {
+    if (game && game.playerDetails) {
+      game.playerDetails.forEach(p => {
+        if (p && p.id) {
+          activeUserGames.delete(p.id);
+        }
+      });
+    }
+  } catch (err) {
+    console.error('[Server] finalizeGameAndCleanup error (activeUserGames):', err);
+  }
+
+  // Stop timer if running
+  try {
+    if (game && game.id && gameIntervals.has(game.id)) {
+      clearInterval(gameIntervals.get(game.id));
+      gameIntervals.delete(game.id);
+    }
+  } catch (err) {
+    console.error('[Server] finalizeGameAndCleanup error (interval):', err);
+  }
+}
+
+/**
+ * TIMER FIX: central timer function
+ * Runs every second and pushes full game updates.
+ */
+function startGameTimer(gameId) {
+  if (gameIntervals.has(gameId)) return; // Already running
+
+  const loop = setInterval(async () => {
+    const game = games.get(gameId);
+
+    // If no game or already finished, cleanup and stop timer
+    if (!game || game.gameWinner) {
+      if (game) await finalizeGameAndCleanup(game);
+      clearInterval(loop);
+      gameIntervals.delete(gameId);
+      return;
+    }
+
+    // Initialize lastTickTimestamp if missing
+    if (!game.lastTickTimestamp) {
+      game.lastTickTimestamp = Date.now();
+      return;
+    }
+
+    const now = Date.now();
+    const timeElapsed = now - game.lastTickTimestamp;
+    game.lastTickTimestamp = now;
+
+    const activePlayerIndex = game.players.indexOf(game.playerToMove);
+    if (activePlayerIndex === -1) {
+      // No active player right now (e.g. waiting for second player)
+      io.to(gameId).emit('updateGame', game);
+      return;
+    }
+
+    // Decrement active player's clock
+    game.playerTimes[activePlayerIndex] -= timeElapsed;
+    if (game.playerTimes[activePlayerIndex] < 0) {
+      game.playerTimes[activePlayerIndex] = 0;
+    }
+
+    // Handle timeout
+    if (game.playerTimes[activePlayerIndex] === 0 && !game.gameWinner) {
+      const winnerIndex = 1 - activePlayerIndex;
+      game.gameWinner = winnerIndex === 0 ? 'X' : 'O';
+
+      try {
+        const winnerUserId = game.playerDetails[winnerIndex]?.id;
+        const loserUserId = game.playerDetails[activePlayerIndex]?.id;
+        if (winnerUserId && loserUserId) {
+          await updateEloAndStats(winnerUserId, loserUserId, false);
+        }
+        await saveGameResult(game);
+      } catch (err) {
+        console.error('[Timer] Error saving timeout result:', err);
+      }
+
+      await finalizeGameAndCleanup(game);
+    }
+
+    // Push full game state every second so client timer updates
+    io.to(gameId).emit('updateGame', game);
+  }, 1000);
+
+  gameIntervals.set(gameId, loop);
+}
+
+/**
  * Socket auth middleware
- * Expects token in socket.handshake.auth.token
  */
 io.use((socket, next) => {
   const token = socket.handshake.auth && socket.handshake.auth.token;
   if (!token) {
-    console.warn('[Socket.IO] Authentication error: No token provided.');
     return next(new Error('Authentication error: No token provided.'));
   }
   try {
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    // decoded.user expected shape: { id: '...' }
     socket.userId = decoded.user.id;
     return next();
   } catch (err) {
-    console.warn('[Socket.IO] Authentication error: Token invalid.', err);
     return next(new Error('Authentication error: Token is not valid.'));
   }
 });
@@ -89,58 +183,73 @@ io.on('connection', (socket) => {
 
   /**
    * FIND GAME (matchmaking)
-   * Payload: { timeControl: "5+2" } (string)
    */
-  socket.on('findGame', async ({ timeControl }) => {
+  socket.on('findGame', async ({ timeControl, preferredSymbol }) => {
     try {
       if (!timeControl) {
         socket.emit('error', 'Time control not specified.');
         return;
       }
+      if (!['X', 'O'].includes(preferredSymbol)) {
+        preferredSymbol = null;
+      }
 
-      // If there's a waiting player for the same timeControl, pair them
-      if (waitingPlayers.has(timeControl)) {
-        const player1Socket = waitingPlayers.get(timeControl);
-        // if the waiting socket disconnected in-between, remove and set this socket as waiting
-        if (!player1Socket || player1Socket.disconnected) {
+      const queue = waitingPlayers.get(timeControl) || [];
+      const opponent = queue.find(p => p.socket && !p.socket.disconnected);
+
+      // If there's a waiting player, pair them
+      if (opponent) {
+        // Remove opponent from queue
+        const newQueue = queue.filter(p => p.socket.id !== opponent.socket.id);
+        if (newQueue.length > 0) {
+          waitingPlayers.set(timeControl, newQueue);
+        } else {
           waitingPlayers.delete(timeControl);
-          waitingPlayers.set(timeControl, socket);
-          socket.emit('waitingForOpponent');
-          return;
         }
 
-        // Remove waiting entry
-        waitingPlayers.delete(timeControl);
+        const player1Socket = opponent.socket;
+        const player2Socket = socket;
+        let p1Symbol, p2Symbol;
 
-        // Create game
-        const gameId = uuidv4();
-        const players = [player1Socket.id, socket.id];
+        // Assign symbols
+        if (preferredSymbol && opponent.preferredSymbol && preferredSymbol !== opponent.preferredSymbol) {
+          p1Symbol = opponent.preferredSymbol;
+          p2Symbol = preferredSymbol;
+        } else {
+          if (Math.random() < 0.5) {
+            p1Symbol = 'X';
+            p2Symbol = 'O';
+          } else {
+            p1Symbol = 'O';
+            p2Symbol = 'X';
+          }
+        }
 
-        // fetch user data for both players
-        const [player1, player2] = await Promise.all([
-          User.findById(player1Socket.userId).select('username elo'),
-          User.findById(socket.userId).select('username elo')
+        const playersInOrder = p1Symbol === 'X' ? [player1Socket, player2Socket] : [player2Socket, player1Socket];
+
+        const [playerX, playerO] = await Promise.all([
+          User.findById(playersInOrder[0].userId).select('username elo'),
+          User.findById(playersInOrder[1].userId).select('username elo')
         ]);
 
-        if (!player1 || !player2) {
-          // this is unexpected but handle gracefully
-          socket.emit('error', 'Could not find player data for matchmaking.');
-          player1Socket.emit('error', 'Could not find player data for matchmaking.');
+        if (!playerX || !playerO) {
+          socket.emit('error', 'Could not find player data.');
           return;
         }
 
-        const timeParts = (timeControl || '5+0').split('+');
+        const gameId = uuidv4();
+        const timeParts = timeControl.split('+');
         const initialTime = parseInt(timeParts[0], 10) * 60 * 1000;
         const increment = parseInt(timeParts[1] || '0', 10) * 1000;
 
         const newGame = {
           id: gameId,
-          players, // socket ids
+          players: playersInOrder.map(s => s.id), // socket IDs
           playerDetails: [
-            { id: player1._id.toString(), username: player1.username, elo: player1.elo },
-            { id: player2._id.toString(), username: player2.username, elo: player2.elo }
+            { id: playerX._id.toString(), username: playerX.username, elo: playerX.elo }, // X
+            { id: playerO._id.toString(), username: playerO.username, elo: playerO.elo }  // O
           ],
-          playerToMove: players[0], // socket id who moves first
+          playerToMove: playersInOrder[0].id, // socket id of X
           allBoards: Array(9).fill(null).map(() => Array(9).fill(null)),
           boardWinners: Array(9).fill(null),
           activeBoard: null,
@@ -148,98 +257,27 @@ io.on('connection', (socket) => {
           timeControl: { base: initialTime, increment },
           playerTimes: [initialTime, initialTime],
           lastMoveTimestamp: Date.now(),
+          lastTickTimestamp: Date.now(), // TIMER FIX
           chat: [],
+          moves: [], // History Init
           drawOffer: null,
         };
 
-        // save game
         games.set(gameId, newGame);
-        activeUserGames.set(player1Socket.userId, gameId);
-        activeUserGames.set(socket.userId, gameId);
+        activeUserGames.set(playerX._id.toString(), gameId);
+        activeUserGames.set(playerO._id.toString(), gameId);
 
-        // join sockets to room
-        player1Socket.join(gameId);
-        socket.join(gameId);
+        playersInOrder.forEach(sock => sock.join(gameId));
 
-        // emit initial notifications
         io.to(gameId).emit('gameStarted', { gameId });
-        // IMPORTANT: send full game state immediately so clients don't wait
         io.to(gameId).emit('updateGame', newGame);
 
-        // start loop for this game
-        const gameLoop = setInterval(async () => {
-          const game = games.get(gameId);
-          if (!game || game.gameWinner) {
-            if (game) {
-              // cleanup user->game mapping (playerDetails contain user ids)
-              try {
-                const p0Id = game.playerDetails?.[0]?.id;
-                const p1Id = game.playerDetails?.[1]?.id;
-                if (p0Id) activeUserGames.delete(p0Id);
-                if (p1Id) activeUserGames.delete(p1Id);
-              } catch (err) {
-                console.warn('[GameLoop] cleanup mapping error', err);
-              }
-            }
-            clearInterval(gameLoop);
-            gameIntervals.delete(gameId);
-            return;
-          }
-
-          const now = Date.now();
-          const timeElapsed = now - (game.lastMoveTimestamp || now);
-          const activePlayerIndex = game.players.indexOf(game.playerToMove);
-
-          if (activePlayerIndex !== -1) {
-            game.playerTimes[activePlayerIndex] -= timeElapsed;
-            if (game.playerTimes[activePlayerIndex] < 0) {
-              game.playerTimes[activePlayerIndex] = 0;
-            }
-          }
-          game.lastMoveTimestamp = now;
-
-          // timeout detection
-          if (activePlayerIndex !== -1 && game.playerTimes[activePlayerIndex] <= 0) {
-            // If one player's time hit zero -> opponent wins
-            const winnerIndex = activePlayerIndex === 0 ? 1 : 0;
-            game.gameWinner = winnerIndex === 0 ? 'X' : 'O';
-            // winner/loser are by playerDetails user ids
-            const winnerUserId = game.playerDetails[winnerIndex]?.id;
-            const loserUserId = game.playerDetails[activePlayerIndex]?.id;
-
-            try {
-              if (winnerUserId && loserUserId) {
-                await updateEloAndStats(winnerUserId, loserUserId, false);
-              }
-              await saveGameResult(game);
-            } catch (err) {
-              console.error('[GameLoop] Error saving result after timeout', err);
-            }
-          }
-
-          // broadcast current state (time updates, game updates)
-          io.to(gameId).emit('updateGame', game);
-          io.to(gameId).emit('timeUpdate', { playerTimes: game.playerTimes });
-
-          // if gameWinner set during processing, cleanup
-          if (game.gameWinner) {
-            try {
-              const p0Id = game.playerDetails?.[0]?.id;
-              const p1Id = game.playerDetails?.[1]?.id;
-              if (p0Id) activeUserGames.delete(p0Id);
-              if (p1Id) activeUserGames.delete(p1Id);
-            } catch (err) {
-              console.warn('[GameLoop] cleanup mapping error after finish', err);
-            }
-            clearInterval(gameLoop);
-            gameIntervals.delete(gameId);
-          }
-        }, 1000);
-
-        gameIntervals.set(gameId, gameLoop);
+        // TIMER FIX: Start timer loop
+        startGameTimer(gameId);
       } else {
-        // No waiting player for this timeControl: become the waiting player
-        waitingPlayers.set(timeControl, socket);
+        const currentQueue = waitingPlayers.get(timeControl) || [];
+        currentQueue.push({ socket, preferredSymbol });
+        waitingPlayers.set(timeControl, currentQueue);
         socket.emit('waitingForOpponent');
       }
     } catch (err) {
@@ -250,10 +288,8 @@ io.on('connection', (socket) => {
 
   /**
    * CREATE FRIEND GAME
-   * Payload: { timeControl: '5+0' }
-   * Callback: ( { gameId } ) => {}
    */
-  socket.on('createFriendGame', async ({ timeControl }, callback) => {
+  socket.on('createFriendGame', async ({ timeControl, preferredSymbol }, callback) => {
     try {
       const gameId = uuidv4();
       const player1 = await User.findById(socket.userId).select('username elo');
@@ -261,54 +297,57 @@ io.on('connection', (socket) => {
         if (callback) callback({ error: 'Could not find creator data.' });
         return;
       }
+      if (!['X', 'O'].includes(preferredSymbol)) preferredSymbol = 'X';
 
-      const timeParts = (timeControl || '5+0').split('+');
+      const timeParts = timeControl.split('+');
       const initialTime = parseInt(timeParts[0], 10) * 60 * 1000;
       const increment = parseInt(timeParts[1] || '0', 10) * 1000;
 
+      const playerDetails = preferredSymbol === 'X'
+        ? [{ id: player1._id.toString(), username: player1.username, elo: player1.elo }, null]
+        : [null, { id: player1._id.toString(), username: player1.username, elo: player1.elo }];
+
+      const players = preferredSymbol === 'X' ? [socket.id, null] : [null, socket.id];
+
       const newGame = {
         id: gameId,
-        players: [socket.id, null], // second player will join later
-        playerDetails: [
-          { id: player1._id.toString(), username: player1.username, elo: player1.elo },
-          null
-        ],
-        playerToMove: socket.id,
+        players,
+        playerDetails,
+        playerToMove: preferredSymbol === 'X' ? socket.id : null, // socket id of X or null
         allBoards: Array(9).fill(null).map(() => Array(9).fill(null)),
         boardWinners: Array(9).fill(null),
         activeBoard: null,
         gameWinner: null,
         timeControl: { base: initialTime, increment },
         playerTimes: [initialTime, initialTime],
-        lastMoveTimestamp: null, // will be set when second player joins
+        lastMoveTimestamp: null,
+        lastTickTimestamp: null, // TIMER FIX
         chat: [],
+        moves: [], // History Init
         drawOffer: null
       };
 
       games.set(gameId, newGame);
       socket.join(gameId);
 
-      // return gameId to creator
+      if (preferredSymbol === 'X') {
+        activeUserGames.set(player1._id.toString(), gameId);
+      }
+
       if (callback && typeof callback === 'function') {
         callback({ gameId });
       }
     } catch (err) {
       console.error('[Socket] createFriendGame error:', err);
-      if (callback && typeof callback === 'function') callback({ error: 'Error creating friend game.' });
     }
   });
 
   /**
-   * JOIN GAME (friend game or reconnect)
-   * Payload: gameId (string)
-   * --- THIS HANDLER IS FIXED ---
+   * JOIN GAME
    */
   socket.on('joinGame', async (gameId) => {
     try {
-      if (!gameId) {
-        socket.emit('error', 'Game ID not provided.');
-        return;
-      }
+      if (!gameId) return;
       const game = games.get(gameId);
       if (!game) {
         socket.emit('error', 'Game not found.');
@@ -316,145 +355,137 @@ io.on('connection', (socket) => {
       }
 
       const joiningUserId = socket.userId;
-      const playerIndexInGame = game.playerDetails.findIndex(p => p && p.id === joiningUserId);
+      const existingPlayerIndex = game.playerDetails.findIndex(p => p && p.id === joiningUserId);
+      const emptySlotIndex = game.players.findIndex(p => p === null);
 
-      // Case 1: Joining a friend game where the second slot is empty
-      if (game.players[1] === null && playerIndexInGame === -1) {
-        const player2 = await User.findById(joiningUserId).select('username elo');
-        if (!player2) {
-          socket.emit('error', 'Could not find player data.');
-          return;
+      if (emptySlotIndex !== -1 && existingPlayerIndex === -1) {
+        const joiningPlayer = await User.findById(joiningUserId).select('username elo');
+        if (!joiningPlayer) return;
+
+        game.players[emptySlotIndex] = socket.id;
+        game.playerDetails[emptySlotIndex] = {
+          id: joiningPlayer._id.toString(),
+          username: joiningPlayer.username,
+          elo: joiningPlayer.elo
+        };
+
+        if (!game.playerToMove) {
+          // If no one had the move yet, assign to whoever joined (preserve X/O by index)
+          game.playerToMove = socket.id;
         }
 
-        game.players[1] = socket.id;
-        game.playerDetails[1] = { id: player2._id.toString(), username: player2.username, elo: player2.elo };
         game.lastMoveTimestamp = Date.now();
+        game.lastTickTimestamp = Date.now();
 
         socket.join(gameId);
-        activeUserGames.set(joiningUserId, gameId);
-        io.to(game.players[0]).emit('friendJoined', { gameId: game.id });
-        io.to(gameId).emit('updateGame', game);
+        if (game.playerDetails[0]?.id) activeUserGames.set(game.playerDetails[0].id, gameId);
+        if (game.playerDetails[1]?.id) activeUserGames.set(game.playerDetails[1].id, gameId);
 
-        // Start the game loop for this friend game
-        const gameLoop = setInterval(async () => {
-          const currentGame = games.get(gameId);
-          if (!currentGame || currentGame.gameWinner) {
-            clearInterval(gameLoop);
-            gameIntervals.delete(gameId);
-            return;
-          }
-          const now = Date.now();
-          const timeElapsed = now - (currentGame.lastMoveTimestamp || now);
-          const activePlayerIndex = currentGame.players.indexOf(currentGame.playerToMove);
-          if (activePlayerIndex !== -1) {
-            currentGame.playerTimes[activePlayerIndex] -= timeElapsed;
-            if (currentGame.playerTimes[activePlayerIndex] < 0) {
-              currentGame.playerTimes[activePlayerIndex] = 0;
-              const winnerIndex = 1 - activePlayerIndex;
-              currentGame.gameWinner = winnerIndex === 0 ? 'X' : 'O';
-              try {
-                const winnerId = currentGame.playerDetails[winnerIndex]?.id;
-                const loserId = currentGame.playerDetails[activePlayerIndex]?.id;
-                if (winnerId && loserId) await updateEloAndStats(winnerId, loserId, false);
-                await saveGameResult(currentGame);
-              } catch (err) {
-                console.error('[FriendGameLoop] error saving result after timeout', err);
-              }
-            }
-          }
-          currentGame.lastMoveTimestamp = now;
-          io.to(gameId).emit('updateGame', currentGame);
-          io.to(gameId).emit('timeUpdate', { playerTimes: currentGame.playerTimes });
-          if (currentGame.gameWinner) {
-            clearInterval(gameLoop);
-            gameIntervals.delete(gameId);
-          }
-        }, 1000);
-        gameIntervals.set(gameId, gameLoop);
+        io.to(game.id).emit('friendJoined', { gameId: game.id });
+        io.to(game.id).emit('updateGame', game);
+
+        // TIMER FIX: Start timer loop for friend game once both are in
+        startGameTimer(gameId);
       }
-      // Case 2: Reconnecting or joining a game you are already part of
-      else if (playerIndexInGame !== -1) {
-        const oldSocketId = game.players[playerIndexInGame];
+      else if (existingPlayerIndex !== -1) {
+        const oldSocketId = game.players[existingPlayerIndex];
         if (oldSocketId !== socket.id) {
-          console.log(`[Game ${gameId}] Player ${joiningUserId} reconnected. Socket ID ${oldSocketId} -> ${socket.id}`);
-          game.players[playerIndexInGame] = socket.id;
+          game.players[existingPlayerIndex] = socket.id;
           if (game.playerToMove === oldSocketId) {
             game.playerToMove = socket.id;
           }
         }
         socket.join(gameId);
         activeUserGames.set(joiningUserId, gameId);
-        socket.emit('updateGame', game); // Send current state to the reconnected player
+        socket.emit('updateGame', game);
+
+        // Make sure timer is running if game is active
+        if (!game.gameWinner) {
+          if (!game.lastTickTimestamp) game.lastTickTimestamp = Date.now();
+          startGameTimer(gameId);
+        }
       }
-      // Case 3: Invalid join attempt
       else {
         socket.emit('error', 'This game is full or you are not a player in it.');
       }
     } catch (err) {
       console.error('[Socket] joinGame error:', err);
-      socket.emit('error', 'Error joining game.');
     }
   });
 
   /**
    * MAKE MOVE
-   * Payload: { gameId, boardIndex, cellIndex }
    */
   socket.on('makeMove', async ({ gameId, boardIndex, cellIndex }) => {
     try {
       const game = games.get(gameId);
-      if (!game) return;
-
-      // validations
-      if (game.gameWinner) return;
+      if (!game || game.gameWinner) return;
       if (socket.id !== game.playerToMove) return;
-      if (game.boardWinners[boardIndex]) return; // small board already won
-      if (game.allBoards[boardIndex][cellIndex]) return; // cell occupied
+      if (game.boardWinners[boardIndex]) return;
+      if (game.allBoards[boardIndex][cellIndex]) return;
 
       const playerIndex = game.players.indexOf(socket.id);
-      const opponentIndex = playerIndex === 0 ? 1 : 0;
+      if (playerIndex === -1) return;
+      const opponentIndex = 1 - playerIndex;
+      const symbol = playerIndex === 0 ? 'X' : 'O';
 
-      // increment clock of player who just moved
+      // Add increment for the player who just moved
       game.playerTimes[playerIndex] += game.timeControl.increment;
 
-      const playerMark = playerIndex === 0 ? 'X' : 'O';
-      game.allBoards[boardIndex][cellIndex] = playerMark;
+      // Place move
+      game.allBoards[boardIndex][cellIndex] = symbol;
 
-      // check small board result
+      // Push to history
+      if (!game.moves) game.moves = [];
+      game.moves.push({
+        player: symbol,
+        boardIndex,
+        cellIndex,
+        moveNumber: game.moves.length + 1,
+        timestamp: new Date()
+      });
+
+      // Small board result
       const smallBoardResult = calculateWinner(game.allBoards[boardIndex]);
       if (smallBoardResult) {
         game.boardWinners[boardIndex] = smallBoardResult.winner;
       }
 
-      // check overall result
+      // Big board result
       const gameResult = calculateWinner(game.boardWinners);
       if (gameResult) {
         game.gameWinner = gameResult.winner;
         try {
-          await saveGameResult(game);
+          const p1Id = game.playerDetails[0].id;
+          const p2Id = game.playerDetails[1].id;
+
           if (game.gameWinner !== 'D') {
-            const winnerId = game.playerDetails[playerIndex].id;
-            const loserId = game.playerDetails[opponentIndex].id;
+            const winnerId = game.gameWinner === 'X' ? p1Id : p2Id;
+            const loserId = game.gameWinner === 'X' ? p2Id : p1Id;
             await updateEloAndStats(winnerId, loserId, false);
           } else {
-            await updateEloAndStats(game.playerDetails[0].id, game.playerDetails[1].id, true);
+            await updateEloAndStats(p1Id, p2Id, true);
           }
+          await saveGameResult(game);
         } catch (err) {
-          console.error('[makeMove] error updating elo / saving result', err);
+          console.error('[Socket] makeMove saveGameResult error:', err);
         }
+        await finalizeGameAndCleanup(game);
       }
 
-      // determine next activeBoard
-      const nextBoardIsWonOrFull = game.boardWinners[cellIndex] !== null || game.allBoards[cellIndex].every(Boolean);
+      // Decide next active board
+      const nextBoardIsWonOrFull =
+        game.boardWinners[cellIndex] !== null ||
+        game.allBoards[cellIndex].every(c => c !== null);
       game.activeBoard = nextBoardIsWonOrFull ? null : cellIndex;
 
-      // swap turn
+      // Switch player
       if (!game.gameWinner) {
         game.playerToMove = game.players[opponentIndex];
       }
 
-      // update lastMoveTimestamp to now (tick loop will use this)
       game.lastMoveTimestamp = Date.now();
+      if (!game.lastTickTimestamp) game.lastTickTimestamp = Date.now();
 
       io.to(gameId).emit('updateGame', game);
     } catch (err) {
@@ -464,7 +495,6 @@ io.on('connection', (socket) => {
 
   /**
    * RESIGN
-   * Payload: { gameId }
    */
   socket.on('resign', async ({ gameId }) => {
     try {
@@ -474,21 +504,19 @@ io.on('connection', (socket) => {
       const resigningPlayerIndex = game.players.indexOf(socket.id);
       if (resigningPlayerIndex === -1) return;
 
-      const winningPlayerIndex = resigningPlayerIndex === 0 ? 1 : 0;
+      const winningPlayerIndex = 1 - resigningPlayerIndex;
       game.gameWinner = winningPlayerIndex === 0 ? 'X' : 'O';
 
       const winnerId = game.playerDetails[winningPlayerIndex]?.id;
       const loserId = game.playerDetails[resigningPlayerIndex]?.id;
-
       try {
-        if (winnerId && loserId) {
-          await updateEloAndStats(winnerId, loserId, false);
-        }
+        if (winnerId && loserId) await updateEloAndStats(winnerId, loserId, false);
         await saveGameResult(game);
       } catch (err) {
-        console.error('[resign] error updating elo / saving result', err);
+        console.error('[Socket] resign saveGameResult error:', err);
       }
 
+      await finalizeGameAndCleanup(game);
       io.to(gameId).emit('updateGame', game);
     } catch (err) {
       console.error('[Socket] resign error:', err);
@@ -497,21 +525,24 @@ io.on('connection', (socket) => {
 
   /**
    * CHAT
-   * Payload: { gameId, message }
    */
   socket.on('sendChatMessage', ({ gameId, message }) => {
     try {
       const game = games.get(gameId);
       if (game && socket.userId) {
-        // find player detail by userId (playerDetails store user ids)
-        const playerDetail = game.playerDetails.find(p => p && p.id === socket.userId);
+        const playerDetail = game.playerDetails.find(
+          p => p && String(p.id) === String(socket.userId)
+        );
+
         if (playerDetail) {
-          const chatMessage = { sender: playerDetail.username, text: message, timestamp: new Date() };
-          game.chat.push(chatMessage);
+          if (!game.chat) game.chat = [];
+          game.chat.push({
+            userId: socket.userId,
+            user: playerDetail.username,
+            text: message,
+            timestamp: new Date()
+          });
           io.to(gameId).emit('updateGame', game);
-        } else {
-          // User not found in this game's playerDetails -> ignore
-          socket.emit('error', 'You are not part of this game chat.');
         }
       }
     } catch (err) {
@@ -528,10 +559,7 @@ io.on('connection', (socket) => {
       if (game && !game.gameWinner) {
         game.drawOffer = socket.id;
         const opponentSocketId = game.players.find(pId => pId !== socket.id);
-        if (opponentSocketId) {
-          io.to(opponentSocketId).emit('drawOffered');
-        }
-        // broadcast state so UI can reflect draw offer
+        if (opponentSocketId) io.to(opponentSocketId).emit('drawOffered');
         io.to(gameId).emit('updateGame', game);
       }
     } catch (err) {
@@ -542,15 +570,16 @@ io.on('connection', (socket) => {
   socket.on('acceptDraw', async (gameId) => {
     try {
       const game = games.get(gameId);
-      if (game && game.drawOffer && game.drawOffer !== socket.id) {
-        // Mark draw
+      if (game && game.drawOffer && game.drawOffer !== socket.id && !game.gameWinner) {
         game.gameWinner = 'D';
         try {
           await saveGameResult(game);
           await updateEloAndStats(game.playerDetails[0].id, game.playerDetails[1].id, true);
         } catch (err) {
-          console.error('[acceptDraw] error saving draw result', err);
+          console.error('[Socket] acceptDraw saveGameResult error:', err);
         }
+
+        await finalizeGameAndCleanup(game);
         io.to(gameId).emit('updateGame', game);
       }
     } catch (err) {
@@ -571,23 +600,20 @@ io.on('connection', (socket) => {
   });
 
   /**
-   * TIME UPDATE (optional client emitted)
-   * If client chooses to emit time updates, handle carefully.
-   * We will trust server authoritative time, but support a client request
-   * to sync times for UI purposes: payload { gameId, playerTimes: [ms, ms] }
+   * TIME UPDATE (Optional client sync – server timer is authoritative now)
    */
   socket.on('updateTime', ({ gameId, playerTimes }) => {
     try {
       const game = games.get(gameId);
-      if (!game) return;
-      // Basic validation: ensure arrays and lengths correct
-      if (!Array.isArray(playerTimes) || playerTimes.length !== 2) return;
-      // Overwrite server's playerTimes ONLY if this socket is part of the game.
-      if (!game.players.includes(socket.id)) return;
-      // For safety, only set for UI sync — do not allow negative values
-      game.playerTimes = playerTimes.map(t => (typeof t === 'number' && t >= 0 ? t : 0));
-      // Broadcast the authoritative time update (clients will still be reconciled by server loop)
-      io.to(gameId).emit('timeUpdate', { playerTimes: game.playerTimes });
+      if (
+        game &&
+        Array.isArray(playerTimes) &&
+        playerTimes.length === 2 &&
+        game.players.includes(socket.id)
+      ) {
+        game.playerTimes = playerTimes.map(t => Math.max(0, Number(t) || 0));
+        io.to(gameId).emit('updateGame', game);
+      }
     } catch (err) {
       console.error('[Socket] updateTime error:', err);
     }
@@ -598,24 +624,19 @@ io.on('connection', (socket) => {
    */
   socket.on('disconnect', () => {
     try {
-      console.log(`[Socket.IO] User Disconnected: socketId=${socket.id}, userId=${socket.userId}`);
-
-      // If this socket was waiting for a match, remove it
-      for (const [tc, waitSock] of waitingPlayers.entries()) {
-        if (waitSock && waitSock.id === socket.id) {
-          waitingPlayers.delete(tc);
-          break;
-        }
+      console.log(`[Socket.IO] User Disconnected: ${socket.id}`);
+      // Remove from waiting queues
+      for (const [tc, queue] of waitingPlayers.entries()) {
+        const newQueue = queue.filter(p => p.socket.id !== socket.id);
+        if (newQueue.length > 0) waitingPlayers.set(tc, newQueue);
+        else waitingPlayers.delete(tc);
       }
-
-      // For active games, we keep the game state for a while to allow reconnects.
-      // The robust `joinGame` handler will manage the reconnection logic.
+      // Note: active games remain; reconnection is handled by joinGame.
     } catch (err) {
-      console.error('[Socket] disconnect handler error:', err);
+      console.error('[Socket] disconnect error:', err);
     }
   });
 });
 
-// Server start
 const PORT = process.env.PORT || 5000;
 server.listen(PORT, () => console.log(`[Server] is running on port ${PORT}`));

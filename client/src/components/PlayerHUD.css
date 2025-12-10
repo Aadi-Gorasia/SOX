@@ -1,94 +1,71 @@
-/* client/src/components/PlayerHUD.css */
+/* PlayerHUD.css — capsule timer + metadata */
 
-.player-hud-container {
-    /* CRITICAL: This positions the component in the master grid */
-    grid-column: 2 / 4; /* Span the center and right columns */
-    grid-row: 2 / 3;    /* Place it in the bottom row */
-
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    background-color: var(--panel-bg);
-    backdrop-filter: blur(16px);
-    -webkit-backdrop-filter: blur(16px);
-    border: 1px solid var(--panel-border);
-    border-radius: var(--radius-lg);
-    padding: var(--spacing-md) var(--spacing-xl);
+.hud-player {
+  display:flex;
+  flex-direction: column;
+  gap: 0.45rem;
+  width: 46%;
 }
 
-.player-hud-container.placeholder {
-    /* A style to make it invisible but still occupy space while loading */
-    opacity: 0;
+.hud-player.left { align-items: flex-start; }
+.hud-player.right { align-items: flex-end; }
+
+.player-meta {
+  display:flex;
+  flex-direction: column;
+  gap: 0.05rem;
+  text-align: left;
+}
+.hud-player.right .player-meta { text-align: right; }
+
+.player-name {
+  color: var(--text-primary);
+  font-weight: 700;
+  font-size: 1.05rem;
+  text-shadow: 0 0 6px rgba(111,83,255,0.12);
+}
+.player-elo {
+  color: var(--text-secondary);
+  font-size: 0.85rem;
 }
 
-.player-info {
-    color: var(--text-primary);
-    width: 200px; /* Give it a fixed width to prevent layout shifts */
+/* Capsule timer */
+.hud-timer-capsule {
+  display:flex;
+  align-items:center;
+  gap: 0.7rem;
 }
 
-.player-info.left {
-    text-align: left;
+.capsule-bar-outer {
+  position: relative;
+  background: rgba(255,255,255,0.04);
+  border: 1px solid var(--panel-border);
+  border-radius: 999px;
+  height: 22px;
+  width: 180px;
+  overflow: hidden;
 }
-.player-info.right {
-    text-align: right;
-}
-
-.player-info h3 {
-    margin: 0;
-    font-size: 1.2rem;
-    font-weight: 600;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-}
-
-.player-info span {
-    font-size: 1rem;
-    color: var(--text-secondary);
+.capsule-bar-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #6f53ff, #4effd2);
+  box-shadow: 0 0 8px rgba(78,255,210,0.12);
+  transition: width 0.3s linear;
 }
 
-.clocks-container {
-    display: flex;
-    gap: var(--spacing-lg);
+/* time text inside capsule */
+.capsule-time {
+  background: linear-gradient(90deg,#220a3d,#2d134f);
+  color: var(--text-primary);
+  padding: 0.25rem 0.6rem;
+  border-radius: 10px;
+  border: 1px solid var(--panel-border);
+  font-weight: 700;
+  font-size: 0.9rem;
+  box-shadow: 0 0 6px rgba(0,0,0,0.5);
 }
 
-.clock-wrapper {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    opacity: 0.6; /* Inactive clocks are dimmed */
-    transition: var(--transition-medium);
-}
-
-.clock-wrapper.active {
-    opacity: 1; /* Active clock is fully visible */
-    transform: scale(1.05);
-}
-
-.clock-time {
-    background-color: var(--bg-primary);
-    padding: var(--spacing-sm) var(--spacing-xl);
-    border-radius: var(--radius-md);
-    font-size: 1.5rem;
-    font-weight: 700;
-    margin-bottom: var(--spacing-sm);
-    font-family: 'Roboto Mono', monospace;
-    color: var(--text-primary);
-    border: 1px solid var(--panel-border);
-}
-
-.time-bar {
-    width: 140px;
-    height: 8px;
-    background-color: var(--bg-primary);
-    border-radius: 4px;
-    overflow: hidden;
-    border: 1px solid var(--panel-border);
-}
-
-.time-bar-fill {
-    height: 100%;
-    background-color: var(--color-win); /* Using 'win' color for the green bar */
-    border-radius: 4px;
-    transition: width 0.5s linear; /* Smooth transition for time decrease */
+/* active state highlight */
+.hud-player.active .capsule-time {
+  box-shadow: 0 0 14px rgba(78,255,210,0.15), 0 0 6px rgba(111,83,255,0.1);
+  border-color: var(--mint);
 }

@@ -1,52 +1,80 @@
 /* ==========================================================================
-   App.css — MASTER DESIGN SYSTEM (dark + optional light theme)
+   App.css — MASTER DESIGN SYSTEM (90s PIXEL ARCADE THEME)
    ========================================================================== */
+
+/* --- ADD THIS SECTION AT THE TOP --- */
+/* This is the definitive fix for the static background issue. */
+
+/*
+  The #root div is what React uses to render the entire app.
+  We must make it transparent.
+*/
+#root {
+  background: transparent;
+}
+
+/*
+  The .App div is the main wrapper from your App.js. We make it
+  transparent AND give it a z-index to lift all content
+  ABOVE the animated background.
+*/
+.App {
+  background: transparent;
+  position: relative; /* This is required for z-index to work */
+  z-index: 1;         /* Lifts the content layer up */
+}
+
+/* ------------------------------------- */
+
+
+/* Import the quintessential pixel arcade font */
+@import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap');
 
 /* -------------------------
    1) THEME VARIABLES (single source of truth)
    ------------------------- */
 :root {
-  /* Core backgrounds */
-  --bg-primary: #0a0c10;
-  --bg-secondary: #12161d;
-  --panel-bg: rgba(18, 22, 29, 0.6);
+  /* Core backgrounds - Deep, dark arcade cabinet colors */
+  --bg-primary: #1c102a;
+  --bg-secondary: #2c1d42;
+  --panel-bg: rgba(28, 16, 42, 0.85);
 
-  /* Borders & subtle lines */
-  --panel-border: rgba(137, 160, 204, 0.15);
-  --panel-border-hover: rgba(137, 160, 204, 0.4);
+  /* Borders & subtle lines - High-contrast pixel outlines */
+  --panel-border: #4a3f66;
+  --panel-border-hover: #ffff00; /* Bright yellow for selection */
 
-  /* Text */
-  --text-primary: #e1e8f5;
-  --text-secondary: #89a0cc;
+  /* Text - Crisp, readable pixel font colors */
+  --text-primary: #f5f5d5; /* Creamy off-white for CRT monitors */
+  --text-secondary: #a0a0c0; /* Muted purple for secondary text */
 
-  /* Accents & brand */
-  --accent-primary: #6c8ee3;
-  --accent-secondary: #a855f7;
+  /* Accents & brand - Classic arcade cabinet art colors */
+  --accent-primary: #ffff00;   /* Player 1 Yellow */
+  --accent-secondary: #ff00ff; /* Player 2 Magenta */
   --brand-gradient: linear-gradient(45deg, var(--accent-primary) 0%, var(--accent-secondary) 100%);
 
-  /* Semantic colors */
-  --color-win: #22c55e;
-  --color-loss: #ef4444;
-  --color-draw: #64748b;
-  --color-warning: #f59e0b;
+  /* Semantic colors - Bright, unambiguous pixel colors */
+  --color-win: #32cd32;    /* Lime Green */
+  --color-loss: #ff1f1f;   /* Bright Red */
+  --color-draw: #b0b0b0;   /* Light Grey */
+  --color-warning: #ffa500; /* Orange */
 
-  /* Spacing & radii */
-  --navbar-height: 70px;
+  /* Spacing & radii - CHUNKY and SHARP edges. No curves! */
+  --navbar-height: 120px;
   --spacing-sm: 8px;
   --spacing-md: 16px;
   --spacing-lg: 24px;
   --spacing-xl: 32px;
   --spacing-xxl: 48px;
 
-  --radius-sm: 8px;
-  --radius-md: 16px;
-  --radius-lg: 24px;
+  --radius-sm: 0px;
+  --radius-md: 0px;
+  --radius-lg: 0px;
 
-  /* Motion */
-  --shadow-card: 0 10px 40px rgba(0,0,0,0.4);
-  --shadow-glow: 0 0 24px -4px var(--accent-primary);
-  --transition-fast: all 0.18s cubic-bezier(0.4,0,0.2,1);
-  --transition-medium: all 0.36s cubic-bezier(0.4,0,0.2,1);
+  /* Motion - Hard shadows and snappy, instant transitions */
+  --shadow-card: 4px 4px 0px #11091a;
+  --shadow-glow: 0 0 0 3px var(--accent-primary); /* Re-purposed for a selection outline */
+  --transition-fast: all 0.1s step-start;
+  --transition-medium: all 0.2s step-start;
 
   /* Legacy midnight & mint (kept for index.css compatibility) */
   --midnight-dark: #191E24;
@@ -56,18 +84,19 @@
 }
 
 [data-theme="light"] {
-  --bg-primary: #f5f7fb;
-  --bg-secondary: #ffffff;
-  --panel-bg: rgba(255,255,255,0.85);
-  --panel-border: rgba(20,24,34,0.06);
-  --panel-border-hover: rgba(20,24,34,0.12);
-  --text-primary: #0b1220;
-  --text-secondary: #34507a;
-  --accent-primary: #2d6cdf;
-  --accent-secondary: #7b3ff0;
+  /* A "Classic Handheld" / Game Boy light theme */
+  --bg-primary: #c4cfa1;
+  --bg-secondary: #97a474;
+  --panel-bg: rgba(151, 164, 116, 0.8);
+  --panel-border: #4a4f3a;
+  --panel-border-hover: #0f170f;
+  --text-primary: #0f170f;
+  --text-secondary: #4a4f3a;
+  --accent-primary: #4a4f3a;
+  --accent-secondary: #0f170f;
   --brand-gradient: linear-gradient(45deg, var(--accent-primary) 0%, var(--accent-secondary) 100%);
-  --shadow-card: 0 6px 24px rgba(16,24,40,0.06);
-  --shadow-glow: 0 0 20px -6px rgba(110, 103, 255, 0.3);
+  --shadow-card: 3px 3px 0px #4a4f3a;
+  --shadow-glow: 0 0 0 2px #0f170f;
 }
 
 /* -------------------------
@@ -85,28 +114,40 @@ html {
 
 body {
   min-height: 100%;
-  background-color: var(--bg-primary);
+  background-color: transparent;
   color: var(--text-primary);
-  font-family: 'Inter', 'Poppins', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-  -webkit-font-smoothing: antialiased;
+  /* The one true pixel font for this vibe */
+  font-family: 'Press Start 2P', monospace;
+  /* Ensure pixel art and fonts are not blurred by the browser */
+  image-rendering: -moz-crisp-edges;
+  image-rendering: -webkit-crisp-edges;
+  image-rendering: pixelated;
+  image-rendering: crisp-edges;
+  -webkit-font-smoothing: none;
   -moz-osx-font-smoothing: grayscale;
   line-height: 1.6;
   -webkit-tap-highlight-color: transparent;
 }
 
 /* typography */
-h1,h2,h3,h4,h5,h6 { font-weight: 700; line-height: 1.2; color: var(--text-primary); }
+h1,h2,h3,h4,h5,h6 {
+  font-weight: 400; /* The font only has one weight */
+  line-height: 1.3;
+  color: var(--text-primary);
+  /* Hard shadow for that classic game title look */
+  text-shadow: 2px 2px 0 var(--accent-secondary), 4px 4px 0 rgba(0,0,0,0.5);
+}
 p { color: var(--text-secondary); margin-bottom: var(--spacing-md); }
 
 /* links */
 a { color: var(--accent-primary); text-decoration: none; transition: var(--transition-fast); }
-a:hover, a:focus { filter: brightness(1.08); outline: none; }
+a:hover, a:focus { color: var(--panel-border-hover); text-shadow: 2px 2px 0px var(--accent-secondary); outline: none; }
 
 /* -------------------------
    3) LAYOUT UTILITIES
    ------------------------- */
 .page-container {
-  padding: calc(var(--navbar-height) + var(--spacing-xl)) var(--spacing-xl);
+  padding: var(--navbar-height) var(--spacing-xl) var(--spacing-xl); /* Use a simple, smaller top padding */
   min-height: 100vh;
   width: 100%;
   max-width: 1400px;
@@ -129,68 +170,81 @@ a:hover, a:focus { filter: brightness(1.08); outline: none; }
   background: var(--panel-bg);
   border-radius: var(--radius-lg);
   padding: var(--spacing-xl);
-  border: 1px solid var(--panel-border);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
+  border: 2px solid var(--panel-border);
+  backdrop-filter: none; /* No blur in the 90s! */
+  -webkit-backdrop-filter: none;
   box-shadow: var(--shadow-card);
   transition: var(--transition-medium);
   position: relative;
   overflow: hidden;
 }
 .insane-card::before {
+  /* repurpose this for a scanline effect */
   content: "";
   position: absolute; inset: 0;
-  background-image: radial-gradient(circle at var(--mouse-x,50%) var(--mouse-y,-50%), rgba(255,255,255,0.04), transparent 40%);
-  opacity: 0; transition: opacity 0.36s ease; z-index: 1;
+  background-image: repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0,0,0,0.3) 3px, rgba(0,0,0,0.3) 4px);
+  opacity: 1; z-index: 1; pointer-events: none;
 }
-.insane-card:hover { transform: translateY(-6px) scale(1.01); border-color: var(--panel-border-hover); }
-.insane-card:hover::before { opacity: 1; }
+.insane-card:hover {
+  /* On hover, button "presses" up and to the left, reducing the shadow */
+  transform: translate(-4px, -4px);
+  border-color: var(--panel-border-hover);
+  box-shadow: 8px 8px 0px #11091a;
+}
 
 .card-header {
   position: relative; z-index: 2;
-  font-weight: 600; font-size: 1.25rem;
+  font-weight: 400; font-size: 1rem; /* Adjust font size for pixel font */
   display:flex; align-items:center; gap: var(--spacing-md);
   padding-bottom: var(--spacing-md); margin-bottom: var(--spacing-lg);
-  border-bottom: 1px solid var(--panel-border);
+  border-bottom: 2px solid var(--panel-border);
+  text-shadow: 2px 2px 0px rgba(0,0,0,0.5);
 }
 .card-content { position: relative; z-index: 2; }
 
 /* buttons */
 .btn {
   display: inline-flex; align-items:center; justify-content:center;
-  gap: var(--spacing-sm); padding: 12px 20px;
-  border-radius: var(--radius-md); font-weight: 700;
-  border: 1px solid var(--panel-border-hover);
+  gap: var(--spacing-sm); padding: 14px 22px;
+  border-radius: var(--radius-md); font-weight: 400;
+  border: 2px solid var(--panel-border);
   transition: var(--transition-fast); cursor:pointer;
   background: var(--bg-secondary); color: var(--text-primary);
+  box-shadow: var(--shadow-card);
   position: relative; overflow: hidden;
 }
 .btn::before{
-  content: ''; position:absolute; top:0; left:-100%; width:100%; height:100%;
-  background: linear-gradient(120deg, transparent, rgba(255,255,255,0.08), transparent);
-  transition: left 0.45s ease;
+  /* Disable modern shimmer effect */
+  content: none;
 }
-.btn:hover { transform: translateY(-3px); box-shadow: var(--shadow-glow); border-color: var(--accent-primary); }
-.btn:hover::before { left: 100%; }
+.btn:hover {
+  transform: translate(-4px, -4px);
+  box-shadow: 8px 8px 0px #11091a;
+  border-color: var(--panel-border-hover);
+}
+.btn:active {
+  transform: translate(0, 0);
+  box-shadow: var(--shadow-card);
+}
 
 .btn-primary {
   background: var(--brand-gradient);
-  color: #fff; border: none;
+  color: #000; border: 2px solid #000;
+  text-shadow: none;
 }
-.btn-primary:hover { filter: brightness(1.06); box-shadow: 0 0 20px -6px var(--accent-secondary); }
+.btn-primary:hover {
+  box-shadow: 8px 8px 0px var(--accent-secondary);
+}
 
 /* spinner */
 .spinner {
   width: 48px; height: 48px; border-radius: 50%;
   display:inline-block; position: relative;
-  border: 3px solid; border-color: var(--panel-border) var(--panel-border) transparent transparent;
-  animation: rotation 1s linear infinite;
+  border: 4px dotted var(--panel-border); /* Dotted border feels more retro */
+  animation: rotation 1.5s linear infinite;
 }
 .spinner::before, .spinner::after {
-  content: ''; position:absolute; inset:0; margin:auto;
-  width: 40px; height: 40px; border-radius:50%;
-  border: 3px solid; border-color: transparent transparent var(--accent-primary) var(--accent-primary);
-  animation: rotation-back 0.6s linear infinite;
+  content: none; /* Simplify the spinner to a single element */
 }
 @keyframes rotation { to { transform: rotate(360deg); } }
 @keyframes rotation-back { to { transform: rotate(-360deg); } }
@@ -198,31 +252,85 @@ a:hover, a:focus { filter: brightness(1.08); outline: none; }
 /* -------------------------
    5) SCROLLBAR
    ------------------------- */
-::-webkit-scrollbar { width: 10px; height: 10px; }
+::-webkit-scrollbar { width: 16px; height: 16px; }
 ::-webkit-scrollbar-track { background: var(--bg-secondary); }
 ::-webkit-scrollbar-thumb {
-  background-color: var(--panel-border-hover);
-  border-radius: 10px; border: 2px solid var(--bg-secondary);
+  background-color: var(--panel-border);
+  border-radius: 0; border: 2px solid var(--bg-secondary);
 }
 ::-webkit-scrollbar-thumb:hover { background-color: var(--accent-primary); }
 
-/* -------------------------
-   6) BACKGROUND EFFECTS (optional)
-   ------------------------- */
-.holographic-background { position: fixed; inset:0; z-index:-1; overflow:hidden; background-color: var(--bg-primary); }
-.holographic-background::before {
-  content: ''; position: absolute; inset: 0;
-  background-image:
-    linear-gradient(to right, var(--panel-border) 1px, transparent 1px),
-    linear-gradient(to bottom, var(--panel-border) 1px, transparent 1px);
-  background-size: 50px 50px;
-  mask-image: radial-gradient(ellipse 80% 50% at 50% 0%, black 40%, transparent 100%);
-  animation: pan-grid 20s linear infinite;
-}
-@keyframes pan-grid { 0% { background-position: 0% 0%; } 100% { background-position: 100% 0%; } }
 
-.animated-blobs { position: fixed; inset: 0; z-index: -2; }
-.animated-blobs div { position: absolute; border-radius: 50%; filter: blur(150px); opacity: 0.28; will-change: transform; }
-.animated-blobs div:nth-child(1){ width:500px;height:500px;background:var(--accent-primary); top:5%; left:10%; animation: move 15s infinite alternate; }
-.animated-blobs div:nth-child(2){ width:400px;height:400px;background:var(--accent-secondary); bottom:5%; right:15%; animation: move 18s infinite alternate-reverse; }
-@keyframes move { from{ transform: translate(0,0) rotate(0deg) scale(1); } to{ transform: translate(100px,50px) rotate(45deg) scale(1.2); } }
+/* -------------------------------------------
+   6) BACKGROUND EFFECTS (PURE CSS LIVE PARALLAX)
+   ------------------------------------------- */
+@keyframes scroll-loop {
+  from { transform: translateX(0); }
+  to { transform: translateX(-100%); }
+}
+
+.holographic-background {
+  position: fixed; inset: 0; z-index: -3;
+  background-color: var(--bg-primary);
+}
+
+/* Layer 1: Stars (farthest, slowest) */
+.holographic-background::after {
+  content: '';
+  position: absolute; inset: 0;
+  background-image:
+    /* small stars */
+    radial-gradient(1px 1px at 20px 30px, #fff, transparent),
+    radial-gradient(1px 1px at 80px 80px, #ddd, transparent),
+    radial-gradient(1px 1px at 150px 120px, #fff, transparent),
+    /* medium stars */
+    radial-gradient(2px 2px at 250px 50px, #fff, transparent),
+    radial-gradient(1.5px 1.5px at 300px 150px, #ddd, transparent);
+  background-repeat: repeat;
+  background-size: 320px 160px; /* Repeating pattern size */
+  animation: scroll-loop 200s linear infinite;
+}
+
+/* Layer 2: Pixel City (middle distance) */
+.holographic-background::before {
+  content: '';
+  position: absolute; inset: 0; bottom: 80px; /* Raise city off the bottom */
+  background-image:
+    /* Sky with gradient */
+    linear-gradient(to top, rgba(28,16,42,0) 0%, rgba(44,29,66,0.8) 20%),
+    /* Buildings - using repeating gradients to make shapes */
+    repeating-linear-gradient(90deg, transparent 0 20px, #11091a 20px 100px, transparent 100px 110px), /* Tall building */
+    repeating-linear-gradient(90deg, transparent 0 100px, #2c1d42 100px 160px, transparent 160px 200px), /* Shorter building */
+    repeating-linear-gradient(90deg, transparent 0 250px, #11091a 250px 300px, transparent 300px 350px); /* Another building */
+  background-position: 0 100%, 0 100%, 20px 100%, 50px 100%;
+  background-size: 100% 100%, 400px 60%, 400px 100%, 400px 80%;
+  background-repeat: repeat-x;
+  animation: scroll-loop 80s linear infinite;
+}
+
+/* Layer 3: Foreground Grid (fastest) */
+.holographic-background {
+  --grid-color: rgba(255, 0, 255, 0.2);
+  --grid-size: 40px;
+  background-image:
+    linear-gradient(to right, var(--grid-color) 1px, transparent 1px),
+    linear-gradient(to bottom, var(--grid-color) 1px, transparent 1px);
+  background-size: var(--grid-size) var(--grid-size);
+  /* Apply perspective for a cool 3D road effect */
+  perspective: 200px;
+  transform-style: preserve-3d;
+}
+.holographic-background > div { /* A new inner div is needed for the 3D plane */
+  position: absolute;
+  inset: 0;
+  background-image:
+    linear-gradient(to right, var(--grid-color) 1px, transparent 1px),
+    linear-gradient(to bottom, var(--grid-color) 1px, transparent 1px);
+  background-size: var(--grid-size) var(--grid-size);
+  transform: rotateX(65deg) translateZ(-100px); /* Tilt the grid */
+  animation: scroll-loop 30s linear infinite;
+}
+/* You will need to add a single <div> inside .holographic-background in your HTML for this to work */
+/* e.g., <div class="holographic-background"><div></div></div> */
+
+.animated-blobs { display: none; }

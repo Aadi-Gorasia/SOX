@@ -1,11 +1,28 @@
 // client/src/components/Cell.js
 import React from 'react';
-import './Cell.css';
+import './Board.css';
 
-const Cell = ({ value, onCellClick }) => {
-  const cellClassName = `cell ${value ? value.toLowerCase() : ''}`;
+const Cell = ({ value, onCellClick, isActive }) => {
+  const handleClick = () => {
+    if (!onCellClick) return;
+    onCellClick();
+  };
+
   return (
-    <button className={cellClassName} onClick={onCellClick}></button>
+    <button
+      className={`cell ${isActive ? 'cell-active' : ''}`}
+      onClick={handleClick}
+    >
+      {value && (
+        <span
+          className={`xo-glyph cell-mark ${
+            value === 'X' ? 'cell-x' : 'cell-o'
+          }`}
+        >
+          {value}
+        </span>
+      )}
+    </button>
   );
 };
 

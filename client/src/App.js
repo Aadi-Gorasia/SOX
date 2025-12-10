@@ -1,6 +1,6 @@
 // client/src/App.js
 import React, { useContext } from 'react';
-import { BrowserRouter as Router, Route, Routes } from 'react-router-dom';
+import { BrowserRouter as Router, Route, Routes, Outlet } from 'react-router-dom';
 import './App.css';
 
 // --- Context Providers ---
@@ -8,10 +8,10 @@ import { AuthProvider, AuthContext } from './context/AuthContext';
 import { SocketProvider } from './context/SocketContext';
 import { GameProvider } from './context/GameContext';
 
-// --- Routing & Layouts ---
+// --- Components & Layouts ---
+import Navbar from './components/Navbar'; // Import Navbar
 import PrivateRoute from './routing/PrivateRoute';
-import DefaultLayout from './layouts/DefaultLayout'; // New
-import GameLayout from './layouts/GameLayout';       // New
+import GameLayout from './layouts/GameLayout';
 
 // --- Pages ---
 import HomePage from './pages/HomePage';
@@ -22,26 +22,36 @@ import ProfilePage from './pages/ProfilePage';
 import PlayPage from './pages/PlayPage';
 import GamePage from './pages/GamePage';
 
+// NEW LAYOUT: For all pages that should have a Navbar
+const MainLayout = () => (
+  <>
+    <Navbar />
+    <Outlet /> {/* This will render the child route component */}
+  </>
+);
+
 const AppContent = () => {
   const { loading } = useContext(AuthContext);
 
   if (loading) {
-    return <div className="spinner"></div>; // Using your existing spinner class
+    return <div className="spinner-container"><div className="spinner"></div></div>;
   }
 
   return (
     <Routes>
-      {/* --- Public Routes (No Layout) --- */}
-      <Route path="/" element={<HomePage />} />
-      <Route path="/register" element={<RegisterPage />} />
-      <Route path="/login" element={<LoginPage />} />
+      {/* --- Routes with the Main (Navbar) Layout --- */}
+      <Route element={<MainLayout />}>
+        <Route path="/" element={<HomePage />} />
+        <Route path="/register" element={<RegisterPage />} />
+        <Route path="/login" element={<LoginPage />} />
+      </Route>
 
-      {/* --- Routes with the Default (Navbar) Layout --- */}
+      {/* --- Private Routes also using the Main (Navbar) Layout --- */}
       <Route
         element={
           <PrivateRoute>
-            <GameProvider> {/* GameProvider needed for /play */}
-              <DefaultLayout />
+            <GameProvider>
+              <MainLayout />
             </GameProvider>
           </PrivateRoute>
         }
@@ -49,14 +59,13 @@ const AppContent = () => {
         <Route path="/dashboard" element={<DashboardPage />} />
         <Route path="/profile/:username" element={<ProfilePage />} />
         <Route path="/play" element={<PlayPage />} />
-        {/* Add any other non-game pages here */}
       </Route>
 
-      {/* --- Routes with the Game (Sidebar) Layout --- */}
+      {/* --- Game Route with its own special layout --- */}
       <Route
         element={
           <PrivateRoute>
-            <GameProvider> {/* GameProvider needed for /game/:gameId */}
+            <GameProvider>
               <GameLayout />
             </GameProvider>
           </PrivateRoute>
@@ -64,7 +73,6 @@ const AppContent = () => {
       >
         <Route path="/game/:gameId" element={<GamePage />} />
       </Route>
-
     </Routes>
   );
 };
@@ -74,9 +82,11 @@ function App() {
     <AuthProvider>
       <SocketProvider>
         <Router>
-          <div className="holographic-background"></div>
-          <div className="animated-blobs"><div></div><div></div></div>
-          <AppContent />
+          {/* This is the correct structure for a global background and app content */}
+          <div className="holographic-background"><div></div></div>
+          <div className="App"> {/* Add App class for styling */}
+            <AppContent />
+          </div>
         </Router>
       </SocketProvider>
     </AuthProvider>

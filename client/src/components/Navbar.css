@@ -1,43 +1,61 @@
 /* client/src/components/Navbar.css */
+
 .dashboard-header {
-    width: 100%;
-    padding: var(--spacing-lg) 0; /* Vertical padding, no horizontal */
-    margin-bottom: var(--spacing-xxl);
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    border-bottom: 1px solid var(--panel-border);
+  /* --- The Floating Island Logic --- */
+  position: fixed;            /* Detach it from the document flow */
+  top: var(--spacing-lg);     /* Push it down from the top edge */
+  left: 31%;                  /* Move its left edge to the center of the screen */
+  transform: translateX(-30%); /* Pull it back by half its own width to truly center it */
+  width: 100%;                 /* Make it responsive */
+  max-width: 1440px;           /* But not too wide on large screens */
+  z-index: 1000;              /* Ensure it's on top of all page content */
+
+  /* --- 90s Vibe Styling --- */
+  padding: var(--spacing-md) var(--spacing-xl);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background-color: var(--panel-bg); /* Use panel-bg for a semi-transparent look */
+  border: 2px solid var(--panel-border);
+  box-shadow: 6px 6px 0px #11091a; /* A bigger shadow enhances the floating feel */
+  backdrop-filter: blur(5px); /* Optional: adds a cool frosted glass effect */
+  -webkit-backdrop-filter: blur(5px);
 }
 
 .header-logo a {
-    font-size: 2rem;
-    font-weight: 700;
-    color: var(--text-primary);
-    text-decoration: none;
+  font-size: 1.5rem;
+  color: var(--text-primary);
+  text-decoration: none;
+  text-shadow: 2px 2px 0 var(--accent-secondary);
 }
 
 .header-nav {
-    display: flex;
-    align-items: center;
-    gap: var(--spacing-xl);
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-xl);
+  width: 25%;
 }
 
-.header-nav a, .nav-logout-button {
-    font-size: 1rem;
-    font-weight: 600;
-    color: var(--text-secondary);
-    text-decoration: none;
-    transition: var(--transition-fast);
-    background: none;
-    border: none;
-    cursor: pointer;
-    padding: 0; /* Remove padding for a cleaner look */
+.header-nav a,
+.nav-logout-button {
+  font-family: 'Press Start 2P', monospace;
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+  text-decoration: none;
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 3%;
+  transition: var(--transition-fast);
+  text-shadow: none;
+
 }
 
-.header-nav a:hover, .nav-logout-button:hover {
-    color: var(--text-primary);
-}
-
+.header-nav a:hover,
+.nav-logout-button:hover,
 .header-nav a.active {
-    color: var(--accent-primary);
+  color: var(--accent-primary);
+  text-shadow: 1px 1px 0 var(--accent-secondary);
+  background-color: blueviolet;
+  border-radius: 2px;
 }

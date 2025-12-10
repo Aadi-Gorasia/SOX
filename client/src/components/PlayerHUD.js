@@ -1,56 +1,41 @@
-// client/src/components/PlayerHUD.js
-import React from 'react';
-import './PlayerHUD.css';
+// client/components/PlayerHUD.js
+import React, { useMemo } from "react";
+import "./PlayerHUD.css";
 
-const formatTime = (ms) => {
-  if (ms === null || ms === undefined || ms < 0) ms = 0;
-  const totalSeconds = Math.floor(ms / 1000);
-  const minutes = Math.floor(totalSeconds / 60);
-  const seconds = totalSeconds % 60;
-  return `${minutes}:${seconds < 10 ? '0' : ''}${seconds}`;
-};
+/**
+ * PlayerHUD
+ * props:
+ *   - player { username, elo, avatar? }
+ *   - time in ms (number)
+ *   - isActive boolean
+ *   - side: "left" | "right"
+ */
+export default function PlayerHUD({ player = {}, time = 0, isActive = false, side = "left" }) {
+  // clamp and format
+  const seconds = Math.max(0, Math.floor((time % 60000) / 1000));
+  const minutes = Math.max(0, Math.floor(time / 60000));
+  const timeStr = `${String(minutes).padStart(2, "0")}:${String(seconds).padStart(2, "0")}`;
 
-const PlayerHUD = ({ player1, player2, playerTimes, timeControl, isPlayer1Turn }) => {
-    // Render nothing if the data isn't ready, to prevent errors
-    if (!player1 || !player2 || !playerTimes || !timeControl) {
-        return <div className="player-hud-container placeholder"></div>;
-    }
-    
-    // Calculate the percentage of time remaining for the visual bar
-    const p1TimePercentage = (playerTimes[0] / timeControl.base) * 100;
-    const p2TimePercentage = (playerTimes[1] / timeControl.base) * 100;
+  // bar percent: time is assumed relative to a default (e.g., 5 minutes -> 300000ms)
+  // If you have real clock length, pass it in. Here we use 5 minutes baseline for visual.
+  const pct = useMemo(() => {
+    const baseline = 5 * 60 * 1000;
+    return Math.max(2, Math.min(100, Math.round((time / baseline) * 100)));
+  }, [time]);
 
-    return (
-        <footer className="player-hud-container">
-            {/* Player 1 Info */}
-            <div className="player-info left">
-                <h3>{player1.username}</h3>
-                <span>{player1.elo}</span>
-            </div>
+  return (
+    <div className={`hud-player ${side} ${isActive ? "active" : ""}`}>
+      <div className="player-meta">
+        <div className="player-name">{player.username || "Player"}</div>
+        <div className="player-elo">PWR: {player.elo ?? 0}</div>
+      </div>
 
-            {/* Clocks Section */}
-            <div className="clocks-container">
-                <div className={`clock-wrapper ${isPlayer1Turn ? 'active' : ''}`}>
-                    <div className="clock-time">{formatTime(playerTimes[0])}</div>
-                    <div className="time-bar">
-                        <div className="time-bar-fill" style={{width: `${p1TimePercentage}%`}}></div>
-                    </div>
-                </div>
-                <div className={`clock-wrapper ${!isPlayer1Turn ? 'active' : ''}`}>
-                    <div className="clock-time">{formatTime(playerTimes[1])}</div>
-                    <div className="time-bar">
-                        <div className="time-bar-fill" style={{width: `${p2TimePercentage}%`}}></div>
-                    </div>
-                </div>
-            </div>
-
-            {/* Player 2 Info */}
-            <div className="player-info right">
-                <h3>{player2.username}</h3>
-                <span>{player2.elo}</span>
-            </div>
-        </footer>
-    );
-};
-
-export default PlayerHUD;
+      <div className="hud-timer-capsule">
+        <div className="capsule-bar-outer">
+          <div className="capsule-bar-fill" style={{ width: `${pct}%` }} />
+        </div>
+        <div className="capsule-time">{timeStr}</div>
+      </div>
+    </div>
+  );
+}
