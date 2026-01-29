@@ -1,0 +1,397 @@
+/* ==================================================
+   GLOBAL THEME ENGINE
+   Usage: These variables map to colors in your components
+   ================================================== */
+
+/* DEFAULT: ARCADE */
+:root, [data-theme="arcade"] {
+  --bg-app: #1a0b2e;
+  --bg-panel: #2b1d42;
+  --text-primary: #ffffff;
+  --text-secondary: #b8b8b8;
+  --accent: #ff00ff;
+  --border: 2px solid #ff00ff;
+  --font-main: 'Press Start 2P', monospace;
+  --radius: 0px;
+  --glitch-color: #00f3ff;
+  --pattern: repeating-linear-gradient(0deg, transparent, transparent 2px, #000 3px);
+}
+
+/* CYBERPUNK */
+[data-theme="cyberpunk"] {
+  --bg-app: #0b0b0b;
+  --bg-panel: #141414;
+  --text-primary: #fcee0a;
+  --text-secondary: #ffffff;
+  --accent: #00f3ff;
+  --border: 2px solid #fcee0a;
+  --font-main: 'Orbitron', sans-serif;
+  --radius: 0px;
+  --pattern: repeating-linear-gradient(90deg, #111 0px, #111 1px, transparent 1px, transparent 20px);
+}
+
+/* GLASS */
+[data-theme="glass"] {
+  --bg-app: linear-gradient(135deg, #74ebd5 0%, #9face6 100%);
+  --bg-panel: rgba(255, 255, 255, 0.25);
+  --text-primary: #ffffff;
+  --text-secondary: #eef2f3;
+  --accent: #ffffff;
+  --border: 1px solid rgba(255,255,255,0.4);
+  --font-main: 'Poppins', sans-serif;
+  --radius: 20px;
+  --pattern: none;
+  backdrop-filter: blur(16px);
+}
+
+/* WOOD */
+[data-theme="wood"] {
+  --bg-app: #4e342e;
+  --bg-panel: #5d4037;
+  --text-primary: #fff8e1;
+  --text-secondary: #d7ccc8;
+  --accent: #8d6e63;
+  --border: 4px ridge #8d6e63;
+  --font-main: 'Cinzel', serif;
+  --radius: 4px;
+  --pattern: repeating-linear-gradient(45deg, #3e2723 0, #3e2723 2px, transparent 2px, transparent 8px);
+}
+
+/* VAPORWAVE */
+[data-theme="vaporwave"] {
+  --bg-app: #ff99cc;
+  --bg-panel: #ccffff;
+  --text-primary: #660066;
+  --text-secondary: #006666;
+  --accent: #cc33ff;
+  --border: 3px double #cc33ff;
+  --font-main: 'Varela Round', sans-serif;
+  --radius: 10px;
+  --pattern: linear-gradient(to bottom, #ff99cc 0%, #ccffff 100%);
+}
+
+/* TERMINAL */
+[data-theme="terminal"] {
+  --bg-app: #000000;
+  --bg-panel: #001100;
+  --text-primary: #00ff00;
+  --text-secondary: #008800;
+  --accent: #00ff00;
+  --border: 1px solid #00ff00;
+  --font-main: 'Courier New', monospace;
+  --radius: 0px;
+  --pattern: none;
+}
+
+/* PAPER */
+[data-theme="paper"] {
+  --bg-app: #f4f4f4;
+  --bg-panel: #ffffff;
+  --text-primary: #2c3e50;
+  --text-secondary: #7f8c8d;
+  --accent: #2980b9;
+  --border: 2px solid #2c3e50;
+  --font-main: 'Indie Flower', cursive;
+  --radius: 2px;
+  --pattern: radial-gradient(#ccc 1px, transparent 1px) 0 0 / 20px 20px;
+}
+
+/* MIDNIGHT */
+[data-theme="midnight"] {
+  --bg-app: #121212;
+  --bg-panel: #1f1f1f;
+  --text-primary: #e0e0e0;
+  --text-secondary: #a0a0a0;
+  --accent: #bb86fc;
+  --border: 1px solid #333;
+  --font-main: 'Roboto', sans-serif;
+  --radius: 8px;
+  --pattern: none;
+}
+
+/* ROYAL */
+[data-theme="royal"] {
+  --bg-app: #2c003e;
+  --bg-panel: #4b006e;
+  --text-primary: #ffd700;
+  --text-secondary: #e6e6fa;
+  --accent: #ffd700;
+  --border: 2px solid #ffd700;
+  --font-main: 'Playfair Display', serif;
+  --radius: 6px;
+  --pattern: radial-gradient(circle, #4b006e 10%, transparent 10.5%) 0 0/20px 20px;
+}
+
+/* ==================================================
+   ADDITIONAL THEMES
+   ================================================== */
+
+/* 1. BLUEPRINT */
+[data-theme="blueprint"] {
+  --bg-app: #26408B;
+  --bg-panel: #2f4d9e;
+  --text-primary: #ffffff;
+  --text-secondary: #aebce8;
+  --accent: #ffffff;
+  --border: 2px solid rgba(255,255,255,0.3);
+  --font-main: 'Architects Daughter', monospace;
+  --radius: 2px;
+  --pattern: 
+    linear-gradient(rgba(255,255,255,0.1) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255,255,255,0.1) 1px, transparent 1px);
+  background-size: 20px 20px;
+}
+
+/* 2. RETRO OS (Windows 95 style) */
+[data-theme="retro-os"] {
+  --bg-app: #008080;
+  --bg-panel: #c0c0c0;
+  --text-primary: #000000;
+  --text-secondary: #555555;
+  --accent: #000080;
+  --border: 3px outset #ffffff;
+  --font-main: 'MS Sans Serif', 'Tahoma', sans-serif;
+  --radius: 0px;
+  --pattern: none;
+}
+
+/* 3. DRACULA (Popular IDE theme) */
+[data-theme="dracula"] {
+  --bg-app: #282a36;
+  --bg-panel: #44475a;
+  --text-primary: #f8f8f2;
+  --text-secondary: #6272a4;
+  --accent: #bd93f9;
+  --border: 2px solid #bd93f9;
+  --font-main: 'Fira Code', monospace;
+  --radius: 6px;
+  --pattern: none;
+}
+
+/* 4. CANDY */
+[data-theme="candy"] {
+  --bg-app: #ffe0f0;
+  --bg-panel: #fff0f5;
+  --text-primary: #ff69b4;
+  --text-secondary: #ffb6c1;
+  --accent: #00bfff;
+  --border: 4px solid #ff69b4;
+  --font-main: 'Pacifico', cursive;
+  --radius: 25px;
+  --pattern: radial-gradient(#ffb6c1 20%, transparent 20%) 0 0 / 15px 15px;
+}
+
+/* 5. INDUSTRIAL */
+[data-theme="industrial"] {
+  --bg-app: #2b2b2b;
+  --bg-panel: #383838;
+  --text-primary: #d4d4d4;
+  --text-secondary: #f0ad4e;
+  --accent: #f0ad4e;
+  --border: 2px dashed #f0ad4e;
+  --font-main: 'Share Tech Mono', monospace;
+  --radius: 0px;
+  --pattern: repeating-linear-gradient(45deg, #2b2b2b, #2b2b2b 10px, #333 10px, #333 20px);
+}
+
+/* 6. NEUMORPHISM (Soft UI) */
+[data-theme="neumorphism"] {
+  --bg-app: #e0e5ec;
+  --bg-panel: #e0e5ec; /* Requires box-shadows to really pop, but matching color scheme */
+  --text-primary: #4a4a4a;
+  --text-secondary: #8d9bb0;
+  --accent: #fd7e14;
+  --border: 1px solid rgba(255,255,255,0.4);
+  --font-main: 'Nunito', sans-serif;
+  --radius: 16px;
+  --pattern: none;
+}
+
+/* 7. SPACE */
+[data-theme="space"] {
+  --bg-app: #0b0d17;
+  --bg-panel: rgba(22, 27, 51, 0.8);
+  --text-primary: #d0d6f9;
+  --text-secondary: #8c92ac;
+  --accent: #ffffff;
+  --border: 1px solid rgba(255,255,255,0.1);
+  --font-main: 'Bellefair', serif;
+  --radius: 4px;
+  --pattern: radial-gradient(white, rgba(255,255,255,.2) 2px, transparent 3px);
+  background-size: 550px 550px; 
+}
+
+/* 8. NEWSPAPER */
+[data-theme="newspaper"] {
+  --bg-app: #fcf6e5;
+  --bg-panel: #fcf6e5;
+  --text-primary: #1a1a1a;
+  --text-secondary: #4a4a4a;
+  --accent: #8b0000;
+  --border: 3px double #1a1a1a;
+  --font-main: 'Chomsky', 'Times New Roman', serif;
+  --radius: 0px;
+  --pattern: repeating-linear-gradient(to bottom, transparent, transparent 3px, rgba(0,0,0,0.05) 4px);
+}
+
+/* 9. BRUTALISM */
+[data-theme="brutalism"] {
+  --bg-app: #ffebd2;
+  --bg-panel: #ff3333;
+  --text-primary: #000000;
+  --text-secondary: #000000;
+  --accent: #0000ee;
+  --border: 4px solid #000000;
+  --font-main: 'Archivo Black', sans-serif;
+  --radius: 0px;
+  --pattern: none;
+  /* Often uses harsh box-shadows: 6px 6px 0px #000 */
+}
+
+/* 10. CHALKBOARD */
+[data-theme="chalkboard"] {
+  --bg-app: #2e3b33;
+  --bg-panel: #3d4f44;
+  --text-primary: #f2f2f2;
+  --text-secondary: #b0b0b0;
+  --accent: #ffeb3b;
+  --border: 2px solid rgba(255,255,255,0.2);
+  --font-main: 'Permanent Marker', cursive;
+  --radius: 4px;
+  --pattern: url("data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI0IiBoZWlnaHQ9IjQiPgo8cmVjdCB3aWR0aD0iNCIgaGVpZ2h0PSI0IiBmaWxsPSIjMmUzYjMzIi8+CjxwYXRoIGQ9Ik0wIDBMNCA0Wk00IDBMMCA0WiIgc3Ryb2tlPSJtZWRpdW1zcHJpbmdncmVlbiIgb3BhY2l0eT0iMC4wNSIvPgo8L3N2Zz4=");
+}
+
+/* 11. COFFEE */
+[data-theme="coffee"] {
+  --bg-app: #3e2723;
+  --bg-panel: #efebe9;
+  --text-primary: #3e2723;
+  --text-secondary: #6d4c41;
+  --accent: #d7ccc8;
+  --border: 1px solid #8d6e63;
+  --font-main: 'Lora', serif;
+  --radius: 8px;
+  --pattern: none;
+}
+
+/* 12. COMIC */
+[data-theme="comic"] {
+  --bg-app: #fed330;
+  --bg-panel: #ffffff;
+  --text-primary: #000000;
+  --text-secondary: #2d3436;
+  --accent: #eb4d4b;
+  --border: 4px solid #000000;
+  --font-main: 'Bangers', cursive;
+  --radius: 10px;
+  --pattern: radial-gradient(#000 15%, transparent 16%) 0 0 / 8px 8px;
+}
+
+/* 13. FOREST */
+[data-theme="forest"] {
+  --bg-app: #1b2e1b;
+  --bg-panel: #274027;
+  --text-primary: #dcedc8;
+  --text-secondary: #a5d6a7;
+  --accent: #ffb74d;
+  --border: 1px solid #4caf50;
+  --font-main: 'Montserrat', sans-serif;
+  --radius: 12px;
+  --pattern: repeating-linear-gradient(45deg, #1b2e1b 25%, transparent 25%, transparent 75%, #1b2e1b 75%, #1b2e1b), repeating-linear-gradient(45deg, #1b2e1b 25%, #274027 25%, #274027 75%, #1b2e1b 75%, #1b2e1b);
+  background-position: 0 0, 10px 10px;
+  background-size: 20px 20px;
+}
+
+/* 14. AQUATIC */
+[data-theme="aquatic"] {
+  --bg-app: #e0f7fa;
+  --bg-panel: #ffffff;
+  --text-primary: #006064;
+  --text-secondary: #0097a7;
+  --accent: #00bcd4;
+  --border: 2px solid #b2ebf2;
+  --font-main: 'Quicksand', sans-serif;
+  --radius: 20px;
+  --pattern: radial-gradient(circle at 100% 100%, #b2ebf2 0, #b2ebf2 10px, transparent 10px) 0 0 / 20px 20px;
+}
+
+/* 15. HALLOWEEN */
+[data-theme="halloween"] {
+  --bg-app: #1f1208;
+  --bg-panel: #331d0f;
+  --text-primary: #ff9800;
+  --text-secondary: #bdbdbd;
+  --accent: #7e57c2;
+  --border: 2px solid #ff9800;
+  --font-main: 'Creepster', cursive;
+  --radius: 8px;
+  --pattern: linear-gradient(45deg, #000 25%, transparent 25%, transparent 75%, #000 75%, #000), linear-gradient(45deg, #000 25%, transparent 25%, transparent 75%, #000 75%, #000);
+  background-size: 20px 20px;
+}
+
+/* 16. LUXURY */
+[data-theme="luxury"] {
+  --bg-app: #000000;
+  --bg-panel: #111111;
+  --text-primary: #cfb53b; /* Gold */
+  --text-secondary: #999999;
+  --accent: #f7e7ce;
+  --border: 1px solid #cfb53b;
+  --font-main: 'Cinzel Decorative', serif;
+  --radius: 0px;
+  --pattern: linear-gradient(135deg, #111 25%, transparent 25%) -10px 0/ 20px 20px, linear-gradient(225deg, #111 25%, transparent 25%) -10px 0/ 20px 20px;
+}
+
+/* 17. MATRIX */
+[data-theme="matrix"] {
+  --bg-app: #0d0d0d;
+  --bg-panel: #001f00;
+  --text-primary: #00ff41;
+  --text-secondary: #008f11;
+  --accent: #003b00;
+  --border: 1px solid #00ff41;
+  --font-main: 'VT323', monospace;
+  --radius: 0px;
+  --pattern: none;
+  text-shadow: 0 0 5px #00ff41;
+}
+
+/* 18. LEATHER */
+[data-theme="leather"] {
+  --bg-app: #5d4037;
+  --bg-panel: #4e342e;
+  --text-primary: #d7ccc8;
+  --text-secondary: #a1887f;
+  --accent: #ffab91;
+  --border: 2px dashed #ffab91; /* Stitching effect */
+  --font-main: 'Rye', serif;
+  --radius: 8px;
+  --pattern: url("data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI0IiBoZWlnaHQ9IjQiPgo8cmVjdCB3aWR0aD0iNCIgaGVpZ2h0PSI0IiBmaWxsPSIjNGUzNDJlIi8+CjxyZWN0IHdpZHRoPSIxIiBoZWlnaHQ9IjEiIGZpbGw9IiM1ZDQwMzciLz4KPC9zdmc+");
+}
+
+/* 19. SKETCH */
+[data-theme="sketch"] {
+  --bg-app: #ffffff;
+  --bg-panel: #fcfcfc;
+  --text-primary: #333333;
+  --text-secondary: #666666;
+  --accent: #000000;
+  --border: 2px solid #333333;
+  --font-main: 'Gloria Hallelujah', cursive;
+  --radius: 255px 15px 225px 15px / 15px 225px 15px 255px; /* Hand drawn border shape */
+  --pattern: none;
+}
+
+/* 20. GAMEBOY (Classic) */
+[data-theme="gameboy"] {
+  --bg-app: #8b956d;
+  --bg-panel: #9bbc0f;
+  --text-primary: #0f380f;
+  --text-secondary: #306230;
+  --accent: #0f380f;
+  --border: 3px solid #0f380f;
+  --font-main: 'Press Start 2P', monospace;
+  --radius: 4px;
+  --pattern: linear-gradient(rgba(15, 56, 15, 0.05) 1px, transparent 1px);
+  background-size: 100% 4px;
+}

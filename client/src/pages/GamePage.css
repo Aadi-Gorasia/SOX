@@ -408,3 +408,24 @@
     justify-content: space-around; 
   }
 }
+
+.history-overlay-warning {
+  position: absolute;
+  top: 10px;
+  left: 50%;
+  transform: translateX(-50%);
+  background-color: rgba(255, 165, 0, 0.9);
+  color: black;
+  padding: 8px 16px;
+  border-radius: 20px;
+  font-weight: bold;
+  z-index: 50;
+  cursor: pointer;
+  box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+  font-size: 0.9rem;
+  white-space: nowrap;
+}
+
+.history-overlay-warning:hover {
+  background-color: #ffb733;
+}

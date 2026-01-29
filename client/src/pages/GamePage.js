@@ -1,9 +1,17 @@
-import React, { useState, useEffect, useRef, useContext } from "react";
-import { useParams } from "react-router-dom";
+import React, { useState, useEffect, useRef, useContext, useMemo } from "react";
+import { useParams, useNavigate } from "react-router-dom";
 import { useSocket } from "../context/SocketContext";
 import { AuthContext } from "../context/AuthContext";
+
+// Components
 import SuperBoard from "../components/SuperBoard";
 import MoveHistory from "../components/MoveHistory";
+import GameEndModal from "../components/GameEndModal";
+import GameReview from "../components/GameReview";
+
+// Utils
+import { getBoardStateAtMove } from "../utils/boardLogic";
+
 import "./GamePage.css";
 
 // --- DEFAULT AVATAR ---
@@ -15,7 +23,7 @@ const DefaultAvatar = () => (
 );
 
 // --- CHAT COMPONENT ---
-const BattleChat = ({ messages, onSend, myUsername }) => {
+const BattleChat = ({ messages, systemMessage, onSend, myUsername }) => {
   const [input, setInput] = useState("");
   const endRef = useRef(null);
 
@@ -29,22 +37,29 @@ const BattleChat = ({ messages, onSend, myUsername }) => {
 
   useEffect(() => {
     endRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages]);
+  }, [messages, systemMessage]);
 
   return (
     <div className="tech-panel chat-module">
       <div className="panel-header">COMMS_LINK</div>
-      
       <div className="chat-messages">
-        {messages.length === 0 && (
-          <div className="system-msg">System Ready...</div>
+        {/* Persistent System Message (Stakes) */}
+        {systemMessage && (
+          <div className="chat-bubble-row row-left">
+            <div className="chat-bubble bubble-system">
+              <div className="chat-text" style={{ color: '#ffd700', fontWeight: 'bold' }}>
+                {systemMessage}
+              </div>
+            </div>
+          </div>
         )}
+
+        {/* Regular Chat */}
+        {messages.length === 0 && !systemMessage && <div className="system-msg">System Ready...</div>}
         
         {messages.map((m, i) => {
-          // Normalize for case-insensitive comparison
           const msgUser = m.user ? m.user.toLowerCase() : "";
           const myUser = myUsername ? myUsername.toLowerCase() : "";
-          
           const isMe = msgUser === myUser;
 
           return (
@@ -58,12 +73,11 @@ const BattleChat = ({ messages, onSend, myUsername }) => {
         })}
         <div ref={endRef} />
       </div>
-
       <form className="chat-input-area" onSubmit={handleSubmit}>
         <input 
-          className="chat-input"
-          placeholder="Type message..."
-          value={input}
+          className="chat-input" 
+          placeholder="Type message..." 
+          value={input} 
           onChange={(e) => setInput(e.target.value)}
         />
       </form>
@@ -74,61 +88,96 @@ const BattleChat = ({ messages, onSend, myUsername }) => {
 // --- MAIN PAGE ---
 export default function GamePage() {
   const { gameId } = useParams();
+  const navigate = useNavigate();
   const socket = useSocket();
   const { user } = useContext(AuthContext); 
   
+  // Game State
   const [gameState, setGameState] = useState(null);
   const [loading, setLoading] = useState(true);
   const [chatMessages, setChatMessages] = useState([]);
+  
+  // UX State
+  const [viewIndex, setViewIndex] = useState(-1); // -1 = Live, 0+ = History Index
+  const [gameResultModal, setGameResultModal] = useState(null); // Data for popup
+  const [isReviewMode, setIsReviewMode] = useState(false);
+  const [stakesMsg, setStakesMsg] = useState(null); 
+  
+  // FIX: Flag to prevent popup from reopening automatically
+  const [hasClosedModal, setHasClosedModal] = useState(false);
 
   // --- SOCKET LISTENERS ---
   useEffect(() => {
     if (!socket || !gameId) return;
 
+    // 1. Handle Game Updates (Moves, Time, Chat)
     const handleUpdate = (newGameState) => {
       if (newGameState && (newGameState.id === gameId || newGameState._id === gameId)) {
         setGameState(newGameState);
         setLoading(false);
-        if (newGameState.chat) {
-          setChatMessages(newGameState.chat);
+        if (newGameState.chat) setChatMessages(newGameState.chat);
+
+        // FIX: Only show fallback popup if user hasn't closed it yet
+        if (newGameState.gameWinner && !gameResultModal && !hasClosedModal) {
+          const p1 = newGameState.playerDetails[0];
+          const p2 = newGameState.playerDetails[1];
+          setGameResultModal({
+            winner: newGameState.gameWinner,
+            reason: 'Game Over', 
+            winnerId: newGameState.gameWinner === 'D' ? null : (newGameState.gameWinner === 'X' ? p1.id : p2.id),
+            players: [
+              { ...p1, change: 0, newElo: p1.elo }, 
+              { ...p2, change: 0, newElo: p2.elo }
+            ]
+          });
         }
       }
     };
 
-    const handleDrawOffer = () => {
-      const accept = window.confirm("Opponent has offered a draw. Do you accept?");
-      socket.emit(accept ? "acceptDraw" : "declineDraw", gameId);
+    // 2. Handle Official Game End (Exact ELO changes)
+    const handleGameEnded = (result) => {
+      setGameResultModal(result);
+      setHasClosedModal(false); // Reset flag on new official result
     };
 
+    // 3. Handle Draw Offers
+    const handleDrawOffer = () => {
+      const accept = window.confirm("Opponent has offered a draw. Do you accept?");
+      socket.emit(accept ? "acceptDraw" : "declineDraw", { gameId });
+    };
+
+    // 4. Handle Personalized Stakes (The Whisper)
+    const handlePersonalStakes = (data) => {
+      const msg = `Stakes vs ${data.opponent}: Win +${data.win} | Draw ${data.draw >= 0 ? '+' : ''}${data.draw} | Loss ${data.loss}`;
+      setStakesMsg(msg);
+    };
+
+    // Join & Listen
     socket.emit("joinGame", gameId);
     socket.emit("requestGameState", { gameId });
     
     socket.on("updateGame", handleUpdate);
+    socket.on("gameEnded", handleGameEnded);
     socket.on("drawOffered", handleDrawOffer);
+    socket.on("personalStakes", handlePersonalStakes);
     
+    // Cleanup
     return () => {
       socket.off("updateGame", handleUpdate);
+      socket.off("gameEnded", handleGameEnded);
       socket.off("drawOffered", handleDrawOffer);
+      socket.off("personalStakes", handlePersonalStakes);
     };
-  }, [socket, gameId]);
+  }, [socket, gameId, gameResultModal, hasClosedModal]); // Added hasClosedModal to deps
 
   // --- ACTIONS ---
   const handleSendChat = (text) => {
-    // 1. Try to get username from Auth Context
     let myName = user?.username;
-    
-    // 2. Fallback: Try to find my name in the game details if Auth is slow
     if (!myName && gameState && user?._id) {
         const me = gameState.playerDetails.find(p => p && p.id === user._id);
         if (me) myName = me.username;
     }
-
-    // 3. Optimistic Update (Show immediately)
-    if (myName) {
-        setChatMessages(prev => [...prev, { user: myName, text }]);
-    }
-
-    // 4. Send to server
+    if (myName) setChatMessages(prev => [...prev, { user: myName, text }]);
     socket.emit('sendChatMessage', { gameId, message: text });
   };
 
@@ -140,9 +189,44 @@ export default function GamePage() {
 
   const handleOfferDraw = () => {
     if (window.confirm("Offer a draw?")) {
-      socket.emit("offerDraw", gameId);
+      socket.emit("offerDraw", { gameId });
     }
   };
+
+  const handleRematch = () => {
+    alert("Rematch requested (Backend implementation pending)");
+  };
+
+  // --- VIEW LOGIC (Time Travel) ---
+  const handleHistoryClick = (index) => {
+    setViewIndex(index);
+    setIsReviewMode(false);
+  };
+
+  const displayedState = useMemo(() => {
+    if (!gameState) return null;
+    const totalMoves = gameState.moves ? gameState.moves.length : 0;
+    const isLive = viewIndex === -1 || viewIndex === totalMoves - 1;
+
+    if (isLive) {
+      return {
+        allBoards: gameState.allBoards,
+        boardWinners: gameState.boardWinners,
+        activeBoard: gameState.activeBoard,
+        playerToMove: gameState.playerToMove,
+        isHistoryView: false
+      };
+    } else {
+      const { allBoards, boardWinners, activeBoard } = getBoardStateAtMove(gameState.moves, viewIndex);
+      return {
+        allBoards,
+        boardWinners,
+        activeBoard, 
+        playerToMove: null, 
+        isHistoryView: true
+      };
+    }
+  }, [gameState, viewIndex]);
 
   // --- TIME FORMATTER ---
   const formatTime = (ms) => {
@@ -155,21 +239,13 @@ export default function GamePage() {
 
   // --- RENDER ---
   if (loading || !gameState) {
-    return (
-      <div className="gamepage" style={{ justifyContent: 'center', alignItems: 'center' }}>
-        <div className="spinner" />
-      </div>
-    );
+    return <div className="gamepage"><div className="spinner" /></div>;
   }
 
   const {
     players = [],
     playerDetails = [],
-    playerToMove,
     playerTimes = [0, 0],
-    allBoards,
-    activeBoard,
-    boardWinners,
     gameWinner,
     moves = [],
   } = gameState;
@@ -177,45 +253,91 @@ export default function GamePage() {
   const p1 = playerDetails[0] || { username: "Player 1", elo: 1000 };
   const p2 = playerDetails[1] || { username: "Player 2", elo: 1000 };
   
-  const isP1Turn = playerToMove === players?.[0];
-  const isP2Turn = playerToMove === players?.[1];
+  const isP1Turn = displayedState.playerToMove === players?.[0];
+  const isP2Turn = displayedState.playerToMove === players?.[1];
   const gameOver = !!gameWinner;
 
   return (
     <div className="gamepage">
+      {/* GAME END POPUP */}
+      {gameResultModal && (
+        <GameEndModal 
+          result={gameResultModal}
+          currentUser={user}
+          onRematch={handleRematch}
+          onNewGame={() => navigate('/play')}
+          onReview={() => {
+            setGameResultModal(null);
+            setHasClosedModal(true);
+            setIsReviewMode(true);
+          }}
+          // FIX: Closing the modal sets the flag so it doesn't reopen
+          onClose={() => {
+            setGameResultModal(null);
+            setHasClosedModal(true);
+          }}
+        />
+      )}
+
       <div className="gamepage-inner">
         <div className="game-main-area">
           <div className="board-container">
             <div className="board-shell">
-              <SuperBoard
-                allBoards={allBoards}
-                activeBoard={activeBoard}
-                boardWinners={boardWinners}
-                gameWinner={gameWinner}
-                playerToMove={playerToMove}
-                players={players}
-                gameId={gameId}
-              />
+              
+              {isReviewMode ? (
+                <GameReview 
+                  moves={moves} 
+                  onExit={() => setIsReviewMode(false)}
+                />
+              ) : (
+                <>
+                  {displayedState.isHistoryView && (
+                    <div className="history-overlay-warning" onClick={() => setViewIndex(-1)}>
+                      Viewing Move {viewIndex + 1} / {moves.length} • Click to Return to Live
+                    </div>
+                  )}
+
+                  <SuperBoard
+                    allBoards={displayedState.allBoards}
+                    activeBoard={displayedState.activeBoard}
+                    boardWinners={displayedState.boardWinners}
+                    gameWinner={gameWinner}
+                    playerToMove={displayedState.playerToMove}
+                    players={players}
+                    gameId={gameId}
+                  />
+                </>
+              )}
+              
             </div>
           </div>
+
           <div className="side-column">
             <div className="tech-panel history-module">
               <div className="panel-header">MOVE_LOG</div>
               <div className="history-content">
-                <MoveHistory moves={moves} userId={p1._id} />
+                <MoveHistory 
+                  moves={moves} 
+                  currentMoveIndex={viewIndex === -1 ? moves.length - 1 : viewIndex}
+                  onSelectMove={handleHistoryClick} 
+                />
               </div>
             </div>
+
             <div className="game-controls">
                 <button className="ctrl-btn draw-btn" onClick={handleOfferDraw} disabled={gameOver}>½ DRAW</button>
-                <button className="ctrl-btn resign-btn" onClick={handleResign} disabled={gameOver}>🏳 RESIGN</button>
+                <button className="ctrl-btn resign-btn" onClick={handleResign} disabled={gameOver}>?? RESIGN</button>
             </div>
+            
             <BattleChat 
               messages={chatMessages} 
+              systemMessage={stakesMsg}
               onSend={handleSendChat}
               myUsername={user?.username} 
             />
           </div>
         </div>
+
         <div className="game-bottom-hud">
           <div className="hud-player-block">
             <div className="hud-avatar">
@@ -226,6 +348,7 @@ export default function GamePage() {
               <div className="hud-elo">PWR: {p1.elo || 1200}</div>
             </div>
           </div>
+
           <div className="hud-timers">
             <div className={`hud-timer-box ${!gameOver && isP1Turn ? 'active' : ''}`}>
               {formatTime(playerTimes[0])}
@@ -234,6 +357,7 @@ export default function GamePage() {
               {formatTime(playerTimes[1])}
             </div>
           </div>
+
           <div className="hud-player-block right-align">
             <div className="hud-details">
               <div className="hud-name">{p2.username}</div>

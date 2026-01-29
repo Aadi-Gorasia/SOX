@@ -66,59 +66,45 @@ function getMoveTimeLabel(moves, index) {
   return formatMoveTime(deltaSec);
 }
 
-const MoveHistory = ({ moves = [] }) => {
+const MoveHistory = ({ moves = [], currentMoveIndex, onSelectMove }) => {
   const bottomRef = useRef(null);
 
-  // Auto-scroll to bottom when new moves arrive
+  // Only auto-scroll if we are currently looking at the latest move
   useEffect(() => {
-    bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [moves]);
+    if (currentMoveIndex === moves.length - 1) {
+      bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
+    }
+  }, [moves, currentMoveIndex]);
 
   if (!moves || moves.length === 0) {
-    return (
-      <div className="history-empty">
-        <span>No moves yet.</span>
-        <span className="blink">_</span>
-      </div>
-    );
+    return <div className="history-empty">Game hasn't started yet.</div>;
   }
 
   return (
-    <div className="history-list">
-      {moves.map((move, i) => {
-        const timeLabel = getMoveTimeLabel(moves, i);
-
-        return (
-          <div key={i} className="history-item">
-            {/* Move Number */}
-            <div className="hist-num">
-              {i + 1}.
+    <div className="history-container">
+      <div className="history-list">
+        {moves.map((move, i) => {
+          // Highlight if this is the currently viewed move
+          const isActive = i === currentMoveIndex;
+          
+          return (
+            <div 
+              key={i} 
+              className={`history-item ${isActive ? 'active' : ''}`}
+              onClick={() => onSelectMove(i)} // <--- Time Travel Click
+            >
+              <div className="hist-num">{i + 1}.</div>
+              <div className={`hist-symbol ${move.player === 'X' ? 'sym-x' : 'sym-o'}`}>
+                {move.player}
+              </div>
+              <div className="hist-details">
+                <span>{getCoord(move.boardIndex)} → {getCoord(move.cellIndex)}</span>
+              </div>
             </div>
-
-            {/* Player Symbol */}
-            <div className={`hist-symbol ${move.player === 'X' ? 'sym-x' : 'sym-o'}`}>
-              {move.player}
-            </div>
-
-            {/* Move Details */}
-            <div className="hist-details">
-              <span className="hist-board">
-                Board: {getCoord(move.boardIndex)}
-              </span>
-              <span className="hist-arrow">→</span>
-              <span className="hist-cell">
-                Cell: {getCoord(move.cellIndex)}
-              </span>
-
-              {/* Time taken for this move */}
-              {timeLabel && (
-                <span className="hist-time">⏱ {timeLabel}</span>
-              )}
-            </div>
-          </div>
-        );
-      })}
-      <div ref={bottomRef} />
+          );
+        })}
+        <div ref={bottomRef} />
+      </div>
     </div>
   );
 };

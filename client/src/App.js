@@ -7,9 +7,10 @@ import './App.css';
 import { AuthProvider, AuthContext } from './context/AuthContext';
 import { SocketProvider } from './context/SocketContext';
 import { GameProvider } from './context/GameContext';
+import { ThemeProvider } from './context/ThemeContext'; // <--- 1. IMPORT THEME PROVIDER
 
 // --- Components & Layouts ---
-import Navbar from './components/Navbar'; // Import Navbar
+import Navbar from './components/Navbar';
 import PrivateRoute from './routing/PrivateRoute';
 import GameLayout from './layouts/GameLayout';
 
@@ -21,12 +22,12 @@ import DashboardPage from './pages/DashboardPage';
 import ProfilePage from './pages/ProfilePage';
 import PlayPage from './pages/PlayPage';
 import GamePage from './pages/GamePage';
+import SettingsPage from './pages/SettingsPage'; // <--- 2. IMPORT SETTINGS PAGE
 
-// NEW LAYOUT: For all pages that should have a Navbar
 const MainLayout = () => (
   <>
     <Navbar />
-    <Outlet /> {/* This will render the child route component */}
+    <Outlet />
   </>
 );
 
@@ -39,14 +40,14 @@ const AppContent = () => {
 
   return (
     <Routes>
-      {/* --- Routes with the Main (Navbar) Layout --- */}
+      {/* Public Routes */}
       <Route element={<MainLayout />}>
         <Route path="/" element={<HomePage />} />
         <Route path="/register" element={<RegisterPage />} />
         <Route path="/login" element={<LoginPage />} />
       </Route>
 
-      {/* --- Private Routes also using the Main (Navbar) Layout --- */}
+      {/* Private Routes (Main Layout) */}
       <Route
         element={
           <PrivateRoute>
@@ -59,9 +60,12 @@ const AppContent = () => {
         <Route path="/dashboard" element={<DashboardPage />} />
         <Route path="/profile/:username" element={<ProfilePage />} />
         <Route path="/play" element={<PlayPage />} />
+        
+        {/* 3. ADD SETTINGS ROUTE HERE */}
+        <Route path="/settings" element={<SettingsPage />} />
       </Route>
 
-      {/* --- Game Route with its own special layout --- */}
+      {/* Game Route (Special Layout) */}
       <Route
         element={
           <PrivateRoute>
@@ -81,13 +85,20 @@ function App() {
   return (
     <AuthProvider>
       <SocketProvider>
-        <Router>
-          {/* This is the correct structure for a global background and app content */}
-          <div className="holographic-background"><div></div></div>
-          <div className="App"> {/* Add App class for styling */}
-            <AppContent />
-          </div>
-        </Router>
+        {/* 4. WRAP EVERYTHING WITH THEME PROVIDER */}
+        <ThemeProvider>
+          <Router>
+            {/* 
+               We update the background div to use CSS Variables 
+               so it changes color based on the selected theme.
+            */}
+            <div className="app-background"></div>
+            
+            <div className="App">
+              <AppContent />
+            </div>
+          </Router>
+        </ThemeProvider>
       </SocketProvider>
     </AuthProvider>
   );

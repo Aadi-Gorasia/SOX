@@ -113,20 +113,33 @@ html {
 }
 
 body {
-  min-height: 100%;
-  background-color: transparent;
+  margin: 0;
+  /* Use the theme variables defined in themes.css */
+  background-color: var(--bg-app); 
   color: var(--text-primary);
-  /* The one true pixel font for this vibe */
-  font-family: 'Press Start 2P', monospace;
-  /* Ensure pixel art and fonts are not blurred by the browser */
-  image-rendering: -moz-crisp-edges;
-  image-rendering: -webkit-crisp-edges;
-  image-rendering: pixelated;
-  image-rendering: crisp-edges;
-  -webkit-font-smoothing: none;
-  -moz-osx-font-smoothing: grayscale;
-  line-height: 1.6;
-  -webkit-tap-highlight-color: transparent;
+  font-family: var(--font-main);
+  transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+/* Update the background div to use the theme pattern */
+.app-background {
+  position: fixed;
+  top: 0; 
+  left: 0; 
+  width: 100vw; 
+  height: 100vh;
+  z-index: -1;
+  /* This pulls the pattern (grid, gradient, noise) from the current theme */
+  background-image: var(--pattern); 
+  background-size: 40px 40px; /* Default size, themes can override */
+  pointer-events: none;
+  opacity: 0.4; /* Subtle texture overlay */
+}
+
+/* Ensure Navbar uses theme variables if it isn't already */
+nav {
+  background: var(--bg-panel) !important;
+  border-bottom: var(--border) !important;
 }
 
 /* typography */
@@ -214,14 +227,15 @@ a:hover, a:focus { color: var(--panel-border-hover); text-shadow: 2px 2px 0px va
   position: relative; overflow: hidden;
 }
 .btn::before{
-  /* Disable modern shimmer effect */
   content: none;
 }
+
 .btn:hover {
   transform: translate(-4px, -4px);
   box-shadow: 8px 8px 0px #11091a;
   border-color: var(--panel-border-hover);
 }
+
 .btn:active {
   transform: translate(0, 0);
   box-shadow: var(--shadow-card);
@@ -232,6 +246,7 @@ a:hover, a:focus { color: var(--panel-border-hover); text-shadow: 2px 2px 0px va
   color: #000; border: 2px solid #000;
   text-shadow: none;
 }
+
 .btn-primary:hover {
   box-shadow: 8px 8px 0px var(--accent-secondary);
 }

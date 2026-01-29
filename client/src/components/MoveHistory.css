@@ -109,3 +109,35 @@
   align-items: center;
   gap: 2px;
 }
+
+.history-item {
+  cursor: pointer;
+  border-left: 3px solid transparent;
+}
+.history-item:hover {
+  background-color: #2a2a2a;
+}
+.history-item.active {
+  background-color: #333d29; /* Greenish tint */
+  border-left: 3px solid #76b51e;
+}
+.history-controls {
+  display: flex;
+  justify-content: center;
+  gap: 5px;
+  padding: 10px;
+  background: #111;
+  border-top: 1px solid #333;
+}
+.history-controls button {
+  background: #333;
+  color: white;
+  border: none;
+  padding: 5px 10px;
+  cursor: pointer;
+  border-radius: 4px;
+}
+.history-controls button:disabled {
+  opacity: 0.3;
+  cursor: default;
+}

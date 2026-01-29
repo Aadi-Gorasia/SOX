@@ -1,6 +1,5 @@
 // client/src/layouts/MainAppLayout.js
 import React from 'react';
-import Sidebar from '../components/Sidebar';
 import './MainAppLayout.css';
 
 const MainAppLayout = ({ children }) => {
