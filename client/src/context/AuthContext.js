@@ -15,7 +15,7 @@ const AuthProvider = ({ children }) => {
       if (token) {
         axios.defaults.headers.common['x-auth-token'] = token;
         try {
-          const res = await axios.get('http://localhost:5000/api/auth');
+          const res = await axios.get('http://localhost:3000/api/auth');
           setUser(res.data);
           setIsAuthenticated(true);
         } catch (err) {
@@ -31,7 +31,7 @@ const AuthProvider = ({ children }) => {
 
   const login = async (formData) => {
     try {
-      const res = await axios.post('http://localhost:5000/api/users/login', formData);
+      const res = await axios.post('http://localhost:3000/api/users/login', formData);
       localStorage.setItem('token', res.data.token);
       setToken(res.data.token);
       return { success: true };
