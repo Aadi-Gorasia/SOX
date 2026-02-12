@@ -42,6 +42,7 @@ function formatMoveTime(seconds) {
 }
 
 // Compute time taken using timestamps (no server changes needed)
+// eslint-disable-next-line no-unused-vars
 function getMoveTimeLabel(moves, index) {
   const move = moves[index];
 

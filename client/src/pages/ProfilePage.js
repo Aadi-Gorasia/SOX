@@ -171,6 +171,25 @@ function SmoothGraph({ data }) {
     return { path: linePath, areaPath: area, points: coords, width: W, height: H };
   }, [data]);
 
+  const handleMouseMove = (e) => {
+    const rect = e.target.getBoundingClientRect();
+    const mouseX = e.clientX - rect.left;
+    
+    // Find closest point index based on mouse X
+    // points[i][0] is the x coordinate
+    // Since X is linear, we can calculate index directly
+    const percent = Math.max(0, Math.min(1, mouseX / rect.width));
+    const index = Math.round(percent * (data.length - 1));
+    
+    if (data[index] && points[index]) {
+      setHoverData({
+        ...data[index],
+        x: points[index][0],
+        y: points[index][1]
+      });
+    }
+  };
+
   if (!data || data.length < 2)  return (
     <div className="insane-card graph-panel">
       <div className="card-header">
@@ -242,24 +261,6 @@ function SmoothGraph({ data }) {
     </div>
   );
 
-  const handleMouseMove = (e) => {
-    const rect = e.target.getBoundingClientRect();
-    const mouseX = e.clientX - rect.left;
-    
-    // Find closest point index based on mouse X
-    // points[i][0] is the x coordinate
-    // Since X is linear, we can calculate index directly
-    const percent = Math.max(0, Math.min(1, mouseX / rect.width));
-    const index = Math.round(percent * (data.length - 1));
-    
-    if (data[index] && points[index]) {
-      setHoverData({
-        ...data[index],
-        x: points[index][0],
-        y: points[index][1]
-      });
-    }
-  };
 
   return (
     <div className="insane-card graph-panel">

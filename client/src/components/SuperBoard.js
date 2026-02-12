@@ -1,17 +1,16 @@
 // client/src/components/SuperBoard.js
-import React, { useContext } from "react";
+import React from "react";
 import { motion } from "framer-motion";
 import Board from "./Board";
-import { AuthContext } from "../context/AuthContext";
 import { useSocket } from "../context/SocketContext";
 import "./SuperBoard.css";
 
 // Pure helper – checks the 3x3 macro-board winners
 function calculateWinner(squares) {
   const lines = [
-    [0, 1, 2], [3, 4, 5], [6, 7, 8],      // rows
-    [0, 3, 6], [1, 4, 7], [2, 5, 8],      // columns
-    [0, 4, 8], [2, 4, 6]                  // diagonals
+    [0, 1, 2], [3, 4, 5], [6, 7, 8],
+    [0, 3, 6], [1, 4, 7], [2, 5, 8],
+    [0, 4, 8], [2, 4, 6]
   ];
   for (let i = 0; i < lines.length; i++) {
     const [a, b, c] = lines[i];
@@ -29,14 +28,14 @@ function calculateWinner(squares) {
 
 const VictoryLine = ({ lineIndex }) => {
   const linePaths = [
-    "M 0 16.66 L 100 16.66", // row 1
-    "M 0 50 L 100 50",       // row 2
-    "M 0 83.33 L 100 83.33", // row 3
-    "M 16.66 0 L 16.66 100", // col 1
-    "M 50 0 L 50 100",       // col 2
-    "M 83.33 0 L 83.33 100", // col 3
-    "M 5 5 L 95 95",         // diag \
-    "M 95 5 L 5 95"          // diag /
+    "M 0 16.66 L 100 16.66",
+    "M 0 50 L 100 50",
+    "M 0 83.33 L 100 83.33",
+    "M 16.66 0 L 16.66 100",
+    "M 50 0 L 50 100",
+    "M 83.33 0 L 83.33 100",
+    "M 5 5 L 95 95",
+    "M 95 5 L 5 95"
   ];
 
   return (
@@ -61,7 +60,6 @@ const SuperBoard = ({
   gameId
 }) => {
   const socket = useSocket();
-  const { user } = useContext(AuthContext); // not used right now, but kept in case you show names later
 
   const handlePlay = (boardIndex, cellIndex) => {
     if (!socket) return;
@@ -70,16 +68,6 @@ const SuperBoard = ({
 
   const myPlayerIndex = players.findIndex((pId) => pId === socket?.id);
   const isMyTurn = socket?.id && socket.id === playerToMove;
-  const playerMark = myPlayerIndex === 0 ? "X" : "O";
-
-  // statusText is currently not rendered here, GamePage owns HUD/status
-  let statusText;
-  if (gameWinner) {
-    if (gameWinner === "D") statusText = "Game Drawn";
-    else statusText = playerMark === gameWinner ? "You Won!" : "You Lost.";
-  } else {
-    statusText = isMyTurn ? "Your Turn" : "Opponent's Turn";
-  }
 
   const gameWinnerInfo = calculateWinner(boardWinners);
 

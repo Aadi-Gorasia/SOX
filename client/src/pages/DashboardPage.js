@@ -1,19 +1,15 @@
 // client/src/pages/DashboardPage.js
 import React, { useContext, useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { AuthContext } from '../context/AuthContext';
 import { useSocket } from '../context/SocketContext';
 import './DashboardPage.css';
 
-// --- THEME LIST ---
 const THEMES = [
   'arcade', 'glass', 'wood', 'terminal', 'paper', 
   'ocean', 'sunset', 'midnight', 'forest', 'candy',
   'cyberpunk', 'blueprint', 'royal', 'concrete', 'vaporwave'
 ];
-
-// --- COMPONENTS ---
 
 const WinLossBar = ({ wins, losses }) => {
   const total = wins + losses;
@@ -44,23 +40,17 @@ const TimeControlPod = ({ time, increment, type, onClick }) => (
 const BattleLogEntry = ({ result, opponent, eloChange }) => (
   <div className={`log-row ${result.toLowerCase()}`}>
     <div className="log-left">
-      <span className="log-res">{result[0]}</span> {/* W, L, D */}
+      <span className="log-res">{result[0]}</span>
       <span className="log-vs">vs {opponent}</span>
     </div>
     <span className="log-elo">{eloChange > 0 ? '+' : ''}{eloChange}</span>
   </div>
 );
 
-// --- MAIN PAGE ---
-
 const DashboardPage = () => {
   const { user } = useContext(AuthContext);
   const socket = useSocket();
-  const navigate = useNavigate();
   const [games, setGames] = useState([]);
-  const [loadingGames, setLoadingGames] = useState(true);
-  
-  // THEME STATE (Persist in localStorage)
   const [currentTheme, setCurrentTheme] = useState(localStorage.getItem('sox-theme') || 'arcade');
 
   useEffect(() => {
@@ -74,13 +64,11 @@ const DashboardPage = () => {
       try {
         const res = await axios.get('http://localhost:5000/api/games/history');
         setGames(res.data);
-      } catch (err) { console.error(err); } 
-      finally { setLoadingGames(false); }
+      } catch (err) { console.error(err); }
     };
     if (user) fetchGameHistory();
   }, [user]);
 
-  // Socket logic (omitted for brevity, same as before)
   const handleFindGame = (tc) => {
     if (socket) socket.emit('findGame', { timeControl: tc });
   };
@@ -89,18 +77,27 @@ const DashboardPage = () => {
 
   const totalGames = user.wins + user.losses + user.draws;
   const winRate = totalGames > 0 ? Math.round((user.wins / totalGames) * 100) : 0;
+
   const recentGames = games.slice(0, 8).map((g) => {
     const opponent = g.players.find((p) => p._id !== user._id);
-    const result = g.status === 'DRAW' ? 'DRAW' : g.winner && g.winner._id === user._id ? 'WIN' : 'LOSS';
-    return { id: g._id, result, opponent: opponent ? opponent.username : 'Unknown', eloChange: g.eloChange || 0 };
+    const result = g.status === 'DRAW'
+      ? 'DRAW'
+      : g.winner && g.winner._id === user._id
+      ? 'WIN'
+      : 'LOSS';
+
+    return {
+      id: g._id,
+      result,
+      opponent: opponent ? opponent.username : 'Unknown',
+      eloChange: g.eloChange || 0
+    };
   });
 
   return (
-    // THEME WRAPPER
     <div className="theme-wrapper" data-theme={currentTheme}>
       <div className="theme-bg-layer"></div>
 
-      {/* THEME SELECTOR BAR */}
       <div className="theme-switcher">
         <span>SKIN:</span>
         <div className="theme-scroll">
@@ -117,16 +114,17 @@ const DashboardPage = () => {
       </div>
 
       <div className="dashboard-layout">
-        
-        {/* HEADER */}
         <header className="dash-header">
           <div className="user-block">
             <div className="user-avatar">{user.username[0].toUpperCase()}</div>
             <div className="user-details">
               <h1>{user.username}</h1>
-              <div className="user-badges">LVL {Math.floor(user.elo/100)} • {user.elo} ELO</div>
+              <div className="user-badges">
+                LVL {Math.floor(user.elo/100)} • {user.elo} ELO
+              </div>
             </div>
           </div>
+
           <div className="header-stats">
             <div className="h-stat">
               <label>WR</label>
@@ -139,10 +137,7 @@ const DashboardPage = () => {
           </div>
         </header>
 
-        {/* GRID */}
         <div className="dash-grid">
-          
-          {/* STATS PANEL */}
           <section className="dash-panel stats-panel">
             <h3 className="panel-title">STATISTICS</h3>
             <WinLossBar wins={user.wins} losses={user.losses} />
@@ -153,7 +148,6 @@ const DashboardPage = () => {
             </div>
           </section>
 
-          {/* PLAY PANEL */}
           <section className="dash-panel play-panel">
             <h2 className="play-title">READY TO PLAY?</h2>
             <div className="pods-container">
@@ -163,21 +157,18 @@ const DashboardPage = () => {
             </div>
           </section>
 
-          {/* LOG PANEL */}
           <section className="dash-panel log-panel">
             <div className="panel-header-row">
               <h3 className="panel-title">HISTORY</h3>
               <div className="live-dot">LIVE</div>
             </div>
             <div className="log-list">
-              {recentGames.length > 0 ? (
-                recentGames.map(g => <BattleLogEntry key={g.id} {...g} />)
-              ) : (
-                <div className="empty-log">No Data</div>
-              )}
+              {recentGames.length > 0
+                ? recentGames.map(g => <BattleLogEntry key={g.id} {...g} />)
+                : <div className="empty-log">No Data</div>
+              }
             </div>
           </section>
-
         </div>
       </div>
     </div>

@@ -68,18 +68,6 @@ const GameRulesSection = () => (
   </section>
 );
 
-// --- Battlefield Section (unused for now, but kept for future) ---
-const BattlefieldSection = () => (
-  <section className="battlefield-section">
-    <div className="section-header">
-      <h2>KNOW YOUR BATTLEFIELD</h2>
-      <p>The 9x9 grid is your arena. Study it.</p>
-    </div>
-    <div className="insane-card battlefield-display">
-      <DisplayBoard />
-    </div>
-  </section>
-);
 
 // --- High Scores Section ---
 const HighScoresSection = ({ leaderboard, isLoading, error }) => {

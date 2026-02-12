@@ -107,7 +107,7 @@ const GameEndModal = ({ result, currentUser, onRematch, onNewGame, onReview, onC
         
         {/* Decorative footer line */}
         <div className="terminal-footer">
-           SYSTEM_ID: {result.winnerId || "NULL"} // TIMESTAMP: {Date.now()}
+          SYSTEM_ID: {result.winnerId || "NULL"} | TIMESTAMP: {Date.now()}
         </div>
       </div>
     </div>
