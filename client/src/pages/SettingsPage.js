@@ -3,6 +3,8 @@ import { AuthContext } from '../context/AuthContext';
 import axios from 'axios';
 import './SettingsPage.css';
 
+const { user } = useContext(AuthContext);
+
 const SettingsPage = () => {
   const [formData, setFormData] = useState({ username: user.username, password: '' });
   const [activeTheme, setActiveTheme] = useState(document.documentElement.getAttribute('data-theme'));
