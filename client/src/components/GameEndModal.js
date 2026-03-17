@@ -32,7 +32,7 @@ const GameEndModal = ({ result, currentUser, onRematch, onNewGame, onReview, onC
       subTitle = "SYSTEM FAILURE";
     }
   }
-  
+
   const reasonText = {
     'timeout': 'TIME EXPIRED',
     'agreement': 'MUTUAL CEASEFIRE',
@@ -44,15 +44,13 @@ const GameEndModal = ({ result, currentUser, onRematch, onNewGame, onReview, onC
     <div className="modal-backdrop">
       <div className={`modal-terminal ${theme}`}>
         
-        {/* --- HEADER BAR WITH CLOSE CROSS --- */}
         <div className="terminal-header">
-          <div className="header-title">/// GAME_REPORT_LOG</div>
+          <div className="header-title">/ GAME_REPORT_LOG</div>
           <button className="terminal-close-btn" onClick={onClose}>
             [ ✖ ]
           </button>
         </div>
 
-        {/* --- MAIN CONTENT --- */}
         <div className="terminal-body">
           <div className="status-display">
             <h1 className="glitch-text" data-text={mainTitle}>{mainTitle}</h1>

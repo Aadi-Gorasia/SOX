@@ -4,7 +4,6 @@ import axios from 'axios';
 import './SettingsPage.css';
 
 const SettingsPage = () => {
-  const { user, setThemePreference } = useContext(AuthContext);
   const [formData, setFormData] = useState({ username: user.username, password: '' });
   const [activeTheme, setActiveTheme] = useState(document.documentElement.getAttribute('data-theme'));
 
