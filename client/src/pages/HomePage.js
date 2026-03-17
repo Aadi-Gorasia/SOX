@@ -148,7 +148,7 @@ const HomePage = () => {
       setIsLoading(true);
       setError(null);
       try {
-        const res = await axios.get('/api/users/leaderboard');
+        const res = await axios.get(`${process.env.REACT_APP_API_URL}/api/games/leaderboard`);
 
         const data = res.data;
 
