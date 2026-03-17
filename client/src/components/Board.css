@@ -1,7 +1,29 @@
 /* client/src/components/Board.css */
 @import url('https://fonts.googleapis.com/css2?family=Oswald:wght@200..700&display=swap');
 
+/* Tonal Board Reactions */
+.cell {
+  transition: var(--transition-royal);
+  position: relative;
+  overflow: hidden;
+}
 
+.cell:active {
+  transform: scale(0.92);
+  background: var(--accent-soft);
+}
+
+/* Winning Animation: The Crown Pulse */
+.won-board {
+  animation: winPulse 2s infinite;
+  border: 2px solid var(--board-win);
+}
+
+@keyframes winPulse {
+  0% { box-shadow: 0 0 0 0 var(--accent-soft); }
+  70% { box-shadow: 0 0 0 20px rgba(0,0,0,0); }
+  100% { box-shadow: 0 0 0 0 rgba(0,0,0,0); }
+}
 
 .board-container {
   position: relative;

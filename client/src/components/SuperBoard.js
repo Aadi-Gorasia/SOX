@@ -66,7 +66,6 @@ const SuperBoard = ({
     socket.emit("makeMove", { gameId, boardIndex, cellIndex });
   };
 
-  const myPlayerIndex = players.findIndex((pId) => pId === socket?.id);
   const isMyTurn = socket?.id && socket.id === playerToMove;
 
   const gameWinnerInfo = calculateWinner(boardWinners);

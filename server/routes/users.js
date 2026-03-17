@@ -8,6 +8,7 @@ const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const User = require('../models/User');
 const Game = require('../models/Game');
+const auth = require('../middleware/auth'); // Make sure the path to your middleware is correct
 
 // --- REGISTER ROUTE ---
 router.post('/register', async (req, res) => {
@@ -59,6 +60,30 @@ router.get('/profile/:username', async (req, res) => {
     const games = await Game.find({ players: user._id }).sort({ endDate: -1 }).limit(50).populate('players', 'username').populate('winner', 'username');
     res.json({ user, games });
   } catch (err) { console.error(err.message); res.status(500).send('Server Error'); }
+});
+
+router.put('/update-identity', auth, async (req, res) => {
+  const { username, password } = req.body;
+  try {
+    const user = await User.findById(req.user.id);
+    
+    if (username && username !== user.username) {
+      const sixMonths = 180 * 24 * 60 * 60 * 1000;
+      if (user.lastUsernameChange && (Date.now() - user.lastUsernameChange < sixMonths)) {
+        return res.status(400).json({ msg: "Username can only be changed once every 6 months." });
+      }
+      user.username = username;
+      user.lastUsernameChange = Date.now();
+    }
+
+    if (password) {
+      const salt = await bcrypt.genSalt(10);
+      user.password = await bcrypt.hash(password, salt);
+    }
+
+    await user.save();
+    res.json({ msg: "Identity updated successfully" });
+  } catch (err) { res.status(500).send('Server Error'); }
 });
 
 // --- LEADERBOARD ROUTE ---

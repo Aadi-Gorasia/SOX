@@ -14,7 +14,7 @@ export const SocketProvider = ({ children }) => {
     if (isAuthenticated && token) {
       console.log("CLIENT: Connecting socket with token...");
 
-      const newSocket = io("http://localhost:5000", {
+      const newSocket = io("http://localhost:5001", {
         auth: { token },
         transports: ["websocket"], // force websocket only
       });

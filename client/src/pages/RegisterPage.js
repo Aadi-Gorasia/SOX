@@ -16,7 +16,7 @@ const RegisterPage = () => {
     e.preventDefault();
     try {
       // We need to get the token back from the register route
-      const res = await axios.post('http://localhost:5000/api/users/register', formData);
+      const res = await axios.post('http://localhost:5001/api/users/register', formData);
       // Immediately log in using the same credentials (or token)
       // Since our register now returns a token, we can use a different login flow
       if (res.data.token) {

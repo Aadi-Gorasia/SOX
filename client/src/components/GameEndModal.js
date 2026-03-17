@@ -4,27 +4,22 @@ import './GameEndModal.css';
 const GameEndModal = ({ result, currentUser, onRematch, onNewGame, onReview, onClose }) => {
   if (!result) return null;
 
-  // 1. Safe Data Extraction
   const players = result.players || [];
   const myUsername = currentUser?.username;
   
-  // Find "Me" and "Opponent"
   let myPlayer = players.find(p => p.username === myUsername);
   let opponent = players.find(p => p.username !== myUsername);
 
-  // Fallback for observers or reload glitches
   if (!myPlayer) {
     myPlayer = players[0];
     opponent = players[1] || { username: "OPPONENT", newElo: "---", change: 0 };
   }
 
-  // 2. Determine Theme & Text
   let theme = "draw";
   let mainTitle = "DRAW";
   let subTitle = "MATCH TERMINATED";
 
   if (result.winner !== 'D') {
-    // Check win condition
     const isWin = (myPlayer.change > 0) || (result.winnerId === myPlayer.id);
 
     if (isWin) {
@@ -37,13 +32,12 @@ const GameEndModal = ({ result, currentUser, onRematch, onNewGame, onReview, onC
       subTitle = "SYSTEM FAILURE";
     }
   }
-
-  // Reason mapping
+  
   const reasonText = {
     'timeout': 'TIME EXPIRED',
     'agreement': 'MUTUAL CEASEFIRE',
     'resignation': 'OPPONENT RESIGNED',
-    'checkmate': 'TACTICAL MATE' // or 'checkmate'
+    'checkmate': 'TACTICAL MATE' 
   }[result.reason] || result.reason.toUpperCase();
 
   return (

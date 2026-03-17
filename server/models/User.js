@@ -8,6 +8,8 @@ const UserSchema = new mongoose.Schema({
   wins: { type: Number, default: 0 },
   losses: { type: Number, default: 0 },
   draws: { type: Number, default: 0 },
-  date: { type: Date, default: Date.now }
+  date: { type: Date, default: Date.now },
+  lastUsernameChange: { type: Date, default: null }, 
+  themePreference: { type: String, default: 'tonal-dark' } 
 });
 module.exports = mongoose.model('User', UserSchema);
