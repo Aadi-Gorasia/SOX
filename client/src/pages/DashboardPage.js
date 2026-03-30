@@ -1,175 +1,111 @@
-// client/src/pages/DashboardPage.js
 import React, { useContext, useEffect, useState } from 'react';
 import axios from 'axios';
 import { AuthContext } from '../context/AuthContext';
 import { useSocket } from '../context/SocketContext';
 import './DashboardPage.css';
 
-const THEMES = [
-  'arcade', 'glass', 'wood', 'terminal', 'paper', 
-  'ocean', 'sunset', 'midnight', 'forest', 'candy',
-  'cyberpunk', 'blueprint', 'royal', 'concrete', 'vaporwave'
-];
-
-const WinLossBar = ({ wins, losses }) => {
-  const total = wins + losses;
-  const winPct = total > 0 ? (wins / total) * 100 : 50;
-  return (
-    <div className="theme-ratio-box">
-      <div className="ratio-header">
-        <span className="tx-win">W: {wins}</span>
-        <span className="tx-loss">L: {losses}</span>
-      </div>
-      <div className="theme-progress-track">
-        <div className="theme-progress-fill" style={{ width: `${winPct}%` }}></div>
-      </div>
-    </div>
-  );
-};
-
-const TimeControlPod = ({ time, increment, type, onClick }) => (
-  <button className="theme-pod" onClick={onClick}>
-    <div className="pod-inner">
-      <div className="pod-type">{type}</div>
-      <div className="pod-time">{time}<small>+{increment}</small></div>
-      <div className="pod-btn">PLAY</div>
-    </div>
-  </button>
-);
-
-const BattleLogEntry = ({ result, opponent, eloChange }) => (
-  <div className={`log-row ${result.toLowerCase()}`}>
-    <div className="log-left">
-      <span className="log-res">{result[0]}</span>
-      <span className="log-vs">vs {opponent}</span>
-    </div>
-    <span className="log-elo">{eloChange > 0 ? '+' : ''}{eloChange}</span>
-  </div>
-);
-
 const DashboardPage = () => {
   const { user } = useContext(AuthContext);
   const socket = useSocket();
   const [games, setGames] = useState([]);
-  const [currentTheme, setCurrentTheme] = useState(localStorage.getItem('sox-theme') || 'arcade');
 
   useEffect(() => {
-    localStorage.setItem('sox-theme', currentTheme);
-  }, [currentTheme]);
-
-  useEffect(() => {
-    const fetchGameHistory = async () => {
-      const token = localStorage.getItem('token');
-      if (token) axios.defaults.headers.common['x-auth-token'] = token;
+    const fetchHistory = async () => {
       try {
         const res = await axios.get('http://localhost:5000/api/games/history');
         setGames(res.data);
       } catch (err) { console.error(err); }
     };
-    if (user) fetchGameHistory();
+    if (user) fetchHistory();
   }, [user]);
 
   const handleFindGame = (tc) => {
     if (socket) socket.emit('findGame', { timeControl: tc });
   };
 
-  if (!user) return <div className="loading-screen">LOADING ASSETS...</div>;
-
-  const totalGames = user.wins + user.losses + user.draws;
-  const winRate = totalGames > 0 ? Math.round((user.wins / totalGames) * 100) : 0;
-
-  const recentGames = games.slice(0, 8).map((g) => {
-    const opponent = g.players.find((p) => p._id !== user._id);
-    const result = g.status === 'DRAW'
-      ? 'DRAW'
-      : g.winner && g.winner._id === user._id
-      ? 'WIN'
-      : 'LOSS';
-
-    return {
-      id: g._id,
-      result,
-      opponent: opponent ? opponent.username : 'Unknown',
-      eloChange: g.eloChange || 0
-    };
-  });
+  if (!user) return <div className="brutal-loader">LOADING_SYSTEM...</div>;
 
   return (
-    <div className="theme-wrapper" data-theme={currentTheme}>
-      <div className="theme-bg-layer"></div>
+    <div className="brutal-dash">
+      <div className="dash-grid-wrapper">
+        
+        {/* LEFT COLUMN: THE ARENA */}
+        <section className="arena-section">
+          <div className="brutal-card hero-card">
+            <div className="hero-text">
+              <h1>SUPER<br/>TIC-TAC-TOE</h1>
+              <p>NESTED GRID COMBAT // SELECT FREQUENCY</p>
+            </div>
+            <div className="hero-actions">
+              <button className="brutal-btn mega" onClick={() => handleFindGame('10+0')}>
+                QUICK MATCH
+              </button>
+            </div>
+          </div>
 
-      <div className="theme-switcher">
-        <span>SKIN:</span>
-        <div className="theme-scroll">
-          {THEMES.map(t => (
-            <button 
-              key={t} 
-              className={`theme-btn ${currentTheme === t ? 'active' : ''}`}
-              onClick={() => setCurrentTheme(t)}
-            >
-              {t.toUpperCase()}
-            </button>
-          ))}
-        </div>
-      </div>
+          <div className="tc-grid">
+            {['1+0', '3+2', '5+0', '10+0', '30+0'].map((tc) => (
+              <button key={tc} className="tc-brutal-btn" onClick={() => handleFindGame(tc)}>
+                <span className="tc-val">{tc.split('+')[0]}</span>
+                <span className="tc-label">{tc.includes('+') ? `+${tc.split('+')[1]}` : 'MIN'}</span>
+              </button>
+            ))}
+          </div>
 
-      <div className="dashboard-layout">
-        <header className="dash-header">
-          <div className="user-block">
-            <div className="user-avatar">{user.username[0].toUpperCase()}</div>
-            <div className="user-details">
-              <h1>{user.username}</h1>
-              <div className="user-badges">
-                LVL {Math.floor(user.elo/100)} • {user.elo} ELO
+          <div className="brutal-card history-card">
+            <h2 className="card-label">BATTLE_LOG</h2>
+            <div className="history-list">
+              {games.length > 0 ? games.slice(0, 6).map((g) => {
+                const isWin = g.winner?._id === user._id;
+                return (
+                  <div key={g._id} className={`history-row ${isWin ? 'win' : 'loss'}`}>
+                    <span className="res-tag">{isWin ? 'VICTORY' : 'DEFEAT'}</span>
+                    <span className="opp-name">VS_{g.players.find(p => p._id !== user._id)?.username || 'UNKNOWN'}</span>
+                    <span className="elo-tag">{g.eloChange > 0 ? `+${g.eloChange}` : g.eloChange}</span>
+                  </div>
+                );
+              }) : <div className="empty-state">NO RECENT DATA FOUND</div>}
+            </div>
+          </div>
+        </section>
+
+        {/* RIGHT COLUMN: DATA & SOCIAL */}
+        <aside className="data-sidebar">
+          <div className="brutal-card user-card">
+            <div className="user-profile">
+              <div className="brutal-avatar">{user.username.substring(0,2).toUpperCase()}</div>
+              <div className="user-meta">
+                <h2>{user.username}</h2>
+                <div className="rating-pill">{user.elo} ELO</div>
+              </div>
+            </div>
+            <div className="stat-grid-brutal">
+              <div className="s-box">
+                <label>WINS</label>
+                <strong>{user.wins}</strong>
+              </div>
+              <div className="s-box">
+                <label>LOSSES</label>
+                <strong>{user.losses}</strong>
               </div>
             </div>
           </div>
 
-          <div className="header-stats">
-            <div className="h-stat">
-              <label>WR</label>
-              <strong>{winRate}%</strong>
-            </div>
-            <div className="h-stat">
-              <label>MATCHES</label>
-              <strong>{totalGames}</strong>
+          <div className="brutal-card friends-card">
+            <h2 className="card-label">COMM_LINK</h2>
+            <div className="friends-placeholder">
+              <p>OFFLINE_STATUS: 0 FRIENDS</p>
+              <button className="brutal-btn small">INVITE_FRIEND</button>
             </div>
           </div>
-        </header>
 
-        <div className="dash-grid">
-          <section className="dash-panel stats-panel">
-            <h3 className="panel-title">STATISTICS</h3>
-            <WinLossBar wins={user.wins} losses={user.losses} />
-            <div className="stat-rows">
-              <div className="s-row"><span>Wins</span><b className="tx-win">{user.wins}</b></div>
-              <div className="s-row"><span>Losses</span><b className="tx-loss">{user.losses}</b></div>
-              <div className="s-row"><span>Draws</span><b className="tx-draw">{user.draws}</b></div>
-            </div>
-          </section>
+          <div className="brutal-card premium-card">
+            <h3>UNLIMITED_POWER</h3>
+            <p>GET THE SOX PREMIUM PASS</p>
+            <button className="brutal-btn gold">UPGRADE_NOW</button>
+          </div>
+        </aside>
 
-          <section className="dash-panel play-panel">
-            <h2 className="play-title">READY TO PLAY?</h2>
-            <div className="pods-container">
-              <TimeControlPod time="3" increment="2" type="BLITZ" onClick={() => handleFindGame('3+2')} />
-              <TimeControlPod time="5" increment="0" type="BLITZ" onClick={() => handleFindGame('5+0')} />
-              <TimeControlPod time="10" increment="0" type="RAPID" onClick={() => handleFindGame('10+0')} />
-            </div>
-          </section>
-
-          <section className="dash-panel log-panel">
-            <div className="panel-header-row">
-              <h3 className="panel-title">HISTORY</h3>
-              <div className="live-dot">LIVE</div>
-            </div>
-            <div className="log-list">
-              {recentGames.length > 0
-                ? recentGames.map(g => <BattleLogEntry key={g.id} {...g} />)
-                : <div className="empty-log">No Data</div>
-              }
-            </div>
-          </section>
-        </div>
       </div>
     </div>
   );
