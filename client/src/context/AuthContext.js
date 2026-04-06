@@ -15,7 +15,7 @@ const AuthProvider = ({ children }) => {
       if (token) {
         axios.defaults.headers.common['x-auth-token'] = token;
         try {
-          const res = await axios.get('http://localhost:5001/api/auth');
+          const res = await axios.get(`${process.env.REACT_APP_API_URL}/api/auth`);
           setUser(res.data);
           setIsAuthenticated(true);
         } catch (err) {
