@@ -106,7 +106,7 @@ const PlayPage = () => {
                                 <h2 className="Archivo text-6xl mb-4">SEARCHING</h2>
                                 <div className="scanning-line"></div>
                                 <div className="hp-mono text-titanium mt-8">
-                                    ESTABLISHED_NODE: {config.time}+{config.inc} // T-PLUS: {searchTimer}s
+                                    ESTABLISHED_NODE: {config.time}+{config.inc} —— T-PLUS: {searchTimer}s
                                 </div>
                             </div>
                         ) : (
@@ -244,9 +244,9 @@ const PlayPage = () => {
                         {/* SYSTEM LOGS */}
                         <div className="system-readout mt-8 hp-mono text-titanium">
                             <div className="readout-header">SYSTEM_LOG_FEED</div>
-                            <div className="readout-line">// Sym_Logic: {config.symbol} selected</div>
-                            <div className="readout-line">// Time_Vector: {config.time}m + {config.inc}s</div>
-                            <div className="readout-line">// Status: Awaiting Deployment...</div>
+                            <div className="readout-line">—— Sym_Logic: {config.symbol} selected</div>
+                            <div className="readout-line">—— Time_Vector: {config.time}m + {config.inc}s</div>
+                            <div className="readout-line">—— Status: Awaiting Deployment...</div>
                         </div>
                     </section>
                 </div>

@@ -147,16 +147,16 @@ const HomePage = () => {
               </div>
               <div className="hp-footer-col">
                 <span className="hp-col-title">COMMUNITY</span>
-                <a href="#">Discord</a>
-                <a href="#">Twitter/X</a>
-                <a href="#">GitHub</a>
+                <a href="https://discord.gg/d6C4wyhP">Discord</a>
+                <a href="https://x.com/gorasiaaadi">Twitter/X</a>
+                <a href="https://github.com/Aadi-Gorasia">GitHub</a>
               </div>
-              <div className="hp-footer-col">
+              {/* <div className="hp-footer-col">
                 <span className="hp-col-title">LEGAL</span>
                 <a href="#">Privacy</a>
                 <a href="#">Terms</a>
                 <a href="#">Cookies</a>
-              </div>
+              </div> */}
             </div>
           </div>
           <div className="hp-footer-bottom hp-mono">

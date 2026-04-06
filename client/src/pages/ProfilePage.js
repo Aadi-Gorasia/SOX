@@ -304,8 +304,8 @@ function ProfilePage() {
             <div className="prof-card mt-6 prof-sys-advisory">
               <div className="prof-card-label hp-mono text-crimson">SYSTEM_ADVISORY</div>
               <p className="hp-mono text-xs">
-                // NEEDS WORK <br/>
-                // Suggestion: NO RELAXING MEMORISE THOERY AND DON'T USE INTUITION
+                —— NEEDS WORK <br/>
+                —— Suggestion: NO RELAXING MEMORISE THOERY AND DON'T USE INTUITION
               </p>
             </div>
           </aside>

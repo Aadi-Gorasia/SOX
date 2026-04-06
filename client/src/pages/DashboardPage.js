@@ -189,10 +189,10 @@ const DashboardPage = () => {
             <div className="dash-card">
               <div className="dash-label hp-mono">SYSTEM_LOGS</div>
               <div className="sys-feed hp-mono text-xs">
-                <div className="feed-item"><span className="text-cobalt">//</span> PING: {latency}ms</div>
-                <div className="feed-item"><span className="text-sulfur">//</span> History sync complete</div>
-                <div className="feed-item"><span className="text-steel">//</span> Buffer: STABLE</div>
-                <div className="feed-item"><span className="text-crimson">//</span> Recursive depth: 9</div>
+                <div className="feed-item"><span className="text-cobalt">——</span> PING: {latency}ms</div>
+                <div className="feed-item"><span className="text-sulfur">——</span> History sync complete</div>
+                <div className="feed-item"><span className="text-steel">——</span> Buffer: STABLE</div>
+                <div className="feed-item"><span className="text-crimson">——</span> Recursive depth: 9</div>
               </div>
             </div>
 
