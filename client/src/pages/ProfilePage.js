@@ -1,381 +1,160 @@
-// client/src/pages/ProfilePage.js
 import React, { useState, useEffect, useMemo } from "react";
-import { useParams } from "react-router-dom";
+import { useParams, Link } from "react-router-dom";
 import axios from "axios";
+import InteractiveBG from "../components/InteractiveBG";
 import "./ProfilePage.css";
 
 // =======================
-// HELPERS
+// THE ANALYTICS ENGINE (Real Data Processing)
 // =======================
+const processTacticalData = (user, games) => {
+  if (!games || games.length === 0) return null;
 
-const RANKS = [
-  { name: "Iron", color: "#545454", min: 0 },
-  { name: "Bronze", color: "#cd7f32", min: 400 },
-  { name: "Silver", color: "#c0c0c0", min: 800 },
-  { name: "Gold", color: "#ffd700", min: 1200 },
-  { name: "Platinum", color: "#25D366", min: 1600 },
-  { name: "Diamond", color: "#b9f2ff", min: 2000 },
-  { name: "Immortal", color: "#ff4757", min: 2400 },
-];
+  const userId = user._id;
+  const reversedGames = [...games].reverse(); // Oldest to Newest
+  
+  let currentElo = user.elo;
+  let peakElo = user.elo;
+  let winStreak = 0;
+  let maxWinStreak = 0;
+  let eloHistory = [];
+  const opponents = {};
 
-function getRankData(elo) {
-  let current = RANKS[0];
-  for (const r of RANKS) {
-    if (elo >= r.min) current = r;
-  }
-  return current;
-}
+  // Walk through games to calculate history and streaks
+  reversedGames.forEach((game) => {
+    const isWin = game.winner?._id === userId;
+    const isDraw = game.status === "DRAW";
+    const opp = game.players.find(p => p._id !== userId);
+    
+    // Track Nemesis (Who beats you most?)
+    if (!isWin && !isDraw && opp) {
+      opponents[opp.username] = (opponents[opp.username] || 0) + 1;
+    }
 
-// Cubic Bezier smoothing for SVG path
+    // Dynamic Elo Delta (Simulated based on typical ELO logic)
+    const delta = isDraw ? 0 : isWin ? 15 : -15;
+    currentElo += delta;
+    if (currentElo > peakElo) peakElo = currentElo;
+
+    // Streak Logic
+    if (isWin) {
+      winStreak++;
+      if (winStreak > maxWinStreak) maxWinStreak = winStreak;
+    } else if (!isDraw) {
+      winStreak = 0;
+    }
+
+    eloHistory.push({
+      elo: currentElo,
+      date: new Date(game.createdAt),
+      result: isDraw ? "D" : isWin ? "W" : "L"
+    });
+  });
+
+  const nemesis = Object.entries(opponents).sort((a, b) => b[1] - a[1])[0];
+  const winRate = Math.round((user.wins / (user.wins + user.losses + user.draws || 1)) * 100);
+
+  return {
+    eloHistory,
+    peakElo,
+    maxWinStreak,
+    nemesis: nemesis ? nemesis[0] : "NONE",
+    winRate,
+    recentForm: reversedGames.slice(-5).map(g => g.winner?._id === userId ? "W" : g.status === "DRAW" ? "D" : "L")
+  };
+};
+
 function getSvgPath(points) {
   if (points.length === 0) return "";
-  
-  // Start point
   let d = `M ${points[0][0]},${points[0][1]}`;
-
   for (let i = 0; i < points.length - 1; i++) {
     const [x0, y0] = points[i];
     const [x1, y1] = points[i + 1];
-
-    // Calculate control points (basic smoothing)
     const cp1x = x0 + (x1 - x0) / 2;
-    const cp1y = y0;
-    const cp2x = x0 + (x1 - x0) / 2;
-    const cp2y = y1;
-
-    d += ` C ${cp1x},${cp1y} ${cp2x},${cp2y} ${x1},${y1}`;
+    d += ` C ${cp1x},${y0} ${cp1x},${y1} ${x1},${y1}`;
   }
   return d;
 }
 
-/**
- * Generates history by walking BACKWARDS from current Elo,
- * then reverses array so index 0 is the Oldest game.
- */
+function ProfileGraph({ data }) {
+  const [hoverData, setHoverData] = useState(null);
+  const W = 1000, H = 300;
+
+  const graphData = useMemo(() => {
+    if (!data || data.length < 2) return null;
+    const elos = data.map(d => d.elo);
+    const min = Math.min(...elos) - 20, max = Math.max(...elos) + 20;
+    const range = max - min || 1;
+    const points = data.map((d, i) => [ (i / (data.length - 1)) * W, H - ((d.elo - min) / range) * H ]);
+    const path = getSvgPath(points);
+    return { path, area: `${path} L ${W},${H} L 0,${H} Z`, points };
+  }, [data]);
+
+  if (!graphData) return <div className="pp-card hp-mono text-steel">INSUFFICIENT_DATA_FOR_GRAPH</div>;
+
+  return (
+    <div className="pp-card pp-graph-panel">
+      <div className="pp-card-head hp-mono">
+        <span>RATING_HISTORY_STREAMS</span>
+        <span className="text-sulfur">● LIVE</span>
+      </div>
+      <div className="pp-graph-container" 
+           onMouseMove={(e) => {
+             const rect = e.currentTarget.getBoundingClientRect();
+             const x = (e.clientX - rect.left) / rect.width * W;
+             const idx = Math.round((x / W) * (data.length - 1));
+             if (data[idx]) setHoverData({ ...data[idx], px: graphData.points[idx][0], py: graphData.points[idx][1] });
+           }}
+           onMouseLeave={() => setHoverData(null)}>
+        <svg viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="none">
+          <defs>
+            <linearGradient id="grad" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stopColor="#2E5BFF" stopOpacity="0.3" />
+              <stop offset="100%" stopColor="#2E5BFF" stopOpacity="0" />
+            </linearGradient>
+          </defs>
+          <path d={graphData.area} fill="url(#grad)" />
+          <path d={graphData.path} fill="none" stroke="#2E5BFF" strokeWidth="3" />
+          {hoverData && (
+            <>
+              <line x1={hoverData.px} y1="0" x2={hoverData.px} y2={H} stroke="rgba(255,255,255,0.1)" />
+              <circle cx={hoverData.px} cy={hoverData.py} r="6" fill="#FFF" />
+            </>
+          )}
+        </svg>
+        {hoverData && (
+          <div className="pp-graph-tooltip hp-mono" style={{ left: `${(hoverData.px/W)*100}%`, top: `${(hoverData.py/H)*100}%` }}>
+            <div className="text-titanium">{hoverData.elo} ELO</div>
+            <div className={hoverData.delta >= 0 ? "text-sulfur" : "text-crimson"}>
+              {hoverData.delta > 0 ? "+" : ""}{hoverData.delta} vs {hoverData.opponent}
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
 function generateEloTimeline(games, finalElo, userId) {
   let currentElo = finalElo;
   const history = [];
-
-  // 1. Iterate Newest -> Oldest
-  // We assume 'games' comes from API sorted by Date Descending
-  games.forEach((game) => {
-    // Determine result
-    const result = game.status === "DRAW" 
-      ? "DRAW" 
-      : game.winner?._id === userId 
-      ? "WIN" 
-      : "LOSS";
-
-    // Simulate the delta that got us here
-    // (In a real app, you'd store 'eloChange' on the game record)
-    let delta = 0;
-    if (result === "WIN") delta = Math.floor(Math.random() * 10 + 5); 
-    else if (result === "LOSS") delta = -Math.floor(Math.random() * 10 + 5);
-
-    // Push the state *after* this game finished
+  [...games].forEach((game) => {
+    const result = game.status === "DRAW" ? "DRAW" : game.winner?._id === userId ? "WIN" : "LOSS";
+    let delta = result === "WIN" ? 15 : result === "LOSS" ? -15 : 0;
     history.push({
       elo: currentElo,
-      delta: delta,
+      delta,
       date: new Date(game.createdAt),
       opponent: game.players.find((p) => p._id !== userId)?.username || "Unknown",
       result,
     });
-
-    // Undo the elo change to find out what it was before this game
     currentElo -= delta;
   });
-
-  // 2. Reverse so Index 0 = Oldest, Index N = Newest
   return history.reverse();
 }
 
 // =======================
-// COMPONENTS
-// =======================
-
-function ProfileHero({ user, stats }) {
-  const rank = getRankData(user.elo);
-  
-  return (
-    <div className="profile-hero insane-card">
-      <div className="hero-bg-glow" style={{ background: rank.color }}></div>
-      
-      <div className="hero-main">
-        <div className="avatar-wrapper">
-          <div className="avatar-circle">
-            {user.username?.[0]?.toUpperCase()}
-          </div>
-          <div className="rank-badge" style={{ backgroundColor: rank.color, color: rank.name === 'Iron' ? '#fff' : '#000' }}>
-            {rank.name}
-          </div>
-        </div>
-        
-        <div className="hero-info">
-          <h1 className="username">{user.username}</h1>
-          <div className="user-meta">
-             <span>Joined {new Date(user.createdAt || Date.now()).toLocaleDateString()}</span>
-             <span className="dot-sep">•</span>
-             <span>{stats.total} Matches</span>
-          </div>
-        </div>
-      </div>
-
-      <div className="hero-stats">
-        <div className="stat-block">
-          <span className="stat-label">Current Elo</span>
-          <span className="stat-val" style={{ color: rank.color }}>{user.elo}</span>
-        </div>
-        <div className="stat-block">
-          <span className="stat-label">Win Rate</span>
-          <span className="stat-val">{stats.winRate}%</span>
-        </div>
-        <div className="stat-block">
-          <span className="stat-label">W / L / D</span>
-          <span className="stat-val highlight">
-            <span className="w">{stats.wins}</span> / <span className="l">{stats.losses}</span> / <span className="d">{stats.draws}</span>
-          </span>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function SmoothGraph({ data }) {
-  const [hoverData, setHoverData] = useState(null);
-
-  const { path, areaPath, points, width, height } = useMemo(() => {
-    // Need at least 2 points to draw a line
-    if (!data || data.length < 2) return {};
-    
-    const W = 1000;
-    const H = 300;
-    
-    // Find Min/Max Elo to scale Y-axis
-    const elos = data.map(d => d.elo);
-    const minElo = Math.min(...elos) - 25; // padding bottom
-    const maxElo = Math.max(...elos) + 25; // padding top
-    const range = maxElo - minElo || 1;
-
-    const coords = data.map((d, i) => {
-      // X: 0 is Oldest (Left), W is Newest (Right)
-      const x = (i / (data.length - 1)) * W;
-      // Y: SVG 0 is top. So we invert: 100% - value
-      const y = H - ((d.elo - minElo) / range) * H;
-      return [x, y];
-    });
-
-    const linePath = getSvgPath(coords);
-    // Area closes the loop at the bottom for the gradient fill
-    const area = `${linePath} L ${W},${H + 50} L 0,${H + 50} Z`;
-
-    return { path: linePath, areaPath: area, points: coords, width: W, height: H };
-  }, [data]);
-
-  const handleMouseMove = (e) => {
-    const rect = e.target.getBoundingClientRect();
-    const mouseX = e.clientX - rect.left;
-    
-    // Find closest point index based on mouse X
-    // points[i][0] is the x coordinate
-    // Since X is linear, we can calculate index directly
-    const percent = Math.max(0, Math.min(1, mouseX / rect.width));
-    const index = Math.round(percent * (data.length - 1));
-    
-    if (data[index] && points[index]) {
-      setHoverData({
-        ...data[index],
-        x: points[index][0],
-        y: points[index][1]
-      });
-    }
-  };
-
-  if (!data || data.length < 2)  return (
-    <div className="insane-card graph-panel">
-      <div className="card-header">
-        Rating History
-      </div>
-      
-      <div 
-        className="graph-container" 
-        onMouseMove={handleMouseMove} 
-        onMouseLeave={() => setHoverData(null)}
-      >
-        <svg viewBox={`0 -10 ${width} ${height + 20}`} preserveAspectRatio="none">
-          <defs>
-            <linearGradient id="gradientFill" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%" stopColor="#ffd700" stopOpacity="0.2" />
-              <stop offset="100%" stopColor="#ffd700" stopOpacity="0" />
-            </linearGradient>
-          </defs>
-          
-          {/* ... (Keep your existing paths/lines) ... */}
-          
-          <path d={areaPath} fill="url(#gradientFill)" />
-          
-          <path 
-            d={path} 
-            fill="none" 
-            stroke="#ffd700" 
-            strokeWidth="3" 
-            strokeLinecap="round" 
-          />
-
-          {/* Hover Circle */}
-          {hoverData && (
-            <>
-              <line 
-                x1={hoverData.x} y1="0" x2={hoverData.x} y2={height} 
-                stroke="rgba(255,255,255,0.2)" strokeWidth="1" strokeDasharray="4"
-              />
-              <circle 
-                cx={hoverData.x} 
-                cy={hoverData.y} 
-                r="5" 
-                fill="#000" 
-                stroke="#ffd700" 
-                strokeWidth="2" 
-              />
-            </>
-          )}
-        </svg>
-
-        {/* --- UPDATED TOOLTIP LOGIC HERE --- */}
-        {hoverData && (
-          <div 
-            className="graph-tooltip"
-            style={{ 
-              left: `${(hoverData.x / width) * 100}%`,
-              // This makes it float 15px ABOVE the curve point
-              top: `${(hoverData.y / height) * 100}%`, 
-              marginTop: '-15px' 
-            }}
-          >
-            <div style={{ color: '#fff', fontWeight: 'bold' }}>{hoverData.elo}</div>
-            <div style={{ color: hoverData.delta >= 0 ? '#4ade80' : '#f87171', fontSize: '0.8em' }}>
-              {hoverData.delta > 0 ? '+' : ''}{hoverData.delta} vs {hoverData.opponent}
-            </div>
-          </div>
-        )}
-      </div>
-    </div>
-  );
-
-
-  return (
-    <div className="insane-card graph-panel">
-      <div className="card-header">
-        Rating History
-        <div className="live-tag">LIVE</div>
-      </div>
-      
-      <div 
-        className="graph-container" 
-        onMouseMove={handleMouseMove} 
-        onMouseLeave={() => setHoverData(null)}
-      >
-        <svg viewBox={`0 -10 ${width} ${height + 20}`} preserveAspectRatio="none">
-          <defs>
-            <linearGradient id="gradientFill" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%" stopColor="var(--accent-primary)" stopOpacity="0.4" />
-              <stop offset="100%" stopColor="var(--accent-primary)" stopOpacity="0" />
-            </linearGradient>
-            <filter id="glow" x="-20%" y="-20%" width="140%" height="140%">
-              <feGaussianBlur stdDeviation="4" result="coloredBlur" />
-              <feMerge>
-                <feMergeNode in="coloredBlur" />
-                <feMergeNode in="SourceGraphic" />
-              </feMerge>
-            </filter>
-          </defs>
-          
-          {/* Dashed Center Line */}
-          <line x1="0" y1={height/2} x2={width} y2={height/2} stroke="var(--panel-border)" strokeDasharray="6,6" />
-
-          {/* Area Fill */}
-          <path d={areaPath} fill="url(#gradientFill)" />
-          
-          {/* Main Line */}
-          <path 
-            d={path} 
-            fill="none" 
-            stroke="var(--accent-primary)" 
-            strokeWidth="3" 
-            strokeLinecap="round" 
-            filter="url(#glow)"
-          />
-
-          {/* Hover Indicator */}
-          {hoverData && (
-            <>
-              <line 
-                x1={hoverData.x} y1="0" x2={hoverData.x} y2={height} 
-                stroke="rgba(255,255,255,0.15)" strokeWidth="1" 
-              />
-              <circle 
-                cx={hoverData.x} 
-                cy={hoverData.y} 
-                r="6" 
-                fill="var(--bg-primary)" 
-                stroke="#fff" 
-                strokeWidth="2" 
-              />
-            </>
-          )}
-        </svg>
-
-        {/* Floating Tooltip */}
-        {hoverData && (
-          <div 
-            className="graph-tooltip"
-            style={{ 
-              left: `${(hoverData.x / width) * 100}%`,
-              // Keep tooltip mostly fixed vertically or follow y? Fixed usually cleaner.
-              top: '0%' 
-            }}
-          >
-            <div className="tooltip-header">{new Date(hoverData.date).toLocaleDateString()}</div>
-            <div className="tooltip-elo">{hoverData.elo}</div>
-            <div className={`tooltip-delta ${hoverData.delta >= 0 ? 'pos' : 'neg'}`}>
-              {hoverData.delta > 0 ? '+' : ''}{hoverData.delta} vs {hoverData.opponent}
-            </div>
-          </div>
-        )}
-      </div>
-    </div>
-  );
-}
-
-function RecentMatches({ games, userId }) {
-  return (
-    <div className="insane-card history-panel">
-      <div className="card-header">Recent Battles</div>
-      <div className="matches-list">
-        {games.slice(0, 8).map((game) => {
-          const result = game.status === "DRAW" ? "draw" : game.winner?._id === userId ? "win" : "loss";
-          const opponent = game.players.find(p => p._id !== userId)?.username || "Unknown";
-          
-          return (
-            <div key={game._id} className={`match-row ${result}`}>
-              <div className="match-indicator"></div>
-              <div className="match-info">
-                <div className="match-res">{result.toUpperCase()}</div>
-                <div className="match-vs">vs {opponent}</div>
-              </div>
-              <div className="match-meta">
-                <div className="match-mode">{game.timeControl}</div>
-              </div>
-            </div>
-          );
-        })}
-        {games.length === 0 && <div className="no-games">No matches recorded yet.</div>}
-      </div>
-    </div>
-  );
-}
-
-// =======================
-// MAIN PAGE
+// MAIN COMPONENT
 // =======================
 
 function ProfilePage() {
@@ -384,46 +163,153 @@ function ProfilePage() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Ensure you have this backend route
-    axios.get(`/api/users/profile/${username}`)
+    axios.get(`${process.env.REACT_APP_API_URL}/api/users/profile/${username}`)
       .then(res => setData(res.data))
       .catch(err => console.error(err))
       .finally(() => setLoading(false));
   }, [username]);
 
-  if (loading) return (
-    <div className="page-loader">
-      <div className="spinner"></div>
-    </div>
-  );
-  
-  if (!data) return <div className="error-state">Player profile not found.</div>;
+  const analytics = useMemo(() => {
+    if (!data) return null;
+    return processTacticalData(data.user, data.games);
+  }, [data]);
+
+  if (loading) return <div className="loading-gate hp-mono">DECRYPTING_OPERATIVE_PROFILE...</div>;
+  if (!data) return <div className="loading-gate hp-mono text-crimson">PROFILE_NOT_FOUND</div>;
 
   const { user, games } = data;
-  const wins = user.wins || 0;
-  const losses = user.losses || 0;
-  const draws = user.draws || 0;
-  const total = wins + losses + draws;
-  const winRate = total ? Math.round((wins / total) * 100) : 0;
-  
-  const stats = { wins, losses, draws, total, winRate };
-  
-  // Logic: 
-  // 1. Pass 'games' (which is usually sorted Newest -> Oldest from DB)
-  // 2. Pass 'user.elo' (current rating)
-  // 3. 'timeline' returns [Oldest Game, ..., Newest Game]
+
   const timeline = generateEloTimeline(games, user.elo, user._id);
 
   return (
-    <div className="profile-page-v2">
-      <ProfileHero user={user} stats={stats} />
+    <div className="prof-root">
+      <InteractiveBG />
       
-      <div className="profile-grid">
-        <div className="main-col">
-          <SmoothGraph data={timeline} />
-        </div>
-        <div className="side-col">
-          <RecentMatches games={games} userId={user._id} />
+      <div className="prof-container">
+        {/* TOP NAVIGATION */}
+        <header className="prof-header">
+          <Link to="/" className="prof-back hp-mono">← TERMINATE_SESSION</Link>
+          <div className="prof-breadcrumbs hp-mono">ROOT / OPERATIVES / {user.username.toUpperCase()}</div>
+        </header>
+
+        {/* 3-COLUMN DASHBOARD */}
+        <div className="prof-grid">
+          
+          {/* COLUMN 1: IDENTITY & STATS */}
+          <aside className="prof-col-side">
+            <div className="prof-card prof-id-card">
+              <div className="prof-avatar-box">
+                <div className="prof-avatar-glow"></div>
+                <div className="prof-avatar Archivo">{user.username[0]}</div>
+              </div>
+              <h1 className="prof-username Archivo">{user.username.toUpperCase()}</h1>
+              <div className="prof-rank-tag hp-mono">LEVEL_0{Math.floor(user.elo / 500)}</div>
+              
+              <div className="prof-bio-data hp-mono">
+                <div className="bio-row"><span>STATUS:</span> <span className="text-sulfur">ACTIVE</span></div>
+                <div className="bio-row"><span>JOINED:</span> <span>{new Date(user.createdAt).toLocaleDateString()}</span></div>
+                <div className="bio-row"><span>REGION:</span> <span>GLOBAL_CORE</span></div>
+              </div>
+            </div>
+
+            <div className="prof-card mt-6">
+              <div className="prof-card-label hp-mono">CORE_METRICS</div>
+              <div className="prof-metric-grid">
+                <div className="metric-item">
+                  <span className="hp-mono text-silver">WIN_RATE</span>
+                  <span className="metric-val Archivo text-sulfur">{analytics.winRate}%</span>
+                </div>
+                <div className="metric-item">
+                  <span className="hp-mono text-silver">PEAK_ELO</span>
+                  <span className="metric-val Archivo">{analytics.peakElo}</span>
+                </div>
+                <div className="metric-item">
+                  <span className="hp-mono text-silver">W/L/D</span>
+                  <span className="metric-val Archivo text-sm">{user.wins}/{user.losses}/{user.draws}</span>
+                </div>
+              </div>
+            </div>
+          </aside>
+
+          {/* COLUMN 2: ELO GRAPH & LOGS */}
+          <main className="prof-col-main">
+            <div className="prof-card prof-graph-card">
+              <div className="prof-card-label hp-mono text-titanium">ELO_TIMELINE_STREAMS</div>
+
+            <ProfileGraph data={timeline} />
+            
+                <div className="graph-scanline"></div>
+              <div className="graph-footer hp-mono">
+                <span className="hp-mono text-titanium">START_RATING: 1000</span>
+                <span className="hp-mono">CURRENT: {user.elo}</span>
+              </div>
+            </div>
+
+            <div className="prof-card mt-6">
+              <div className="prof-card-label hp-mono">TRANSACTION_LOGS (RECENT_GAMES)</div>
+              <div className="prof-match-list">
+                {games.slice(0, 10).map((g, i) => {
+                  const isWin = g.winner?._id === user._id;
+                  const isDraw = g.status === "DRAW";
+                  return (
+                    <div key={i} className={`prof-match-row ${isWin ? 'win' : isDraw ? 'draw' : 'loss'}`}>
+                      <span className="hp-mono">{new Date(g.createdAt).toLocaleTimeString()}</span>
+                      <span className="prof-match-opp Archivo">VS_{g.players.find(p => p._id !== user._id)?.username.toUpperCase()}</span>
+                      <span className="prof-match-res hp-mono">{isWin ? 'VICTORY' : isDraw ? 'STALEMATE' : 'DEFEAT'}</span>
+                      <span className="prof-match-delta Archivo">{isWin ? '+15' : isDraw ? '0' : '-15'}</span>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          </main>
+
+          {/* COLUMN 3: DEEP ANALYSIS */}
+          <aside className="prof-col-side">
+            <div className="prof-card">
+              <div className="prof-card-label hp-mono">BEHAVIORAL_ANALYSIS</div>
+              <div className="prof-form-row">
+                <span className="hp-mono text-silver">RECENT_FORM</span>
+                <div className="form-dots">
+                  {analytics.recentForm.map((f, i) => <div key={i} className={`form-dot ${f}`}></div>)}
+                </div>
+              </div>
+              <div className="prof-analysis-box hp-mono">
+                <div className="analysis-item">
+                  <span>MAX_STREAK</span>
+                  <span className="text-sulfur">{analytics.maxWinStreak}</span>
+                </div>
+                <div className="analysis-item">
+                  <span>NEMESIS</span>
+                  <span className="text-crimson">{analytics.nemesis.toUpperCase()}</span>
+                </div>
+                <div className="analysis-item">
+                  <span>ELO_VELOCITY</span>
+                  <span>{user.elo > 1000 ? 'POSITIVE' : 'STAGNANT'}</span>
+                </div>
+              </div>
+            </div>
+
+            <div className="prof-card mt-6">
+              <div className="prof-card-label hp-mono">ACHIEVEMENT_UNLOCKED</div>
+              <div className="prof-badges">
+                {user.wins > 10 && <div className="prof-badge-icon" title="Deca-Winner">◈</div>}
+                {analytics.maxWinStreak > 4 && <div className="prof-badge-icon text-sulfur" title="On Fire">🔥</div>}
+                {user.elo > 1500 && <div className="prof-badge-icon text-cobalt" title="Elite Operative">▲</div>}
+                <div className="prof-badge-icon locked">?</div>
+                <div className="prof-badge-icon locked">?</div>
+              </div>
+            </div>
+
+            <div className="prof-card mt-6 prof-sys-advisory">
+              <div className="prof-card-label hp-mono text-crimson">SYSTEM_ADVISORY</div>
+              <p className="hp-mono text-xs">
+                // NEEDS WORK <br/>
+                // Suggestion: NO RELAXING MEMORISE THOERY AND DON'T USE INTUITION
+              </p>
+            </div>
+          </aside>
+
         </div>
       </div>
     </div>

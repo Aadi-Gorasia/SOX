@@ -22,3 +22,15 @@ body {
 }
 
 
+/* FORCE VISIBILITY ON ALL PAGES */
+h1, h2, h3, h4, h5, h6 { color: #FFFFFF !important; }
+p, li, label { color: #A0A0A0 !important; }
+input, select, textarea { color: #FFFFFF !important; }
+button { color: #FFFFFF; }
+
+.text-sulfur { color: #D4FF00 !important; }
+.text-crimson { color: #FF3E3E !important; }
+.text-cobalt { color: #2E5BFF !important; }
+.text-steel { color: #282828 !important; }
+.text-silver { color: #A0A0A0 !important; }
+.text-titanium { color: #FFFFFF !important; }

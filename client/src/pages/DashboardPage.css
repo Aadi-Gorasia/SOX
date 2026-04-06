@@ -1,163 +1,99 @@
-@import url('https://fonts.googleapis.com/css2?family=Archivo+Black&family=Space+Mono:wght@400;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Archivo:wght@900&family=IBM+Plex+Mono:wght@400;600&family=Inter:wght@400;700&display=swap');
 
 :root {
-  --b-black: #000000;
-  --b-white: #ffffff;
-  --b-acid: #cfff04;  /* Brutal Green */
-  --b-pink: #ff00ff;
-  --b-bg: #111111;
-  --b-border: 4px;
+  --void: #080808;
+  --carbon: #161616;
+  --steel: #282828;
+  --silver: #A0A0A0;
+  --titanium: #FFFFFF;
+  --cobalt: #2E5BFF;
+  --crimson: #FF3E3E;
+  --sulfur: #D4FF00;
 }
 
-.brutal-dash {
-  background-color: var(--b-bg);
-  min-height: calc(100vh - 80px); /* Adjust for your Navbar */
-  padding: 40px 20px;
-  font-family: 'Space Mono', monospace;
-  color: var(--b-white);
-  box-sizing: border-box;
+.dash-root { background: var(--void); min-height: 100vh; color: var(--titanium); font-family: 'Inter', sans-serif; overflow-x: hidden; }
+.dash-content { position: relative; z-index: 10; max-width: 1500px; margin: 0 auto; padding: 0 2rem; }
+.hp-mono { font-family: 'IBM Plex Mono', monospace; font-size: 0.7rem; letter-spacing: 1px; }
+.Archivo { font-family: 'Archivo', sans-serif; }
+
+/* HUD Header */
+.dash-hud-top { display: flex; gap: 3rem; padding: 1.5rem 0; border-bottom: 1px solid var(--steel); margin-bottom: 2rem; }
+
+/* Layout */
+.dash-main-layout { display: grid; grid-template-columns: 320px 1fr 320px; gap: 1.5rem; padding-bottom: 5rem; }
+.dash-card { background: var(--carbon); border: 1px solid var(--steel); padding: 1.5rem; }
+.dash-label { color: var(--steel); margin-bottom: 1.5rem; border-left: 2px solid var(--cobalt); padding-left: 10px; }
+
+/* Profile Card */
+.prof-id-card { text-align: center; padding-top: 3rem; }
+.prof-avatar-container { position: relative; width: 100px; height: 100px; margin: 0 auto 1.5rem; }
+.prof-avatar-inner { width: 100%; height: 100%; background: var(--void); border: 1px solid var(--steel); display: flex; align-items: center; justify-content: center; font-size: 3rem; position: relative; z-index: 2; }
+.prof-avatar-glow { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: var(--cobalt); filter: blur(35px); opacity: 0.3; }
+.m-row { display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid rgba(255,255,255,0.05); }
+
+.stats-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.stat-v { background: var(--void); padding: 1rem; border: 1px solid var(--steel); }
+
+/* Main Arena */
+.arena-hero { background: var(--carbon); border: 1px solid var(--steel); padding: 3rem; display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; }
+.quick-action-btn { background: var(--cobalt); color: white; border: none; padding: 1rem 2rem; font-weight: 900; cursor: pointer; transition: 0.2s; }
+.quick-action-btn:hover { background: var(--titanium); color: var(--void); }
+
+.tc-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1rem; }
+.tc-node { background: var(--carbon); border: 1px solid var(--steel); padding: 1.5rem; cursor: pointer; transition: 0.2s; text-align: left; color: var(--titanium); }
+.tc-node:hover { border-color: var(--sulfur); background: var(--void); }
+
+/* Battle Logs */
+.battle-archive-list { display: flex; flex-direction: column; gap: 0.5rem; max-height: 400px; overflow-y: auto; color: white;}
+.battle-row { display: grid; grid-template-columns: 60px 1fr 80px 80px; align-items: center; padding: 1rem; background: var(--void); border: 1px solid var(--steel); transition: 0.2s; color: white;}
+.battle-row:hover { border-color: var(--silver); transform: scale(1.01); }
+.battle-row.win { border-left: 4px solid var(--sulfur); }
+.battle-row.loss { border-left: 4px solid var(--crimson); }
+.battle-row.draw { border-left: 4px solid var(--silver); }
+.res-cell { font-weight: 900; }
+.win .res-cell { color: var(--sulfur); }
+.loss .res-cell { color: var(--crimson); }
+.replay-btn { font-size: 0.6rem; color: var(--steel); text-decoration: none; border: 1px solid var(--steel); padding: 4px; text-align: center; color: beige;}
+.replay-btn:hover { color: var(--titanium); border-color: var(--titanium); }
+
+/* Searching Overlay */
+.dash-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(8, 8, 8, 0.95); backdrop-filter: blur(15px); z-index: 1000; display: flex; align-items: center; justify-content: center; }
+.search-hud { background: var(--carbon); border: 1px solid var(--steel); padding: 5rem; text-align: center; position: relative; width: 500px; }
+.hud-scanline { position: absolute; top: 0; left: 0; width: 100%; height: 2px; background: var(--sulfur); animation: scan 2s linear infinite; box-shadow: 0 0 15px var(--sulfur); }
+@keyframes scan { 0% { top: 0; } 100% { top: 100%; } }
+.radar-box { width: 80px; height: 80px; border: 2px solid var(--steel); border-radius: 50%; margin: 2rem auto; position: relative; }
+.radar-circle { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 10px; height: 10px; background: var(--sulfur); border-radius: 50%; box-shadow: 0 0 20px var(--sulfur); }
+.abort-btn { background: none; border: 1px solid var(--crimson); color: var(--crimson); padding: 10px 20px; cursor: pointer; margin-top: 1rem; }
+
+/* System Hud */
+.sys-feed { background: var(--void); padding: 1rem; }
+.feed-item { padding: 6px 0; border-bottom: 1px dotted var(--steel); }
+.advisory-card { background: rgba(255, 62, 62, 0.05); border: 1px solid var(--crimson); }
+.upgrade-btn { width: 100%; background: var(--sulfur); color: var(--void); border: none; padding: 10px; font-weight: 900; cursor: pointer; }
+
+.loading-gate { height: 100vh; display: flex; align-items: center; justify-content: center; background: var(--void); color: var(--sulfur); }
+
+@media (max-width: 1200px) {
+  .dash-main-layout { grid-template-columns: 1fr; }
 }
 
-.dash-grid-wrapper {
-  max-width: 1200px;
-  margin: 0 auto;
-  display: grid;
-  grid-template-columns: 1fr 350px;
-  gap: 30px;
+/* ADD THIS TO THE TOP OF DashboardPage.css */
+
+.dash-root { 
+    background: var(--void); 
+    color: var(--titanium) !important; /* FORCES GLOBAL VISIBILITY */
 }
 
-/* UNIVERSAL BRUTAL CARD */
-.brutal-card {
-  background: var(--b-white);
-  color: var(--b-black);
-  border: var(--b-border) solid var(--b-black);
-  box-shadow: 10px 10px 0px var(--b-black);
-  padding: 25px;
-  margin-bottom: 30px;
-  position: relative;
+.dash-root span, .dash-root div, .dash-root p {
+    color: inherit; /* Prevents browser defaults from turning text black */
 }
 
-.card-label {
-  font-family: 'Archivo Black', sans-serif;
-  font-size: 0.8rem;
-  background: var(--b-black);
-  color: var(--b-white);
-  position: absolute;
-  top: -15px;
-  left: 15px;
-  padding: 2px 10px;
-}
+/* 
+.battle-archive-list .battle-row { color: var(--titanium); }
+.battle-archive-list .opp-cell { color: var(--titanium) !important; }
+.battle-archive-list .elo-cell { color: var(--silver); }
+.battle-archive-list .res-cell.text-sulfur { color: var(--sulfur) !important; }
+.battle-archive-list .res-cell.text-crimson { color: var(--crimson) !important; } */
 
-/* HERO SECTION */
-.hero-card {
-  background: var(--b-pink);
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-
-.hero-text h1 {
-  font-family: 'Archivo Black', sans-serif;
-  font-size: 3rem;
-  line-height: 0.9;
-  margin: 0;
-  letter-spacing: -2px;
-}
-
-.hero-text p {
-  font-weight: bold;
-  margin-top: 10px;
-  font-size: 0.9rem;
-}
-
-/* BUTTONS */
-.brutal-btn {
-  font-family: 'Archivo Black', sans-serif;
-  text-transform: uppercase;
-  padding: 15px 30px;
-  border: var(--b-border) solid var(--b-black);
-  background: var(--b-acid);
-  cursor: pointer;
-  box-shadow: 5px 5px 0px var(--b-black);
-  transition: 0.1s;
-}
-
-.brutal-btn:active {
-  box-shadow: 0px 0px 0px var(--b-black);
-  transform: translate(5px, 5px);
-}
-
-.brutal-btn.mega { font-size: 1.5rem; }
-.brutal-btn.gold { background: #ffaa00; width: 100%; }
-
-/* TIME CONTROL GRID */
-.tc-grid {
-  display: grid;
-  grid-template-columns: repeat(5, 1fr);
-  gap: 15px;
-  margin-bottom: 30px;
-}
-
-.tc-brutal-btn {
-  background: var(--b-white);
-  border: var(--b-border) solid var(--b-black);
-  padding: 20px;
-  cursor: pointer;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  box-shadow: 6px 6px 0px var(--b-black);
-  transition: 0.1s;
-}
-
-.tc-brutal-btn:hover { background: var(--b-acid); }
-.tc-brutal-btn .tc-val { font-family: 'Archivo Black', sans-serif; font-size: 1.8rem; line-height: 1; }
-.tc-brutal-btn .tc-label { font-weight: bold; font-size: 0.8rem; }
-
-/* BATTLE LOG */
-.history-row {
-  display: flex;
-  justify-content: space-between;
-  padding: 12px;
-  border-bottom: 3px solid var(--b-black);
-  font-weight: bold;
-  font-size: 0.9rem;
-}
-
-.history-row.win { color: #008800; }
-.history-row.loss { color: #cc0000; }
-.res-tag { width: 80px; }
-
-/* SIDEBAR STATS */
-.brutal-avatar {
-  width: 70px; height: 70px;
-  background: var(--b-acid);
-  border: var(--b-border) solid var(--b-black);
-  display: flex; align-items: center; justify-content: center;
-  font-family: 'Archivo Black', sans-serif; font-size: 1.8rem;
-  box-shadow: 4px 4px 0px var(--b-black);
-}
-
-.user-profile { display: flex; gap: 20px; align-items: center; margin-bottom: 20px; }
-.user-meta h2 { font-family: 'Archivo Black', sans-serif; margin: 0; font-size: 1.4rem; }
-.rating-pill { background: var(--b-black); color: var(--b-white); padding: 2px 8px; font-size: 0.8rem; margin-top: 5px; }
-
-.stat-grid-brutal {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 10px;
-  border-top: 3px solid var(--b-black);
-  padding-top: 15px;
-}
-
-.s-box label { display: block; font-size: 0.7rem; font-weight: 800; }
-.s-box strong { font-size: 1.5rem; font-family: 'Archivo Black', sans-serif; }
-
-.premium-card { background: var(--b-acid); }
-
-/* Responsive */
-@media (max-width: 1000px) {
-  .dash-grid-wrapper { grid-template-columns: 1fr; }
-  .tc-grid { grid-template-columns: repeat(3, 1fr); }
-  .hero-card { flex-direction: column; text-align: center; gap: 20px; }
-}
+/* Tactical Advisory */
+.advisory-card p { color: var(--silver) !important; line-height: 1.6; }

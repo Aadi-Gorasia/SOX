@@ -23,6 +23,7 @@ import ProfilePage from './pages/ProfilePage';
 import PlayPage from './pages/PlayPage';
 import GamePage from './pages/GamePage';
 import SettingsPage from './pages/SettingsPage'; // <--- 2. IMPORT SETTINGS PAGE
+import InteractiveBG from './components/InteractiveBG';
 
 const MainLayout = () => (
   <>

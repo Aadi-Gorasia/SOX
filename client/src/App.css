@@ -1,351 +1,62 @@
-/* ==========================================================================
-   App.css — MASTER DESIGN SYSTEM (90s PIXEL ARCADE THEME)
-   ========================================================================== */
+/* client/src/App.css */
 
-/* --- ADD THIS SECTION AT THE TOP --- */
-/* This is the definitive fix for the static background issue. */
-
-/*
-  The #root div is what React uses to render the entire app.
-  We must make it transparent.
-*/
-#root {
-  background: transparent;
-}
-
-/*
-  The .App div is the main wrapper from your App.js. We make it
-  transparent AND give it a z-index to lift all content
-  ABOVE the animated background.
-*/
-.App {
-  background: transparent;
-  position: relative; /* This is required for z-index to work */
-  z-index: 1;         /* Lifts the content layer up */
-}
-
-/* ------------------------------------- */
-
-
-/* Import the quintessential pixel arcade font */
-@import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap');
-
-/* -------------------------
-   1) THEME VARIABLES (single source of truth)
-   ------------------------- */
 :root {
-  /* Core backgrounds - Deep, dark arcade cabinet colors */
-  --bg-primary: #1c102a;
-  --bg-secondary: #2c1d42;
-  --panel-bg: rgba(28, 16, 42, 0.85);
-
-  /* Borders & subtle lines - High-contrast pixel outlines */
-  --panel-border: #4a3f66;
-  --panel-border-hover: #ffff00; /* Bright yellow for selection */
-
-  /* Text - Crisp, readable pixel font colors */
-  --text-primary: #f5f5d5; /* Creamy off-white for CRT monitors */
-  --text-secondary: #a0a0c0; /* Muted purple for secondary text */
-
-  /* Accents & brand - Classic arcade cabinet art colors */
-  --accent-primary: #ffff00;   /* Player 1 Yellow */
-  --accent-secondary: #ff00ff; /* Player 2 Magenta */
-  --brand-gradient: linear-gradient(45deg, var(--accent-primary) 0%, var(--accent-secondary) 100%);
-
-  /* Semantic colors - Bright, unambiguous pixel colors */
-  --color-win: #32cd32;    /* Lime Green */
-  --color-loss: #ff1f1f;   /* Bright Red */
-  --color-draw: #b0b0b0;   /* Light Grey */
-  --color-warning: #ffa500; /* Orange */
-
-  /* Spacing & radii - CHUNKY and SHARP edges. No curves! */
-  --navbar-height: 120px;
-  --spacing-sm: 8px;
-  --spacing-md: 16px;
-  --spacing-lg: 24px;
-  --spacing-xl: 32px;
-  --spacing-xxl: 48px;
-
-  --radius-sm: 0px;
-  --radius-md: 0px;
-  --radius-lg: 0px;
-
-  /* Motion - Hard shadows and snappy, instant transitions */
-  --shadow-card: 4px 4px 0px #11091a;
-  --shadow-glow: 0 0 0 3px var(--accent-primary); /* Re-purposed for a selection outline */
-  --transition-fast: all 0.1s step-start;
-  --transition-medium: all 0.2s step-start;
-
-  /* Legacy midnight & mint (kept for index.css compatibility) */
-  --midnight-dark: #191E24;
-  --slate-panel: #242C37;
-  --off-white: #E6E6E6;
-  --mint-accent: #6EE7B7;
+  --crimson: #D96868;
+  --taupe: #FBF6F6;
+  --olive: #6A7E3F;
+  --olive-dark: #4C5C2D;
 }
 
-[data-theme="light"] {
-  /* A "Classic Handheld" / Game Boy light theme */
-  --bg-primary: #c4cfa1;
-  --bg-secondary: #97a474;
-  --panel-bg: rgba(151, 164, 116, 0.8);
-  --panel-border: #4a4f3a;
-  --panel-border-hover: #0f170f;
-  --text-primary: #0f170f;
-  --text-secondary: #4a4f3a;
-  --accent-primary: #4a4f3a;
-  --accent-secondary: #0f170f;
-  --brand-gradient: linear-gradient(45deg, var(--accent-primary) 0%, var(--accent-secondary) 100%);
-  --shadow-card: 3px 3px 0px #4a4f3a;
-  --shadow-glow: 0 0 0 2px #0f170f;
-}
-
-/* -------------------------
-   2) GLOBAL RESET & BASE
-   ------------------------- */
-*,
-*::before,
-*::after { box-sizing: border-box; margin: 0; padding: 0; }
-
-html {
-  height: 100%;
-  scrollbar-width: thin;
-  scrollbar-color: var(--panel-border-hover) var(--bg-secondary);
-}
-
-body {
+body, html {
   margin: 0;
-  /* Use the theme variables defined in themes.css */
-  background-color: var(--bg-app); 
-  color: var(--text-primary);
-  font-family: var(--font-main);
-  transition: background-color 0.3s ease, color 0.3s ease;
+  padding: 0;
+  background-color: var(--taupe); /* Sets the base to Taupe */
+  color: #333;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
 }
 
-/* Update the background div to use the theme pattern */
+/* Fixes the background div you have in App.js */
 .app-background {
   position: fixed;
-  top: 0; 
-  left: 0; 
-  width: 100vw; 
-  height: 100vh;
-  z-index: -1;
-  /* This pulls the pattern (grid, gradient, noise) from the current theme */
-  background-image: var(--pattern); 
-  background-size: 40px 40px; /* Default size, themes can override */
-  pointer-events: none;
-  opacity: 0.4; /* Subtle texture overlay */
-}
-
-/* Ensure Navbar uses theme variables if it isn't already */
-nav {
-  background: var(--bg-panel) !important;
-  border-bottom: var(--border) !important;
-}
-
-/* typography */
-h1,h2,h3,h4,h5,h6 {
-  font-weight: 400; /* The font only has one weight */
-  line-height: 1.3;
-  color: var(--text-primary);
-  /* Hard shadow for that classic game title look */
-  text-shadow: 2px 2px 0 var(--accent-secondary), 4px 4px 0 rgba(0,0,0,0.5);
-}
-p { color: var(--text-secondary); margin-bottom: var(--spacing-md); }
-
-/* links */
-a { color: var(--accent-primary); text-decoration: none; transition: var(--transition-fast); }
-a:hover, a:focus { color: var(--panel-border-hover); text-shadow: 2px 2px 0px var(--accent-secondary); outline: none; }
-
-/* -------------------------
-   3) LAYOUT UTILITIES
-   ------------------------- */
-.page-container {
-  padding: var(--navbar-height) var(--spacing-xl) var(--spacing-xl); /* Use a simple, smaller top padding */
-  min-height: 100vh;
+  top: 0;
+  left: 0;
   width: 100%;
-  max-width: 1400px;
-  margin: 0 auto;
+  height: 100%;
+  background: var(--taupe); 
+  z-index: -2;
 }
 
-.app-layout {
-  display: grid;
-  grid-template-columns: 260px 1fr 280px;
-  grid-template-rows: 1fr auto;
-  gap: var(--spacing-lg);
-  height: 100vh;
-  padding: var(--spacing-lg);
+/* Remove any global glows/pinks */
+* {
+  text-shadow: none !important;
+  box-shadow: none;
 }
 
-/* -------------------------
-   4) CARDS, BUTTONS, SPINNER
-   ------------------------- */
-.insane-card {
-  background: var(--panel-bg);
-  border-radius: var(--radius-lg);
-  padding: var(--spacing-xl);
-  border: 2px solid var(--panel-border);
-  backdrop-filter: none; /* No blur in the 90s! */
-  -webkit-backdrop-filter: none;
-  box-shadow: var(--shadow-card);
-  transition: var(--transition-medium);
+.App {
   position: relative;
-  overflow: hidden;
-}
-.insane-card::before {
-  /* repurpose this for a scanline effect */
-  content: "";
-  position: absolute; inset: 0;
-  background-image: repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0,0,0,0.3) 3px, rgba(0,0,0,0.3) 4px);
-  opacity: 1; z-index: 1; pointer-events: none;
-}
-.insane-card:hover {
-  /* On hover, button "presses" up and to the left, reducing the shadow */
-  transform: translate(-4px, -4px);
-  border-color: var(--panel-border-hover);
-  box-shadow: 8px 8px 0px #11091a;
+  z-index: 1;
 }
 
-.card-header {
-  position: relative; z-index: 2;
-  font-weight: 400; font-size: 1rem; /* Adjust font size for pixel font */
-  display:flex; align-items:center; gap: var(--spacing-md);
-  padding-bottom: var(--spacing-md); margin-bottom: var(--spacing-lg);
-  border-bottom: 2px solid var(--panel-border);
-  text-shadow: 2px 2px 0px rgba(0,0,0,0.5);
-}
-.card-content { position: relative; z-index: 2; }
-
-/* buttons */
-.btn {
-  display: inline-flex; align-items:center; justify-content:center;
-  gap: var(--spacing-sm); padding: 14px 22px;
-  border-radius: var(--radius-md); font-weight: 400;
-  border: 2px solid var(--panel-border);
-  transition: var(--transition-fast); cursor:pointer;
-  background: var(--bg-secondary); color: var(--text-primary);
-  box-shadow: var(--shadow-card);
-  position: relative; overflow: hidden;
-}
-.btn::before{
-  content: none;
-}
-
-.btn:hover {
-  transform: translate(-4px, -4px);
-  box-shadow: 8px 8px 0px #11091a;
-  border-color: var(--panel-border-hover);
-}
-
-.btn:active {
-  transform: translate(0, 0);
-  box-shadow: var(--shadow-card);
-}
-
-.btn-primary {
-  background: var(--brand-gradient);
-  color: #000; border: 2px solid #000;
-  text-shadow: none;
-}
-
-.btn-primary:hover {
-  box-shadow: 8px 8px 0px var(--accent-secondary);
-}
-
-/* spinner */
+/* Spinner fix to match the new palette */
 .spinner {
-  width: 48px; height: 48px; border-radius: 50%;
-  display:inline-block; position: relative;
-  border: 4px dotted var(--panel-border); /* Dotted border feels more retro */
-  animation: rotation 1.5s linear infinite;
+  border: 4px solid rgba(0, 0, 0, 0.1);
+  border-top: 4px solid var(--crimson);
+  border-radius: 50%;
+  width: 40px;
+  height: 40px;
+  animation: spin 1s linear infinite;
 }
-.spinner::before, .spinner::after {
-  content: none; /* Simplify the spinner to a single element */
-}
-@keyframes rotation { to { transform: rotate(360deg); } }
-@keyframes rotation-back { to { transform: rotate(-360deg); } }
+@keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
 
-/* -------------------------
-   5) SCROLLBAR
-   ------------------------- */
-::-webkit-scrollbar { width: 16px; height: 16px; }
-::-webkit-scrollbar-track { background: var(--bg-secondary); }
-::-webkit-scrollbar-thumb {
-  background-color: var(--panel-border);
-  border-radius: 0; border: 2px solid var(--bg-secondary);
-}
-::-webkit-scrollbar-thumb:hover { background-color: var(--accent-primary); }
+/* FORCE VISIBILITY ON ALL PAGES */
+h1, h2, h3, h4, h5, h6 { color: #FFFFFF !important; }
+p, li, label { color: #A0A0A0 !important; }
+input, select, textarea { color: #FFFFFF !important; }
+button { color: #FFFFFF; }
 
-
-/* -------------------------------------------
-   6) BACKGROUND EFFECTS (PURE CSS LIVE PARALLAX)
-   ------------------------------------------- */
-@keyframes scroll-loop {
-  from { transform: translateX(0); }
-  to { transform: translateX(-100%); }
-}
-
-.holographic-background {
-  position: fixed; inset: 0; z-index: -3;
-  background-color: var(--bg-primary);
-}
-
-/* Layer 1: Stars (farthest, slowest) */
-.holographic-background::after {
-  content: '';
-  position: absolute; inset: 0;
-  background-image:
-    /* small stars */
-    radial-gradient(1px 1px at 20px 30px, #fff, transparent),
-    radial-gradient(1px 1px at 80px 80px, #ddd, transparent),
-    radial-gradient(1px 1px at 150px 120px, #fff, transparent),
-    /* medium stars */
-    radial-gradient(2px 2px at 250px 50px, #fff, transparent),
-    radial-gradient(1.5px 1.5px at 300px 150px, #ddd, transparent);
-  background-repeat: repeat;
-  background-size: 320px 160px; /* Repeating pattern size */
-  animation: scroll-loop 200s linear infinite;
-}
-
-/* Layer 2: Pixel City (middle distance) */
-.holographic-background::before {
-  content: '';
-  position: absolute; inset: 0; bottom: 80px; /* Raise city off the bottom */
-  background-image:
-    /* Sky with gradient */
-    linear-gradient(to top, rgba(28,16,42,0) 0%, rgba(44,29,66,0.8) 20%),
-    /* Buildings - using repeating gradients to make shapes */
-    repeating-linear-gradient(90deg, transparent 0 20px, #11091a 20px 100px, transparent 100px 110px), /* Tall building */
-    repeating-linear-gradient(90deg, transparent 0 100px, #2c1d42 100px 160px, transparent 160px 200px), /* Shorter building */
-    repeating-linear-gradient(90deg, transparent 0 250px, #11091a 250px 300px, transparent 300px 350px); /* Another building */
-  background-position: 0 100%, 0 100%, 20px 100%, 50px 100%;
-  background-size: 100% 100%, 400px 60%, 400px 100%, 400px 80%;
-  background-repeat: repeat-x;
-  animation: scroll-loop 80s linear infinite;
-}
-
-/* Layer 3: Foreground Grid (fastest) */
-.holographic-background {
-  --grid-color: rgba(255, 0, 255, 0.2);
-  --grid-size: 40px;
-  background-image:
-    linear-gradient(to right, var(--grid-color) 1px, transparent 1px),
-    linear-gradient(to bottom, var(--grid-color) 1px, transparent 1px);
-  background-size: var(--grid-size) var(--grid-size);
-  /* Apply perspective for a cool 3D road effect */
-  perspective: 200px;
-  transform-style: preserve-3d;
-}
-.holographic-background > div { /* A new inner div is needed for the 3D plane */
-  position: absolute;
-  inset: 0;
-  background-image:
-    linear-gradient(to right, var(--grid-color) 1px, transparent 1px),
-    linear-gradient(to bottom, var(--grid-color) 1px, transparent 1px);
-  background-size: var(--grid-size) var(--grid-size);
-  transform: rotateX(65deg) translateZ(-100px); /* Tilt the grid */
-  animation: scroll-loop 30s linear infinite;
-}
-/* You will need to add a single <div> inside .holographic-background in your HTML for this to work */
-/* e.g., <div class="holographic-background"><div></div></div> */
-
-.animated-blobs { display: none; }
+.text-sulfur { color: #D4FF00 !important; }
+.text-crimson { color: #FF3E3E !important; }
+.text-cobalt { color: #2E5BFF !important; }
+.text-steel { color: #282828 !important; }
+.text-silver { color: #A0A0A0 !important; }
+.text-titanium { color: #FFFFFF !important; }

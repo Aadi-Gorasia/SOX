@@ -40,6 +40,11 @@ io.use((socket, next) => {
 io.on('connection', (socket) => {
   console.log(`[Socket] Connected: ${socket.userId}`);
 
+  // Inside io.on('connection', (socket) => { ... })
+socket.on('ping_latency', () => {
+  socket.emit('pong_latency');
+});
+
   socket.on('findGame', ({ timeControl, preferredSymbol }) => {
     gameManager.findMatch(socket, timeControl, preferredSymbol)
       .catch(err => console.error(err));
