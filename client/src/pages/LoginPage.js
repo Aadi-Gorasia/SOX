@@ -12,7 +12,11 @@ const LoginPage = () => {
   const onSubmit = async (e) => {
     e.preventDefault();
     const result = await login(formData);
-    if (!result.success) alert('AUTH_ERROR: ' + result.message);
+    if (!result.success) alert('AUTH_FAILURE: ' + result.message);
+  };
+
+  const handleSocialAuth = (provider) => {
+    window.location.href = `${process.env.REACT_APP_API_URL}/api/auth/${provider}`;
   };
 
   useEffect(() => {
@@ -20,25 +24,27 @@ const LoginPage = () => {
   }, [isAuthenticated, navigate]);
 
   return (
-    <div className="auth-root crimson-theme">
+    <div className="auth-root crimson-minimal">
       <InteractiveBG />
       
       <div className="auth-wrap">
         <header className="auth-v-header">
-          <h1 className="Archivo tracking-widest">ACCESS</h1>
+          <h1 className="Archivo tracking-extreme">ACCESS</h1>
           <p className="hp-mono text-crimson">REQUIRED_FOR_UPLINK</p>
         </header>
 
         <form className="auth-clean-form" onSubmit={onSubmit}>
           <div className="clean-input-group">
+            <label className="hp-mono">UPLINK_EMAIL</label>
             <input 
-              type="email" name="email" placeholder="EMAIL_ADDRESS" 
+              type="email" name="email" placeholder="ENTER_EMAIL" 
               onChange={(e) => setFormData({...formData, email: e.target.value})} required 
             />
           </div>
           <div className="clean-input-group">
+            <label className="hp-mono">ACCESS_KEY</label>
             <input 
-              type="password" name="password" placeholder="PASSWORD" 
+              type="password" name="password" placeholder="ENTER_PASSWORD" 
               onChange={(e) => setFormData({...formData, password: e.target.value})} required 
             />
           </div>
@@ -47,17 +53,17 @@ const LoginPage = () => {
         </form>
 
         <div className="auth-divider">
-          <span>OR_CONNECT_VIA</span>
+          <span className="hp-mono">OR_CONNECT_VIA</span>
         </div>
 
         <div className="social-grid">
-          <button className="social-btn"><i className="fab fa-google"></i> GOOGLE</button>
-          <button className="social-btn"><i className="fab fa-apple"></i> APPLE</button>
-          <button className="social-btn"><i className="fab fa-facebook"></i> FACEBOOK</button>
+          <button className="social-node" onClick={() => handleSocialAuth('google')}>GOOGLE</button>
+          <button className="social-node" onClick={() => handleSocialAuth('apple')}>APPLE</button>
+          <button className="social-node" onClick={() => handleSocialAuth('facebook')}>FACEBOOK</button>
         </div>
 
         <footer className="auth-nav-footer hp-mono">
-          UNREGISTERED? <Link to="/register" className="text-crimson">CREATE_IDENTITY</Link>
+          NO_IDENTITY? <Link to="/register" className="text-crimson">[ ENROLL_OPERATIVE ]</Link>
         </footer>
       </div>
     </div>
