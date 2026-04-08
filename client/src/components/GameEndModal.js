@@ -43,7 +43,7 @@ const GameEndModal = ({ result, currentUser, onNewGame, onClose }) => {
         <div className="corner-bl"></div><div className="corner-br"></div>
 
         <header className="pp-report-header">
-          <span className="hp-mono text-sulfur">// FINAL_SESSION_REPORT</span>
+          <span className="hp-mono text-sulfur">FINAL_SESSION_REPORT</span>
           <button className="pp-close-x" onClick={onClose}>[×]</button>
         </header>
 
@@ -92,7 +92,7 @@ const GameEndModal = ({ result, currentUser, onNewGame, onClose }) => {
         </div>
 
         <footer className="pp-report-footer hp-mono">
-          TIMESTAMP: {new Date().toISOString()} // ID: {result.id || "NULL"}
+          TIMESTAMP: {new Date().toISOString()} ID: {result.id || "NULL"}
         </footer>
       </div>
     </div>

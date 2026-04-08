@@ -1,13 +1,11 @@
-import React, { useState, useContext, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { AuthContext } from '../context/AuthContext';
 import axios from 'axios';
 import InteractiveBG from '../components/InteractiveBG';
 import './AuthPage.css';
 
 const RegisterPage = () => {
   const navigate = useNavigate();
-  const { isAuthenticated } = useContext(AuthContext);
   const [isVerifying, setIsVerifying] = useState(false);
   const [formData, setFormData] = useState({ username: '', email: '', password: '' });
 
