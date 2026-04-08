@@ -1,111 +1,132 @@
-import React, { useEffect, useRef } from 'react';
+// client/src/components/MoveHistory.js
+import React, { useEffect, useRef, useMemo } from 'react';
 import './MoveHistory.css';
 
-// Helper for "Grid Coordinates" (A1, B2 style)
-const getCoord = (index) => {
-  const row = Math.floor(index / 3);
-  const col = index % 3;
-  const letters = ['A', 'B', 'C'];
-  return `${letters[col]}${3 - row}`; // e.g., A3, B1
+/**
+ * COORDINATE HELPER
+ * Transforms raw indices into Sector:Node technical notation.
+ * Example: Sector 4, Node 2 -> S4:N2
+ */
+const formatCoord = (bIdx, cIdx) => {
+  if (bIdx === null || cIdx === null) return 'ERR_NULL';
+  return `S${bIdx}:N${cIdx}`;
 };
 
-// Format seconds -> nice string:
-// <1s, 8.3s, 45s, 1:05, 2:03.4, 10:00, etc.
-function formatMoveTime(seconds) {
-  if (seconds == null || seconds < 0.1) return '<1s';
-
-  // Under 60s → show seconds with optional decimal
-  if (seconds < 60) {
-    if (seconds < 10) return seconds.toFixed(1) + 's';
-    return Math.round(seconds) + 's';
-  }
-
-  // 60s or more → mm:ss / mm:ss.s
-  const total = seconds;
-  const m = Math.floor(total / 60);
-  const remainder = total - m * 60; // can be fractional
-
-  // If remainder < 1s, just show mm:00
-  if (remainder < 1) {
-    return `${m}:00`;
-  }
-
-  // If remainder < 10s, keep one decimal: mm:0x.x
-  if (remainder < 10) {
-    return `${m}:0${remainder.toFixed(1)}`;
-  }
-
-  // Otherwise, round to nearest second: mm:ss
-  const sRounded = Math.round(remainder);
-  const ss = sRounded.toString().padStart(2, '0');
-  return `${m}:${ss}`;
-}
-
-// Compute time taken using timestamps (no server changes needed)
-// eslint-disable-next-line no-unused-vars
-function getMoveTimeLabel(moves, index) {
-  const move = moves[index];
-
-  // If the server later adds timeTakenSeconds, we’ll use it
-  if (move.timeTakenSeconds != null) {
-    return formatMoveTime(move.timeTakenSeconds);
-  }
-
-  // For first move, no previous reference
-  if (index === 0 || !move.timestamp) return null;
-
-  const prevMove = moves[index - 1];
-  if (!prevMove || !prevMove.timestamp) return null;
-
-  const tPrev = new Date(prevMove.timestamp).getTime();
-  const tCurr = new Date(move.timestamp).getTime();
-  if (isNaN(tPrev) || isNaN(tCurr)) return null;
-
-  const deltaSec = (tCurr - tPrev) / 1000;
-  if (deltaSec < 0) return null;
-
-  return formatMoveTime(deltaSec);
-}
+/**
+ * THINKING TIME HELPER
+ * Calculates the duration between the current move and the previous one.
+ */
+const calculateDelta = (moves, index) => {
+  if (index === 0 || !moves[index].timestamp || !moves[index - 1].timestamp) return '--';
+  const current = new Date(moves[index].timestamp).getTime();
+  const previous = new Date(moves[index - 1].timestamp).getTime();
+  const seconds = (current - previous) / 1000;
+  return `+${seconds.toFixed(1)}S`;
+};
 
 const MoveHistory = ({ moves = [], currentMoveIndex, onSelectMove }) => {
-  const bottomRef = useRef(null);
+  const listRef = useRef(null);
 
-  // Only auto-scroll if we are currently looking at the latest move
+  /**
+   * ROUND GROUPING LOGIC
+   * Maps the flat move array into pairs (Rounds).
+   * Round 1 = Moves[0] (X) and Moves[1] (O).
+   */
+  const rounds = useMemo(() => {
+    const grouped = [];
+    for (let i = 0; i < moves.length; i += 2) {
+      grouped.push({
+        id: Math.floor(i / 2) + 1,
+        xMove: { ...moves[i], index: i, delta: calculateDelta(moves, i) },
+        oMove: moves[i + 1] ? { ...moves[i + 1], index: i + 1, delta: calculateDelta(moves, i + 1) } : null,
+      });
+    }
+    return grouped;
+  }, [moves]);
+
+  /**
+   * AUTO-SCROLL LOGIC
+   * Keeps the log focused on the latest simulation state.
+   */
   useEffect(() => {
-    if (currentMoveIndex === moves.length - 1) {
-      bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
+    if (listRef.current && currentMoveIndex === moves.length - 1) {
+      listRef.current.scrollTop = listRef.current.scrollHeight;
     }
   }, [moves, currentMoveIndex]);
 
-  if (!moves || moves.length === 0) {
-    return <div className="history-empty">Game hasn't started yet.</div>;
-  }
-
   return (
     <div className="history-container">
-      <div className="history-list">
-        {moves.map((move, i) => {
-          // Highlight if this is the currently viewed move
-          const isActive = i === currentMoveIndex;
-          
-          return (
-            <div 
-              key={i} 
-              className={`history-item ${isActive ? 'active' : ''}`}
-              onClick={() => onSelectMove(i)} // <--- Time Travel Click
-            >
-              <div className="hist-num">{i + 1}.</div>
-              <div className={`hist-symbol ${move.player === 'X' ? 'sym-x' : 'sym-o'}`}>
-                {move.player}
-              </div>
-              <div className="hist-details">
-                <span>{getCoord(move.boardIndex)} → {getCoord(move.cellIndex)}</span>
-              </div>
+      {/* HUD HEADER */}
+      <header className="history-header">
+        <span>TRANSACTION_LOG</span>
+        <span className="text-sulfur">v2.0_LIVE</span>
+      </header>
+
+      {/* MOVE LIST AREA */}
+      <div className="history-list" ref={listRef}>
+        {rounds.map((round) => (
+          <div key={round.id} className="history-round-row">
+            {/* ROUND COUNTER */}
+            <div className="round-num">
+              {round.id.toString().padStart(2, '0')}
             </div>
-          );
-        })}
-        <div ref={bottomRef} />
+            
+            {/* X (COBALT) MOVE NODE */}
+            <div 
+              className={`move-node ${currentMoveIndex === round.xMove.index ? 'active' : ''}`}
+              onClick={() => onSelectMove(round.xMove.index)}
+            >
+              <div className="move-main">
+                <span className="move-sym x">X</span>
+                <span className="move-coord">{formatCoord(round.xMove.boardIndex, round.xMove.cellIndex)}</span>
+              </div>
+              <div className="move-time">{round.xMove.delta}</div>
+            </div>
+
+            {/* O (CRIMSON) MOVE NODE */}
+            {round.oMove ? (
+              <div 
+                className={`move-node ${currentMoveIndex === round.oMove.index ? 'active' : ''}`}
+                onClick={() => onSelectMove(round.oMove.index)}
+              >
+                <div className="move-main">
+                  <span className="move-sym o">O</span>
+                  <span className="move-coord">{formatCoord(round.oMove.boardIndex, round.oMove.cellIndex)}</span>
+                </div>
+                <div className="move-time">{round.oMove.delta}</div>
+              </div>
+            ) : (
+              /* Awaiting O move to complete the round */
+              <div className="move-node empty-node">
+                <div className="move-time hp-mono">PENDING...</div>
+              </div>
+            )}
+          </div>
+        ))}
+        
+        {/* EMPTY STATE */}
+        {moves.length === 0 && (
+          <div className="hp-mono text-steel" style={{ padding: '3rem', textAlign: 'center', fontSize: '0.7rem' }}>
+            AWAITING_INPUT_SIGNAL...
+          </div>
+        )}
       </div>
+
+      {/* TIME TRAVEL FOOTER */}
+      <footer className="history-controls">
+        <button 
+          disabled={currentMoveIndex < 0} 
+          onClick={() => onSelectMove(currentMoveIndex - 1)}
+        >
+          [ PREV_STATE ]
+        </button>
+        <button 
+          disabled={currentMoveIndex >= moves.length - 1} 
+          onClick={() => onSelectMove(currentMoveIndex + 1)}
+        >
+          [ NEXT_STATE ]
+        </button>
+      </footer>
     </div>
   );
 };

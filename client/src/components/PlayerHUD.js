@@ -1,41 +1,92 @@
-// client/components/PlayerHUD.js
+// client/src/components/PlayerHUD.js
 import React, { useMemo } from "react";
 import "./PlayerHUD.css";
 
 /**
- * PlayerHUD
- * props:
- *   - player { username, elo, avatar? }
- *   - time in ms (number)
- *   - isActive boolean
- *   - side: "left" | "right"
+ * PLAYER HUD COMPONENT
+ * 
+ * @param {Object} player - The user data object (username, elo, etc.)
+ * @param {number} time - Remaining simulation time in milliseconds.
+ * @param {boolean} isActive - Is it currently this player's turn?
+ * @param {string} symbol - 'X' or 'O'.
+ * @param {number} baseTime - The starting time of the match (for bar calculation).
  */
-export default function PlayerHUD({ player = {}, time = 0, isActive = false, side = "left" }) {
-  // clamp and format
-  const seconds = Math.max(0, Math.floor((time % 60000) / 1000));
-  const minutes = Math.max(0, Math.floor(time / 60000));
-  const timeStr = `${String(minutes).padStart(2, "0")}:${String(seconds).padStart(2, "0")}`;
+const PlayerHUD = ({ 
+  player = {}, 
+  time = 0, 
+  isActive = false, 
+  symbol = "X", 
+  baseTime = 600000 
+}) => {
+  
+  /**
+   * CHRONO FORMATTER
+   * Converts MS into a tactical readout.
+   * Logic: If time > 10s, show MM:SS. If time < 10s, show SS.T (Tenths).
+   */
+  const formatTacticalClock = (ms) => {
+    const totalSeconds = Math.max(0, ms / 1000);
+    
+    // High-Precision Mode (Under 10 seconds)
+    if (totalSeconds < 10 && totalSeconds > 0) {
+      const seconds = Math.floor(totalSeconds);
+      const tenths = Math.floor((ms % 1000) / 100);
+      return `${seconds}.${tenths}`;
+    }
 
-  // bar percent: time is assumed relative to a default (e.g., 5 minutes -> 300000ms)
-  // If you have real clock length, pass it in. Here we use 5 minutes baseline for visual.
-  const pct = useMemo(() => {
-    const baseline = 5 * 60 * 1000;
-    return Math.max(2, Math.min(100, Math.round((time / baseline) * 100)));
-  }, [time]);
+    // Standard Mode
+    const m = Math.floor(totalSeconds / 60);
+    const s = Math.floor(totalSeconds % 60);
+    return `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
+  };
+
+  /**
+   * BIOMETRIC CALCULATION
+   * Determines the width of the Vital Bar.
+   */
+  const vitalsPercentage = useMemo(() => {
+    const rawPct = (time / baseTime) * 100;
+    return Math.max(0, Math.min(100, rawPct));
+  }, [time, baseTime]);
+
+  // Critical State: 15 Seconds remaining
+  const isEmergency = time < 15000 && time > 0;
 
   return (
-    <div className={`hud-player ${side} ${isActive ? "active" : ""}`}>
-      <div className="player-meta">
-        <div className="player-name">{player.username || "Player"}</div>
-        <div className="player-elo">PWR: {player.elo ?? 0}</div>
-      </div>
-
-      <div className="hud-timer-capsule">
-        <div className="capsule-bar-outer">
-          <div className="capsule-bar-fill" style={{ width: `${pct}%` }} />
+    <div className={`hud-player ${isActive ? "active" : ""} ${isEmergency ? "low-time" : ""}`}>
+      {/* DECORATIVE TERMINAL STRINGS */}
+      <div className="hud-decoration-left">UPLINK_STABLE // NO_BREACH</div>
+      
+      {/* IDENTITY LAYER */}
+      <header className="hud-player-header">
+        <div className="hud-user-info">
+          <span className="hud-name">{player.username || "UNKNOWN_OPERATIVE"}</span>
+          <span className="hud-elo hp-mono">ELO_RATING // {player.elo ?? 1000}</span>
         </div>
-        <div className="capsule-time">{timeStr}</div>
+        <div className={`hud-symbol-indicator ${symbol.toLowerCase()}`}>
+          {symbol}
+        </div>
+      </header>
+
+      {/* CHRONO LAYER */}
+      <div className="hud-timer-zone">
+        <div className="hud-clock hp-mono">
+          {formatTacticalClock(time)}
+        </div>
+        
+        {/* THE VITAL BAR (Visual representation of simulation time) */}
+        <div className="hud-vitals">
+          <div 
+            className="vital-fill" 
+            style={{ 
+              width: `${vitalsPercentage}%`,
+              // The bar color is handled by the .active and .low-time classes in CSS
+            }} 
+          />
+        </div>
       </div>
     </div>
   );
-}
+};
+
+export default PlayerHUD;

@@ -1,26 +1,103 @@
 /* client/src/components/Cell.css */
+
+/**
+ * CELL BASE
+ * The individual 3x3 data node. 
+ * Defaults to Void (#080808) to blend with the deep background.
+ */
 .cell {
-  background-color: var(--midnight-dark);
+  background-color: var(--void);
   border: none;
-  border-radius: 2px;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
   position: relative;
-  transition: background-color 0.2s ease;
+  transition: all 0.3s cubic-bezier(0.19, 1, 0.22, 1);
+  padding: 0;
+  overflow: hidden; /* Clips the soft illumination glow */
+  outline: none;
 }
-.cell:is(button) { cursor: pointer; }
-.cell:is(button):hover { background-color: var(--slate-panel); }
 
-.cell.x::before, .cell.x::after {
-  content: ''; position: absolute; top: 50%; left: 18%;
-  width: 64%; height: 5px; background-color: var(--off-white);
-  border-radius: 2px;
+/**
+ * THE DATA MARK (X or O)
+ * High-impact Archivo font with a localized glow.
+ */
+.cell-mark {
+  font-family: 'Archivo', sans-serif;
+  font-size: 1.8rem;
+  font-weight: 900;
+  line-height: 1;
+  user-select: none;
+  z-index: 5;
+  transition: transform 0.3s cubic-bezier(0.19, 1, 0.22, 1), opacity 0.3s ease;
 }
-.cell.x::before { transform: translateY(-50%) rotate(45deg); }
-.cell.x::after { transform: translateY(-50%) rotate(-45deg); }
 
-.cell.o::before {
-  content: ''; position: absolute; top: 50%; left: 50%;
-  transform: translate(-50%, -50%);
-  width: 45%; height: 45%;
-  border: 5px solid var(--off-white);
-  border-radius: 50%;
+.cell-x {
+  color: var(--cobalt);
+  text-shadow: 0 0 15px rgba(46, 91, 255, 0.6);
+}
+
+.cell-o {
+  color: var(--crimson);
+  text-shadow: 0 0 15px rgba(255, 62, 62, 0.6);
+}
+
+/**
+ * SOFT ILLUMINATION HOVER
+ * Only active when the board is the current target and it is the user's turn.
+ * Uses a radial gradient to create a "volumetric" soft light look.
+ */
+.cell-active:hover {
+  /* Soft base glow */
+  background: radial-gradient(
+    circle at center,
+    rgba(212, 255, 0, 0.08) 0%,
+    rgba(212, 255, 0, 0.03) 50%,
+    transparent 100%
+  );
+}
+
+/**
+ * INNER BRACKET HIGHLIGHT
+ * A very subtle internal border that illuminates on hover.
+ */
+.cell-active::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border: 1px solid transparent;
+  transition: border-color 0.4s ease, box-shadow 0.4s ease;
+  z-index: 1;
+}
+
+.cell-active:hover::before {
+  border-color: rgba(212, 255, 0, 0.15);
+  box-shadow: inset 0 0 15px rgba(212, 255, 0, 0.05);
+}
+
+/**
+ * CLICK RESPONSE
+ */
+.cell:active {
+  transform: scale(0.96);
+  background-color: var(--steel);
+}
+
+/**
+ * OCCUPIED STATE
+ * Removes cursor and interaction once a mark is placed.
+ */
+.cell:disabled {
+  cursor: default;
+}
+
+.cell:disabled:hover {
+  background: none;
+}
+
+.cell:disabled .cell-mark {
+  transform: scale(1);
 }

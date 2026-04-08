@@ -1,153 +1,160 @@
 /* client/src/components/Board.css */
-@import url('https://fonts.googleapis.com/css2?family=Oswald:wght@200..700&display=swap');
 
-/* Tonal Board Reactions */
-.cell {
-  transition: var(--transition-royal);
-  position: relative;
-  overflow: hidden;
-}
-
-.cell:active {
-  transform: scale(0.92);
-  background: var(--accent-soft);
-}
-
-/* Winning Animation: The Crown Pulse */
-.won-board {
-  animation: winPulse 2s infinite;
-  border: 2px solid var(--board-win);
-}
-
-@keyframes winPulse {
-  0% { box-shadow: 0 0 0 0 var(--accent-soft); }
-  70% { box-shadow: 0 0 0 20px rgba(0,0,0,0); }
-  100% { box-shadow: 0 0 0 0 rgba(0,0,0,0); }
-}
-
+/**
+ * BOARD CONTAINER
+ * The structural shell for each 3x3 sector.
+ * Sharp edges, 1px steel border, and high-performance transitions.
+ */
 .board-container {
   position: relative;
   width: 100%;
   height: 100%;
-  transition: transform 0.18s ease-out, box-shadow 0.18s ease-out;
+  background-color: var(--carbon);
+  border: 1px solid var(--steel);
+  transition: all 0.4s cubic-bezier(0.19, 1, 0.22, 1);
+  box-sizing: border-box;
+  overflow: visible; /* Allows the Target Lock brackets to extend beyond the border */
 }
 
-/* When a small board is won (X or O), make it slightly bigger / pop */
-.won-board {
-  transform: scale(1.06);
-  z-index: 3;
-  box-shadow: 0 0 18px rgba(0, 255, 255, 0.25);
-}
-
-/* The 3x3 mini-board grid */
+/**
+ * THE MINI-GRID
+ * Using a 1px gap with the Steel background color to create 
+ * the technical "blueprint" lines between the 9 cells.
+ */
 .board {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
   grid-template-rows: repeat(3, 1fr);
   aspect-ratio: 1 / 1;
-  border-radius: 4px;
-  background-color: var(--slate-panel);
-  gap: 5px;
+  gap: 1px;
+  background-color: var(--steel);
   width: 100%;
   height: 100%;
 }
 
-.active-board {
-  border: 3px solid var(--mint-accent);
-  box-sizing: border-box;
+/**
+ * --- THE TARGET LOCK (ACTIVE SECTOR) ---
+ * Triggered when the game logic dictates this sector must be played in.
+ * Uses Sulfur (#D4FF00) to signify a "System Focus" state.
+ */
+.is-active-target {
+  border: 1px solid var(--sulfur) !important;
+  z-index: 50;
+  transform: scale(1.05); /* Physically lifts the sector closer to the user */
+  background-color: rgba(212, 255, 0, 0.03);
+  box-shadow: 
+    0 0 40px rgba(212, 255, 0, 0.2), 
+    inset 0 0 20px rgba(212, 255, 0, 0.1);
 }
 
-.not-playable .cell:hover {
-  cursor: default;
-  background-color: var(--midnight-dark);
+/**
+ * TACTICAL CORNER BRACKETS
+ * Pseudo-elements that create the "HUD Lock-on" visual effect.
+ */
+.is-active-target::before,
+.is-active-target::after {
+  content: '';
+  position: absolute;
+  width: 25px;
+  height: 25px;
+  border: 3px solid var(--sulfur);
+  pointer-events: none;
+  z-index: 60;
 }
 
-/* --- CELLS --- */
-
-.cell {
-  background-color: var(--midnight-dark);
-  border-radius: 3px;
-  border: 1px solid rgba(255, 255, 255, 0.04);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 0;
-  cursor: pointer;
-  transition: background-color 0.12s ease-out, border-color 0.12s ease-out;
+/* Top-Left and Top-Right Brackets */
+.is-active-target::before {
+  top: -6px;
+  left: -6px;
+  border-right: none;
+  border-bottom: none;
+  /* Double bracket effect using a box-shadow */
+  box-shadow: 155px 0 0 -3px var(--sulfur); /* This mocks the TR bracket */
 }
 
-.cell-active {
-  border-color: rgba(0, 255, 255, 0.5);
+/* Bottom-Left and Bottom-Right Brackets */
+.is-active-target::after {
+  bottom: -6px;
+  right: -6px;
+  border-left: none;
+  border-top: none;
+  box-shadow: -155px 0 0 -3px var(--sulfur); /* This mocks the BL bracket */
 }
 
-.cell:hover {
-  background-color: rgba(255, 255, 255, 0.04);
+/**
+ * YOUR TURN INDICATOR
+ * Animated pulse to show the user exactly where their input is required.
+ */
+.is-your-turn.is-active-target {
+  animation: target-lock-pulse 2s infinite ease-in-out;
 }
 
-/* Common vertical nudge for all X/O, fixes “off-center” look
-   (Board, winner overlay, move log etc) */
-.xo-glyph {
-  position: relative;
-  top: -2px; /* tweak between -1px and -3px if needed */
+@keyframes target-lock-pulse {
+  0% { opacity: 1; transform: scale(1.05); }
+  50% { opacity: 0.8; transform: scale(1.06); box-shadow: 0 0 60px rgba(212, 255, 0, 0.3); }
+  100% { opacity: 1; transform: scale(1.05); }
 }
 
-/* X / O in a normal cell */
-.cell-mark {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  line-height: 1;
-  font-family: "Poppins", sans-serif;
-  font-size: 1.4rem;
-}
-
-.cell-x {
-  color: #c6f6ff; /* feels like your board theme */
-}
-
-.cell-o {
-  color: #f9c6ff;
-}
-
-/* --- WINNER OVERLAY --- */
-
+/**
+ * WINNER OVERLAY
+ * Displays a massive, glowing mark once a 3x3 sector is captured.
+ */
 .winner-overlay {
   position: absolute;
-  top: 0; left: 0;
-  width: 100%; height: 100%;
-  background-color: rgba(25, 30, 36, 0.85);
+  inset: 0;
+  background-color: rgba(8, 8, 8, 0.8);
+  backdrop-filter: blur(4px);
   display: flex;
   justify-content: center;
   align-items: center;
-  border-radius: 4px;
-  z-index: 10;
-  pointer-events: none;
+  z-index: 20;
+  animation: overlay-init 0.5s cubic-bezier(0.19, 1, 0.22, 1);
 }
 
-.winner-overlay.draw-overlay {
-  background-color: rgba(84, 110, 122, 0.7);
+@keyframes overlay-init {
+  from { opacity: 0; backdrop-filter: blur(0px); }
+  to { opacity: 1; backdrop-filter: blur(4px); }
 }
 
-/* Big X/O when a small board is won */
 .winner-mark {
-  font-size: 7rem;
-  font-weight: bold;
-  color: var(--off-white);
-  text-shadow: 0 0 10px rgba(255, 255, 255, 0.3);
-  user-select: none;
-
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
+  font-family: 'Archivo', sans-serif;
+  font-size: 7.5rem;
+  font-weight: 900;
   line-height: 1;
-  font-family: "Oswald", sans-serif;
+  user-select: none;
 }
 
-/* optional slight tint differences for big winners */
 .winner-x {
-  color: #b3ffff;
+  color: var(--cobalt);
+  text-shadow: 0 0 30px var(--cobalt);
 }
 
 .winner-o {
-  color: #ffd6ff;
+  color: var(--crimson);
+  text-shadow: 0 0 30px var(--crimson);
+}
+
+/**
+ * DRAW STATE (VOID)
+ */
+.draw-overlay {
+  background-color: rgba(22, 22, 22, 0.95);
+}
+
+.draw-overlay::after {
+  content: 'VOID';
+  font-family: 'IBM Plex Mono';
+  font-size: 1.2rem;
+  color: var(--silver);
+  letter-spacing: 4px;
+}
+
+/**
+ * NON-ACTIVE STATE
+ * Unlike previous versions, we keep visibility at 100% 
+ * but use a grayscale filter to show it is not the current focus.
+ */
+.not-playable {
+  filter: saturate(0.5);
+  border: 1px solid var(--steel);
 }
