@@ -5,11 +5,18 @@ const { Server } = require("socket.io");
 const cors = require('cors');
 const mongoose = require('mongoose');
 const jwt = require('jsonwebtoken');
-
 const GameManager = require('./classes/GameManager');
 
 const app = express();
-app.use(cors());
+
+// FIX: Allow CORS from your Render Frontend URL
+const allowedOrigin = process.env.FRONTEND_URL || "http://localhost:3000";
+
+app.use(cors({
+  origin: allowedOrigin,
+  credentials: true
+}));
+
 app.use(express.json({ extended: false }));
 
 // DB
@@ -23,7 +30,15 @@ app.use('/api/auth', require('./routes/auth'));
 app.use('/api/games', require('./routes/games'));
 
 const server = http.createServer(app);
-const io = new Server(server, { cors: { origin: "http://localhost:3000" } });
+
+// FIX: Update Socket.io CORS to use the environment variable
+const io = new Server(server, { 
+  cors: { 
+    origin: allowedOrigin,
+    methods: ["GET", "POST"]
+  } 
+});
+
 const gameManager = new GameManager(io);
 
 // Auth Middleware for Socket
@@ -40,10 +55,9 @@ io.use((socket, next) => {
 io.on('connection', (socket) => {
   console.log(`[Socket] Connected: ${socket.userId}`);
 
-  // Inside io.on('connection', (socket) => { ... })
-socket.on('ping_latency', () => {
-  socket.emit('pong_latency');
-});
+  socket.on('ping_latency', () => {
+    socket.emit('pong_latency');
+  });
 
   socket.on('findGame', ({ timeControl, preferredSymbol }) => {
     gameManager.findMatch(socket, timeControl, preferredSymbol)
@@ -53,20 +67,18 @@ socket.on('ping_latency', () => {
   socket.on('joinGame', (gameId) => {
     const game = gameManager.getGame(gameId);
     if (game) {
-      // Reconnect Logic
       const pIdx = game.playerDetails.findIndex(p => p.id === socket.userId);
       if (pIdx !== -1) {
-        game.players[pIdx] = socket.id; // Update socket ID
+        game.players[pIdx] = socket.id;
         socket.join(gameId);
         socket.emit('updateGame', game);
-        // --- SEND STAKES ON JOIN ---
         gameManager.sendPlayerStakes(gameId, socket);
       }
     }
   });
 
-  // Delegating to GameManager
   socket.on('makeMove', (data) => gameManager.makeMove(socket, data));
+  
   socket.on('resign', ({ gameId }) => {
      const game = gameManager.getGame(gameId);
      if(!game) return;
@@ -93,5 +105,6 @@ socket.on('ping_latency', () => {
   socket.on('disconnect', () => gameManager.handleDisconnect(socket));
 });
 
+// Render provides the PORT via environment variable
 const PORT = process.env.PORT || 5001;
-server.listen(PORT, () => console.log(`[Server] running on ${PORT}`));
+server.listen(PORT, () => console.log(`[Server] running on port ${PORT}`));
