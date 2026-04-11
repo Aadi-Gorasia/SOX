@@ -10,7 +10,9 @@ const GameManager = require('./classes/GameManager');
 const app = express();
 
 // FIX: Allow CORS from your Render Frontend URL
-const allowedOrigin = process.env.FRONTEND_URL || "http://localhost:3000";
+const allowedOrigin = process.env.FRONTEND_URL 
+  ? [process.env.FRONTEND_URL, "http://localhost:3000"]
+  : "http://localhost:3000";
 
 app.use(cors({
   origin: allowedOrigin,
