@@ -1,198 +1,122 @@
 /* client/src/components/MoveHistory.css */
-
-/**
- * HISTORY CONTAINER
- * The technical shell for the move log.
- */
 .history-container {
   display: flex;
   flex-direction: column;
   height: 100%;
-  background-color: var(--carbon);
-  border: 1px solid var(--steel);
+  background-color: var(--card);
+  border: 1px solid var(--border);
   box-sizing: border-box;
   overflow: hidden;
 }
 
-/**
- * LOG HEADER
- * Displays simulation status and versioning.
- */
 .history-header {
-  padding: 1.2rem 1.5rem;
-  background-color: rgba(255, 255, 255, 0.02);
-  border-bottom: 1px solid var(--steel);
+  padding: 1.25rem 1.5rem;
+  background-color: var(--surface);
+  border-bottom: 1px solid var(--border);
   display: flex;
   justify-content: space-between;
   align-items: center;
 }
 
-.history-header span {
-  font-family: 'IBM Plex Mono', monospace;
-  font-size: 0.7rem;
-  letter-spacing: 2px;
-  color: var(--titanium);
+.history-title {
+  font-family: var(--mono);
+  font-size: 11px;
+  letter-spacing: 0.1em;
   text-transform: uppercase;
+  color: var(--text-3);
 }
 
-/**
- * SCROLLABLE LIST AREA
- */
 .history-list {
   flex: 1;
   overflow-y: auto;
   padding: 0;
 }
-
-/* Custom Tactical Scrollbar */
 .history-list::-webkit-scrollbar { width: 4px; }
-.history-list::-webkit-scrollbar-track { background: var(--void); }
-.history-list::-webkit-scrollbar-thumb { background: var(--steel); }
+.history-list::-webkit-scrollbar-track { background: var(--bg); }
+.history-list::-webkit-scrollbar-thumb { background: var(--border-s); }
 
-/**
- * THE ROUND ROW
- * Groups X and O moves together into a single "Move Set".
- */
 .history-round-row {
   display: grid;
-  grid-template-columns: 45px 1fr 1fr; /* Round # | X Move | O Move */
-  border-bottom: 1px solid rgba(40, 40, 40, 0.5);
-  transition: background 0.3s ease;
+  grid-template-columns: 45px 1fr 1fr; 
+  border-bottom: 1px solid var(--border);
+  transition: background 0.15s ease;
 }
+.history-round-row:hover { background-color: rgba(255, 255, 255, 0.02); }
 
-.history-round-row:hover {
-  background-color: rgba(255, 255, 255, 0.01);
-}
-
-/**
- * ROUND NUMBER COLUMN
- * Monospaced indicator for the current step in the simulation.
- */
 .round-num {
-  background-color: var(--void);
   display: flex;
   align-items: center;
   justify-content: center;
-  font-family: 'IBM Plex Mono', monospace;
-  font-size: 0.65rem;
-  color: var(--steel);
-  border-right: 1px solid var(--steel);
-  font-weight: 600;
+  font-family: var(--mono);
+  font-size: 11px;
+  color: var(--text-3);
+  border-right: 1px solid var(--border);
 }
 
-/**
- * INDIVIDUAL MOVE NODES
- * Interactive cells representing a single player's action.
- */
 .move-node {
-  padding: 12px 10px;
+  padding: 12px 14px;
   cursor: pointer;
   display: flex;
-  flex-direction: column; /* Coordinate on top, Delta Time on bottom */
-  gap: 2px;
-  transition: all 0.2s cubic-bezier(0.19, 1, 0.22, 1);
+  flex-direction: column;
+  gap: 4px;
+  transition: background 0.15s;
   position: relative;
 }
 
-/* Hover: Soft illumination leak from the grid */
-.move-node:hover {
-  background: radial-gradient(
-    circle at left,
-    rgba(212, 255, 0, 0.05) 0%,
-    transparent 100%
-  );
-}
-
-/**
- * ACTIVE STATE
- * Identifies the move currently being projected in the simulation.
- */
-.move-node.active {
-  background-color: rgba(212, 255, 0, 0.08);
-}
-
+.move-node:hover { background: rgba(255, 255, 255, 0.03); }
+.move-node.active { background-color: rgba(200, 251, 87, 0.04); }
 .move-node.active::after {
   content: '';
   position: absolute;
-  bottom: 0;
-  left: 0;
-  width: 100%;
-  height: 2px;
-  background-color: var(--sulfur);
-  box-shadow: 0 0 10px var(--sulfur);
+  bottom: 0; left: 0;
+  width: 100%; height: 2px;
+  background-color: var(--accent);
 }
 
-.move-main {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.move-sym {
-  font-family: 'Archivo', sans-serif;
-  font-weight: 900;
-  font-size: 0.85rem;
-  width: 12px;
-}
-
-.move-sym.x { color: var(--cobalt); }
-.move-sym.o { color: var(--crimson); }
+.move-main { display: flex; align-items: center; gap: 8px; }
+.move-sym { font-family: var(--display); font-weight: 800; font-size: 14px; width: 14px; }
+.move-sym.x { color: var(--accent); }
+.move-sym.o { color: var(--red); }
 
 .move-coord {
-  font-family: 'IBM Plex Mono', monospace;
-  font-size: 0.75rem;
-  color: var(--titanium);
-  letter-spacing: 0.5px;
+  font-family: var(--mono);
+  font-size: 12px;
+  color: var(--text-1);
 }
-
-/**
- * DELTA TIME (Thinking Time)
- * Shows how many seconds the operative spent calculating.
- */
 .move-time {
-  font-family: 'IBM Plex Mono', monospace;
-  font-size: 0.55rem;
-  color: var(--steel);
-  margin-left: 20px; /* Aligns under the coordinate */
+  font-family: var(--mono);
+  font-size: 10px;
+  color: var(--text-3);
+  margin-left: 22px; 
 }
+.move-node.active .move-time { color: var(--text-2); }
 
-.move-node.active .move-time {
-  color: var(--silver);
-}
-
-/**
- * NAVIGATION CONTROLS
- * Footer buttons to scrub through match history (Time Travel).
- */
+/* Navigation */
 .history-controls {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  border-top: 1px solid var(--steel);
-  background-color: var(--void);
+  border-top: 1px solid var(--border);
+  background-color: var(--surface);
 }
 
 .history-controls button {
   background: none;
   border: none;
-  border-right: 1px solid var(--steel);
-  padding: 15px;
-  color: var(--silver);
-  font-family: 'IBM Plex Mono', monospace;
-  font-size: 0.65rem;
-  font-weight: 600;
+  border-right: 1px solid var(--border);
+  padding: 14px;
+  color: var(--text-2);
+  font-family: var(--sans);
+  font-size: 12px;
+  font-weight: 500;
   cursor: pointer;
-  transition: 0.2s;
-  letter-spacing: 1px;
+  transition: 0.15s;
 }
-
 .history-controls button:last-child { border-right: none; }
-
 .history-controls button:hover:not(:disabled) {
-  background-color: var(--steel);
-  color: var(--titanium);
+  background-color: var(--border-s);
+  color: var(--text-1);
 }
-
 .history-controls button:disabled {
-  opacity: 0.1;
+  opacity: 0.3;
   cursor: not-allowed;
 }

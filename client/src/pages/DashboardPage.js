@@ -6,18 +6,34 @@ import { useSocket } from '../context/SocketContext';
 import InteractiveBG from '../components/InteractiveBG';
 import './DashboardPage.css';
 
+const TIME_CONTROLS = [
+  { tc: '1+0',  label: 'Bullet',  sub: '1 min'     },
+  { tc: '3+2',  label: 'Blitz',   sub: '3 + 2 sec'  },
+  { tc: '5+0',  label: 'Rapid',   sub: '5 min'     },
+  { tc: '10+0', label: 'Classic', sub: '10 min'    },
+];
+
+const TIPS = [
+  "Sending your opponent to a won board lets them play anywhere — avoid filling boards you don't control.",
+  'The center sub-board is the most powerful. Winning it constrains every board your opponent can enter.',
+  'Think two moves ahead: your move picks the sub-board your opponent enters next.',
+  'A forced draw is sometimes the best play — denying your opponent a won sub-board matters.',
+  'Edge sub-boards are safer to sacrifice. Corner and center sub-boards decide the game.',
+  'If you control where your opponent goes, you control the game.',
+  "Don't play reactively — plan which sub-boards you want to own before you need them.",
+];
+
 const DashboardPage = () => {
   const { user } = useContext(AuthContext);
-  const socket = useSocket();
-  const navigate = useNavigate();
+  const socket    = useSocket();
+  const navigate  = useNavigate();
 
-  const [games, setGames] = useState([]);
+  const [games,       setGames]       = useState([]);
   const [isSearching, setIsSearching] = useState(false);
-  const [searchTc, setSearchTc] = useState(null);
+  const [searchTc,    setSearchTc]    = useState(null);
   const [searchTimer, setSearchTimer] = useState(0);
-  const [latency, setLatency] = useState(0);
+  const [latency,     setLatency]     = useState(null);
 
-  // 1. DYNAMIC LATENCY (Heartbeat)
   useEffect(() => {
     if (!socket) return;
     const measure = () => {
@@ -30,20 +46,17 @@ const DashboardPage = () => {
     return () => clearInterval(interval);
   }, [socket]);
 
-  // 2. FETCH HISTORY (Using the logic that works in your ProfilePage)
   useEffect(() => {
     const fetchHistory = async () => {
       try {
         const res = await axios.get(`${process.env.REACT_APP_API_URL}/api/games/history`);
-        // We accept the data exactly as the ProfilePage does
         const rawData = Array.isArray(res.data) ? res.data : (res.data.games || []);
         setGames(rawData);
-      } catch (err) { console.error("History Fetch Error:", err); }
+      } catch (err) { console.error('History Fetch Error:', err); }
     };
     if (user) fetchHistory();
   }, [user]);
 
-  // 3. MATCHMAKING LISTENERS
   useEffect(() => {
     if (!socket) return;
     socket.on('gameStarted', (data) => {
@@ -53,7 +66,6 @@ const DashboardPage = () => {
     return () => socket.off('gameStarted');
   }, [socket, navigate]);
 
-  // 4. SEARCH TIMER
   useEffect(() => {
     let interval;
     if (isSearching) {
@@ -71,142 +83,238 @@ const DashboardPage = () => {
     socket.emit('findGame', { timeControl: tc, preferredSymbol: 'X' });
   };
 
-  if (!user) return <div className="loading-gate hp-mono">INITIALIZING_ARENA...</div>;
+  const totalGames     = user ? (user.wins + user.losses + user.draws) : 0;
+  const winRate        = totalGames > 0 ? Math.round((user.wins / totalGames) * 100) : 0;
+  const todayTip       = TIPS[new Date().getDay() % TIPS.length];
+  const latencyDisplay = latency === null ? '—' : `${latency}ms`;
+  const latencyClass   = latency === null ? '' : latency > 100 ? 'latency-high' : 'latency-ok';
+
+  if (!user) return (
+    <div className="loading-gate">
+      <div className="loading-inner">
+        <div className="loading-grid">
+          {Array.from({ length: 9 }).map((_, i) => (
+            <div key={i} className="loading-cell" style={{ animationDelay: `${i * 0.1}s` }} />
+          ))}
+        </div>
+        <p className="loading-text">Initializing arena</p>
+      </div>
+    </div>
+  );
 
   return (
-    
     <div className="dash-root">
-      
       <InteractiveBG />
-      
-      {/* SEARCHING OVERLAY */}
+
       {isSearching && (
-        <div className="dash-overlay">
-          <div className="search-hud">
-            <div className="hud-scanline"></div>
-            <div className="hp-mono text-sulfur mb-2">SCANNING_FREQUENCIES...</div>
-            <h2 className="Archivo text-4xl mb-8">TARGET: {searchTc}</h2>
-            <div className="radar-box">
-              <div className="radar-circle"></div>
-              <div className="radar-crosshair"></div>
+        <div className="search-overlay">
+          <div className="search-modal">
+            <div className="search-grid-bg">
+              {Array.from({ length: 9 }).map((_, i) => (
+                <div key={i} className={`search-cell ${i === 4 ? 'search-cell--center' : ''}`} />
+              ))}
             </div>
-            <div className="hp-mono text-silver mb-8">ELAPSED: {searchTimer}s</div>
-            <button className="abort-btn hp-mono" onClick={() => setIsSearching(false)}>[ ABORT_CONNECTION ]</button>
+            <div className="search-content">
+              <p className="search-label">Finding opponent</p>
+              <h2 className="search-tc">{searchTc}</h2>
+              <div className="search-pulse" />
+              <div className="search-timer">{searchTimer}s elapsed</div>
+              <button className="search-abort" onClick={() => setIsSearching(false)}>Cancel search</button>
+            </div>
           </div>
         </div>
       )}
 
-      <div className="dash-content">
-        {/* HUD TOP BAR */}
-        <br />
-        <br />
-        <br />
-        <br />
-        <header className="dash-hud-top hp-mono">
-          <div className="hud-item" style={{ color: "white" }}><span className="text-titanium">LATENCY:</span> <span className={latency > 100 ? "text-crimson" : "text-sulfur"}>{latency}MS</span></div>
-          <div className="hud-item" style={{ color: "white" }}><span className="text-titanium">OPERATIVE:</span> {user.username.toUpperCase()}</div>
-          <div className="hud-item" style={{ color: "white" }}><span className="text-titanium">NODE:</span> GLOBAL_01</div>
-          <div className="hud-item text-crimson animate-pulse">● SYSTEM_LIVE</div>
+      <div className="dash-wrap">
+
+        <header className="dash-header">
+
+          <div className="header-right">
+            <div className={`latency-badge ${latencyClass}`}>
+              <span className="latency-dot" />
+              {latencyDisplay}
+            </div>
+            <div className="header-user">{user.username}</div>
+          </div>
         </header>
 
-        <div className="dash-main-layout">
-          
-          {/* COLUMN 1: OPERATIVE IDENTITY */}
-          <aside className="dash-col">
-            <div className="dash-card prof-id-card">
-              <div className="prof-avatar-container">
-                <div className="prof-avatar-glow"></div>
-                <div className="prof-avatar-inner Archivo">{user.username[0]}</div>
+        <div className="dash-body">
+
+          {/* Left sidebar */}
+          <aside className="dash-sidebar">
+            <div className="player-card">
+              <div className="player-avatar">{user.username[0].toUpperCase()}</div>
+              <div className="player-name">{user.username}</div>
+              <div className="player-elo">{user.elo} <span>ELO</span></div>
+
+              <div className="player-stats">
+                <div className="pstat">
+                  <div className="pstat-val pstat-win">{user.wins}</div>
+                  <div className="pstat-label">Wins</div>
+                </div>
+                <div className="pstat-divider" />
+                <div className="pstat">
+                  <div className="pstat-val pstat-loss">{user.losses}</div>
+                  <div className="pstat-label">Losses</div>
+                </div>
+                <div className="pstat-divider" />
+                <div className="pstat">
+                  <div className="pstat-val">{user.draws}</div>
+                  <div className="pstat-label">Draws</div>
+                </div>
               </div>
-              <h2 className="Archivo text-2xl mt-4">{user.username.toUpperCase()}</h2>
-              <div className="hp-mono text-sulfur mb-6">{user.elo} ELO</div>
-              
-              <div className="prof-metrics hp-mono">
-                <div className="m-row"><span>WIN_RATE</span> <span className="text-sulfur">{Math.round((user.wins / (user.wins + user.losses + user.draws || 1)) * 100)}%</span></div>
-                <div className="m-row"><span>SESSIONS</span> <span>{user.wins + user.losses + user.draws}</span></div>
-                <div className="m-row"><span>RANK</span> <span className="text-cobalt">OPERATIVE</span></div>
+
+              <div className="winrate-wrap">
+                <div className="winrate-label">
+                  <span>Win rate</span>
+                  <span className="winrate-pct">{winRate}%</span>
+                </div>
+                <div className="winrate-track">
+                  <div className="winrate-fill" style={{ width: `${winRate}%` }} />
+                </div>
+              </div>
+              <div className="total-games-label">{totalGames} games played</div>
+            </div>
+
+            <div className="sidebar-card">
+              <div class="sidebar-card-label">System</div>
+              <div className="sys-rows">
+                <div className="sys-row">
+                  <span className="sys-key">Ping</span>
+                  <span className={`sys-val ${latency !== null && latency > 100 ? 'sys-warn' : latency !== null ? 'sys-ok' : ''}`}>{latencyDisplay}</span>
+                </div>
+                <div className="sys-row">
+                  <span className="sys-key">Node</span>
+                  <span className="sys-val">Global 01</span>
+                </div>
+                <div className="sys-row">
+                  <span className="sys-key">Status</span>
+                  <span className="sys-val sys-ok">Live</span>
+                </div>
+                <div className="sys-row">
+                  <span className="sys-key">Games loaded</span>
+                  <span className="sys-val">{games.length}</span>
+                </div>
               </div>
             </div>
 
-            <div className="dash-card mt-6 stats-breakdown">
-              <div className="dash-label hp-mono">BATTLE_STATS</div>
-              <div className="stats-row">
-                <div className="stat-v"><span className="hp-mono text-xs text-titanium">WINS</span><br /><br /><div className="Archivo text-2xl text-sulfur">{user.wins}</div></div>
-                <div className="stat-v"><span className="hp-mono text-xs text-titanium">LOSS</span><br /><br /><div className="Archivo text-2xl text-crimson">{user.losses}</div></div>
-              </div>
+            <div className="sidebar-card upgrade-card">
+              <div className="upgrade-badge">Standard</div>
+              <div className="upgrade-title">Go Elite</div>
+              <div className="upgrade-sub">Advanced analytics, custom boards &amp; priority matchmaking</div>
+              <button className="upgrade-btn">Upgrade</button>
             </div>
           </aside>
 
-          {/* COLUMN 2: COMBAT ARENA */}
-          <main className="dash-col-main">
-            <section className="arena-hero">
-              <div className="arena-text">
-                <h1 className="Archivo text-6xl">WAR_ROOM</h1>
-                <p className="hp-mono text-silver mt-2">CHOOSE_FREQUENCY // ENGAGE_RECURSIVE_LOGIC</p>
+          {/* Main */}
+          <main className="dash-main">
+            <section className="arena-section">
+              <div className="arena-title-row">
+                <div>
+                  <h1 className="arena-title">Play</h1>
+                  <p className="arena-sub">Choose a time control to find a ranked match</p>
+                </div>
+                <button className="quickstart-btn" onClick={() => handleFindGame('10+0')}>
+                  Quick start
+                  <svg width="16" height="16" viewBox="0 0 14 14" fill="none">
+                    <polygon points="3,1 13,7 3,13" fill="currentColor" />
+                  </svg>
+                </button>
               </div>
-              <button className="quick-action-btn Archivo" onClick={() => handleFindGame('10+0')}>QUICK_START</button>
+
+              <div className="tc-grid">
+                {TIME_CONTROLS.map(({ tc, label, sub }) => (
+                  <button key={tc} className="tc-card" onClick={() => handleFindGame(tc)}>
+                    <span className="tc-label">{label}</span>
+                    <span className="tc-val">{tc}</span>
+                    <span className="tc-sub">{sub}</span>
+                    <div className="tc-arrow">
+                      <svg width="14" height="14" viewBox="0 0 12 12" fill="none">
+                        <path d="M2 10L10 2M10 2H4M10 2V8" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+                      </svg>
+                    </div>
+                  </button>
+                ))}
+              </div>
+
+              <div className="alt-modes">
+                {['vs Friend', 'vs Computer', 'Tournament', 'Practice'].map(mode => (
+                  <button key={mode} className="alt-mode-btn">{mode}</button>
+                ))}
+              </div>
             </section>
 
-            <div className="tc-grid">
-              {['1+0', '3+2', '5+0', '10+0'].map(tc => 
-                <button key={tc} className="tc-node" onClick={() => handleFindGame(tc)}>
-                  <span className="hp-mono text-titanium text-xs">FREQ</span>
-                  <br />
-                  <br />
-                  <div className="Archivo text-5xl">{tc}</div>
-                  <br />
-                  <div className="hp-mono text-cobalt text-xs mt-2">CONNECT_STATION</div>
-                </button>
-              )}
-            </div>
+            <section className="history-section">
+              <div className="section-header">
+                <h2 className="section-title">Recent games</h2>
+                <span className="section-count">{games.length} total</span>
+              </div>
 
-            <div className="dash-card mt-6">
-              <div className="dash-label hp-mono">BATTLE_ARCHIVES [TRANSACTION_LOG]</div>
-              <div className="battle-archive-list">
+              <div className="history-list">
                 {games.length > 0 ? games.slice(0, 8).map((g) => {
-                  // CORRECT LOGIC FROM YOUR PROFILE PAGE
-                  const isWin = g.winner?._id === user._id;
-                  const isDraw = g.status === "DRAW";
-                  const opponent = g.players?.find(p => p._id !== user._id);
-                  
+                  const isWin       = g.winner?._id === user._id;
+                  const isDraw      = g.status === 'DRAW';
+                  const opponent    = g.players?.find(p => p._id !== user._id);
+                  const result      = isDraw ? 'draw' : isWin ? 'win' : 'loss';
+                  const resultLabel = isDraw ? 'Draw' : isWin ? 'Win' : 'Loss';
+                  const eloChange   = isWin ? '+15' : isDraw ? '±0' : '−15';
+                  const timeControl = g.timeControl || '—';
+
                   return (
-                    <div key={g._id} className={`battle-row ${isDraw ? 'draw' : isWin ? 'win' : 'loss'}`}>
-                      <div className="hp-mono res-cell">{isDraw ? 'DRW' : isWin ? 'VIC' : 'DEF'}</div>
-                      <div className="Archivo opp-cell">VS_{opponent?.username?.toUpperCase() || 'UNKNOWN'}</div>
-                      <div className="hp-mono elo-cell">{isWin ? '+15' : isDraw ? '±0' : '-15'}</div>
-                      <Link to={`/game/${g._id}`} className="replay-btn hp-mono">REPLAY</Link>
+                    <div key={g._id} className={`history-row history-row--${result}`}>
+                      <div className={`result-tag result-tag--${result}`}>{resultLabel}</div>
+                      <div className="history-opp">vs {opponent?.username || 'Unknown'}</div>
+                      <div className="history-tc">{timeControl}</div>
+                      <div className={`history-elo history-elo--${result}`}>{eloChange}</div>
+                      <Link to={`/game/${g._id}`} className="history-replay">Replay</Link>
                     </div>
                   );
                 }) : (
-                  <div className="hp-mono text-steel p-4">NO_PRIOR_ENCOUNTERS_FOUND</div>
+                  <div className="history-empty">No games yet — find a match to get started.</div>
                 )}
               </div>
-            </div>
+            </section>
           </main>
 
-          {/* COLUMN 3: SYSTEM HUD */}
-          <aside className="dash-col">
-            <div className="dash-card">
-              <div className="dash-label hp-mono">SYSTEM_LOGS</div>
-              <div className="sys-feed hp-mono text-xs">
-                <div className="feed-item"><span className="text-cobalt">——</span> PING: {latency}ms</div>
-                <div className="feed-item"><span className="text-sulfur">——</span> History sync complete</div>
-                <div className="feed-item"><span className="text-steel">——</span> Buffer: STABLE</div>
-                <div className="feed-item"><span className="text-crimson">——</span> Recursive depth: 9</div>
+          {/* Right sidebar */}
+          <aside className="dash-right">
+            <div className="sidebar-card">
+              <div className="sidebar-card-label">Tip of the day</div>
+              <p className="tip-text">{todayTip}</p>
+            </div>
+
+            <div className="sidebar-card daily-card">
+              <div className="sidebar-card-label">Daily challenge</div>
+              <div className="daily-title">Forced win in 3</div>
+              <div className="daily-meta">
+                <span className="difficulty-tag">Hard</span>
+                <span className="daily-pts">+50 pts</span>
               </div>
+              <button className="daily-btn">Start puzzle</button>
             </div>
 
-            <div className="dash-card mt-6 advisory-card">
-              <div className="dash-label hp-mono text-crimson">TACTICAL_ADVISORY</div>
-              <p className="hp-mono text-xs text-silver leading-relaxed">
-                Operative shows mid-game stagnation. Avoid Intuition-based plays. Memorize sector-capture vectors for 10% elo velocity increase.
-              </p>
-            </div>
-
-            <div className="dash-card mt-6 premium-box">
-              <div className="hp-mono text-xs mb-2">ACCESS_LEVEL: STANDARD</div>
-              <h3 className="Archivo text-lg">UPGRADE_TO_ELITE</h3>
-              <button className="upgrade-btn Archivo mt-4">INIT_UPGRADE</button>
+            <div className="sidebar-card">
+              <div className="sidebar-card-label">Your performance</div>
+              <div className="perf-stat">
+                <span className="perf-label">Win rate</span>
+                <span className="perf-val perf-accent">{winRate}%</span>
+              </div>
+              <div className="perf-stat">
+                <span className="perf-label">Total games</span>
+                <span className="perf-val">{totalGames}</span>
+              </div>
+              <div className="perf-stat">
+                <span className="perf-label">Current ELO</span>
+                <span className="perf-val">{user.elo}</span>
+              </div>
+              <div className="perf-stat">
+                <span className="perf-label">Wins</span>
+                <span className="perf-val perf-accent">{user.wins}</span>
+              </div>
+              <div className="perf-stat">
+                <span className="perf-label">Losses</span>
+                <span className="perf-val perf-loss">{user.losses}</span>
+              </div>
             </div>
           </aside>
 

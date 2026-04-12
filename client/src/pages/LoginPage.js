@@ -12,7 +12,7 @@ const LoginPage = () => {
   const onSubmit = async (e) => {
     e.preventDefault();
     const result = await login(formData);
-    if (!result.success) alert('AUTH_FAILURE: ' + result.message);
+    if (!result.success) alert('Sign in failed: ' + result.message);
   };
 
   const handleSocialAuth = (provider) => {
@@ -24,46 +24,57 @@ const LoginPage = () => {
   }, [isAuthenticated, navigate]);
 
   return (
-    <div className="auth-root crimson-minimal">
+    <div className="auth-root">
       <InteractiveBG />
       
       <div className="auth-wrap">
-        <header className="auth-v-header">
-          <h1 className="Archivo tracking-extreme">ACCESS</h1>
-          <p className="hp-mono text-crimson">REQUIRED_FOR_UPLINK</p>
+        
+        <div className="auth-brand">
+          <div className="auth-logo-grid">
+            {Array.from({ length: 9 }).map((_, i) => (
+              <div key={i} className={`auth-logo-cell ${i === 4 ? 'auth-logo-cell--accent' : ''}`} />
+            ))}
+          </div>
+          {/* <span className="auth-brand-text">super ttt</span> */}
+        </div>
+
+        <header className="auth-header">
+          <h1 className="auth-title">Welcome back</h1>
+          <p className="auth-subtitle">Sign in to access your arena dashboard</p>
         </header>
 
-        <form className="auth-clean-form" onSubmit={onSubmit}>
-          <div className="clean-input-group">
-            <label className="hp-mono">UPLINK_EMAIL</label>
+        <form onSubmit={onSubmit}>
+          <div className="auth-input-group">
+            <label>Email Address</label>
             <input 
-              type="email" name="email" placeholder="ENTER_EMAIL" 
+              type="email" name="email" placeholder="name@example.com" 
               onChange={(e) => setFormData({...formData, email: e.target.value})} required 
             />
           </div>
-          <div className="clean-input-group">
-            <label className="hp-mono">ACCESS_KEY</label>
+          <div className="auth-input-group">
+            <label>Password</label>
             <input 
-              type="password" name="password" placeholder="ENTER_PASSWORD" 
+              type="password" name="password" placeholder="••••••••" 
               onChange={(e) => setFormData({...formData, password: e.target.value})} required 
             />
           </div>
           
-          <button type="submit" className="btn-crimson-solid Archivo">AUTHORIZE_SESSION</button>
+          <button type="submit" className="auth-btn-primary">Sign in</button>
         </form>
 
         <div className="auth-divider">
-          <span className="hp-mono">OR_CONNECT_VIA</span>
+          <span>Or continue with</span>
         </div>
 
         <div className="social-grid">
-          <button className="social-node" onClick={() => handleSocialAuth('google')}>GOOGLE</button>
-          <button className="social-node" onClick={() => handleSocialAuth('apple')}>APPLE</button>
-          <button className="social-node" onClick={() => handleSocialAuth('facebook')}>FACEBOOK</button>
+          <button className="social-btn" onClick={() => handleSocialAuth('google')}>Google</button>
+          <button className="social-btn" onClick={() => handleSocialAuth('apple')}>Apple</button>
+          <button className="social-btn" onClick={() => handleSocialAuth('facebook')}>Facebook</button>
         </div>
 
-        <footer className="auth-nav-footer hp-mono">
-          NO_IDENTITY? <Link to="/register" className="text-crimson">[ ENROLL_OPERATIVE ]</Link>
+        <footer className="auth-footer">
+          Don't have an account? 
+          <Link to="/register">Create one</Link>
         </footer>
       </div>
     </div>

@@ -1,169 +1,95 @@
 /* client/src/components/PlayerHUD.css */
-
-/**
- * HUD PLAYER POD
- * The main container for player biometric data.
- * Designed to look like a hardware module plugged into the bottom HUD.
- */
 .hud-player {
   display: flex;
   flex-direction: column;
   width: 100%;
   max-width: 400px;
-  background-color: var(--carbon);
-  border: 1px solid var(--steel);
+  background-color: var(--card);
+  border: 1px solid var(--border);
   position: relative;
-  transition: all 0.4s cubic-bezier(0.19, 1, 0.22, 1);
+  transition: all 0.3s ease;
   overflow: hidden;
 }
 
-/**
- * ACTIVE PROTOCOL
- * Triggers when the system is awaiting input from this operative.
- * Swaps borders to Sulfur (#D4FF00) and adds a localized tactical glow.
- */
 .hud-player.active {
-  border-color: var(--sulfur);
-  box-shadow: 0 0 30px rgba(212, 255, 0, 0.15);
+  border-color: var(--accent);
+  box-shadow: 0 0 30px rgba(200, 251, 87, 0.1);
   transform: translateY(-4px);
   z-index: 10;
 }
 
-/**
- * IDENTITY HEADER
- * Houses the Operative Alias and the ELO Rating.
- */
 .hud-player-header {
-  padding: 1rem 1.2rem;
+  padding: 1.25rem 1.5rem;
   display: flex;
   justify-content: space-between;
   align-items: center;
-  border-bottom: 1px solid var(--steel);
-  background: rgba(255, 255, 255, 0.02);
+  border-bottom: 1px solid var(--border);
+  background: var(--surface);
 }
 
-.hud-user-info {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-}
-
+.hud-user-info { display: flex; flex-direction: column; gap: 4px; }
 .hud-name {
-  font-family: 'Archivo', sans-serif;
-  font-size: 1.1rem;
-  font-weight: 900;
-  letter-spacing: -0.5px;
-  color: var(--titanium);
-  text-transform: uppercase;
+  font-family: var(--display);
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--text-1);
 }
-
 .hud-elo {
-  font-family: 'IBM Plex Mono', monospace;
-  font-size: 0.6rem;
-  color: var(--silver);
-  letter-spacing: 2px;
+  font-family: var(--mono);
+  font-size: 11px;
+  color: var(--text-3);
+  letter-spacing: 0.05em;
 }
 
-/**
- * SYMBOL IDENTIFIER
- * Visual indicator of whether the player is Cobalt (X) or Crimson (O).
- */
 .hud-symbol-indicator {
-  font-family: 'Archivo', sans-serif;
-  font-size: 1.4rem;
-  font-weight: 900;
+  font-family: var(--display);
+  font-size: 28px;
+  font-weight: 800;
 }
+.hud-symbol-indicator.x { color: var(--accent); }
+.hud-symbol-indicator.o { color: var(--red); }
 
-.hud-symbol-indicator.x { 
-  color: var(--cobalt); 
-  text-shadow: 0 0 15px rgba(46, 91, 255, 0.5); 
-}
-
-.hud-symbol-indicator.o { 
-  color: var(--crimson); 
-  text-shadow: 0 0 15px rgba(255, 62, 62, 0.5); 
-}
-
-/**
- * CHRONO ZONE
- * The central area for the high-precision timer.
- */
 .hud-timer-zone {
-  padding: 1.5rem;
-  background-color: var(--void);
+  padding: 1.75rem;
+  background-color: var(--card);
   display: flex;
-  flex-direction: column;
   align-items: center;
   justify-content: center;
   position: relative;
 }
 
 .hud-clock {
-  font-family: 'IBM Plex Mono', monospace;
-  font-size: 3.5rem;
+  font-family: var(--mono);
+  font-size: 42px;
   font-weight: 500;
   line-height: 1;
-  color: var(--titanium);
-  letter-spacing: -3px;
-  font-variant-numeric: tabular-nums;
+  color: var(--text-1);
+  letter-spacing: -2px;
 }
 
-/**
- * CRITICAL TIME WARNING
- * Triggers when the operative has less than 15 seconds remaining.
- */
+/* Critical Time Warning */
 .low-time .hud-clock {
-  color: var(--crimson);
-  text-shadow: 0 0 20px var(--crimson);
+  color: var(--red);
   animation: clock-emergency-blink 1s infinite alternate;
 }
-
 @keyframes clock-emergency-blink {
-  from { opacity: 1; filter: brightness(1.2); }
-  to { opacity: 0.4; filter: brightness(0.8); }
+  from { opacity: 1; }
+  to { opacity: 0.5; }
 }
 
-/**
- * VITAL PROGRESS BAR
- * A thin 4px line that drains as time expires.
- */
 .hud-vitals {
   width: 100%;
-  height: 4px;
-  background-color: var(--steel);
+  height: 3px;
+  background-color: var(--border-s);
   position: absolute;
-  bottom: 0;
-  left: 0;
+  bottom: 0; left: 0;
 }
 
 .vital-fill {
   height: 100%;
-  background-color: var(--silver);
+  background-color: var(--text-3);
   transition: width 1s linear, background-color 0.4s ease;
-  box-shadow: 0 0 10px rgba(255, 255, 255, 0.1);
 }
 
-/* Color logic for the bar based on state */
-.hud-player.active .vital-fill {
-  background-color: var(--sulfur);
-  box-shadow: 0 0 15px var(--sulfur);
-}
-
-.low-time .vital-fill {
-  background-color: var(--crimson) !important;
-  box-shadow: 0 0 15px var(--crimson) !important;
-}
-
-/**
- * GHOST HUD ANNOTATIONS
- * Purely decorative elements that reinforce the "Pilot's HUD" look.
- */
-.hud-decoration-left {
-  position: absolute;
-  top: 5px;
-  left: 10px;
-  font-family: 'IBM Plex Mono';
-  font-size: 0.5rem;
-  color: var(--steel);
-  text-transform: uppercase;
-}
+.hud-player.active .vital-fill { background-color: var(--accent); }
+.low-time .vital-fill { background-color: var(--red) !important; }

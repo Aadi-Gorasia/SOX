@@ -9,9 +9,8 @@ const GameManager = require('./classes/GameManager');
 
 const app = express();
 
-// FIX: Allow CORS from your Render Frontend URL
 const allowedOrigin = process.env.FRONTEND_URL 
-  ? [process.env.FRONTEND_URL, "http://localhost:3000"]
+  ?[process.env.FRONTEND_URL, "http://localhost:3000"]
   : "http://localhost:3000";
 
 app.use(cors({
@@ -33,11 +32,10 @@ app.use('/api/games', require('./routes/games'));
 
 const server = http.createServer(app);
 
-// FIX: Update Socket.io CORS to use the environment variable
 const io = new Server(server, { 
   cors: { 
     origin: allowedOrigin,
-    methods: ["GET", "POST"]
+    methods:["GET", "POST"]
   } 
 });
 
@@ -55,7 +53,7 @@ io.use((socket, next) => {
 });
 
 io.on('connection', (socket) => {
-  console.log(`[Socket] Connected: ${socket.userId}`);
+  console.log(`[Socket] Connected: ${socket.userId} (Socket ID: ${socket.id})`);
 
   socket.on('ping_latency', () => {
     socket.emit('pong_latency');
@@ -66,15 +64,32 @@ io.on('connection', (socket) => {
       .catch(err => console.error(err));
   });
 
+  // ==========================================
+  // RECONNECTION / PAGE RELOAD FIX
+  // ==========================================
   socket.on('joinGame', (gameId) => {
     const game = gameManager.getGame(gameId);
     if (game) {
+      // Find the player by their DB ID, NOT their socket ID
       const pIdx = game.playerDetails.findIndex(p => p.id === socket.userId);
+      
       if (pIdx !== -1) {
+        const oldSocketId = game.players[pIdx];
+        
+        // 1. Update the player's socket ID in the game array
         game.players[pIdx] = socket.id;
+        
+        // 2. CRITICAL FIX: If it was their turn, update playerToMove to the NEW socket ID
+        if (game.playerToMove === oldSocketId) {
+          game.playerToMove = socket.id;
+        }
+
         socket.join(gameId);
-        socket.emit('updateGame', game);
+        
+        // 3. Broadcast updated game state to both players so UI unfreezes
+        io.to(gameId).emit('updateGame', game);
         gameManager.sendPlayerStakes(gameId, socket);
+        console.log(`[Game ${gameId}] Player reconnected. Replaced socket ${oldSocketId} with ${socket.id}`);
       }
     }
   });
@@ -85,8 +100,9 @@ io.on('connection', (socket) => {
      const game = gameManager.getGame(gameId);
      if(!game) return;
      const pIdx = game.players.indexOf(socket.id);
-     const winSym = pIdx === 0 ? 'O' : 'X';
-     gameManager.endGame(gameId, { winner: winSym, reason: 'resignation' });
+     const winSym = pIdx === 0 ? 'X' : 'O'; // Fixed symbol mapping (Player 0 is X)
+     const oppSym = winSym === 'X' ? 'O' : 'X';
+     gameManager.endGame(gameId, { winner: oppSym, reason: 'resignation' });
   });
   
   socket.on('offerDraw', ({ gameId }) => gameManager.offerDraw(gameId, socket.id));
@@ -107,6 +123,5 @@ io.on('connection', (socket) => {
   socket.on('disconnect', () => gameManager.handleDisconnect(socket));
 });
 
-// Render provides the PORT via environment variable
 const PORT = process.env.PORT || 5001;
 server.listen(PORT, () => console.log(`[Server] running on port ${PORT}`));

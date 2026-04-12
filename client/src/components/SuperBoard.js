@@ -1,43 +1,29 @@
-// client/src/components/SuperBoard.js
 import React from "react";
 import { motion } from "framer-motion";
 import Board from "./Board";
 import { useSocket } from "../context/SocketContext";
-import "./SuperBoard.css";
+import "./SuperBoard.css"; // (Assuming this is the CSS I provided in the previous prompt)
 
-/**
- * WIN CALCULATION (Macro Board)
- * Determines if three sectors have been captured in a row.
- */
 function calculateGlobalWinner(boardWinners) {
   const lines = [
-    [0, 1, 2], [3, 4, 5], [6, 7, 8], // Rows
-    [0, 3, 6], [1, 4, 7], [2, 5, 8], // Cols
-    [0, 4, 8], [2, 4, 6]             // Diagonals
+    [0, 1, 2],[3, 4, 5], [6, 7, 8],
+    [0, 3, 6],[1, 4, 7], [2, 5, 8],[0, 4, 8], [2, 4, 6]            
   ];
   for (let i = 0; i < lines.length; i++) {
     const [a, b, c] = lines[i];
-    if (
-      boardWinners[a] &&
-      boardWinners[a] !== "D" &&
-      boardWinners[a] === boardWinners[b] &&
-      boardWinners[a] === boardWinners[c]
-    ) {
+    if (boardWinners[a] && boardWinners[a] !== "D" &&
+        boardWinners[a] === boardWinners[b] && boardWinners[a] === boardWinners[c]) {
       return { winner: boardWinners[a], lineIndex: i };
     }
   }
   return null;
 }
 
-/**
- * VICTORY LINE COMPONENT
- * Renders the animated strike through the winning macro-path.
- */
 const VictoryLine = ({ lineIndex, winner }) => {
-  const linePaths = [
-    "M 0 16.66 L 100 16.66", "M 0 50 L 100 50", "M 0 83.33 L 100 83.33", // Rows
-    "M 16.66 0 L 16.66 100", "M 50 0 L 50 100", "M 83.33 0 L 83.33 100", // Cols
-    "M 5 5 L 95 95", "M 95 5 L 5 95"                                     // Diagonals
+  const linePaths =[
+    "M 0 16.66 L 100 16.66", "M 0 50 L 100 50", "M 0 83.33 L 100 83.33",
+    "M 16.66 0 L 16.66 100", "M 50 0 L 50 100", "M 83.33 0 L 83.33 100",
+    "M 5 5 L 95 95", "M 95 5 L 5 95"
   ];
 
   return (
@@ -52,40 +38,20 @@ const VictoryLine = ({ lineIndex, winner }) => {
   );
 };
 
-const SuperBoard = ({
-  allBoards,
-  activeBoard,
-  boardWinners,
-  gameWinner,
-  playerToMove,
-  gameId
-}) => {
+const SuperBoard = ({ allBoards, activeBoard, boardWinners, gameWinner, isMyTurn, gameId }) => {
   const socket = useSocket();
 
-  /**
-   * EXECUTE MOVE PROTOCOL
-   * Sends the move data to the backend via socket connection.
-   */
   const handlePlay = (boardIndex, cellIndex) => {
-    if (!socket) return;
+    if (!socket || !isMyTurn) return;
     socket.emit("makeMove", { gameId, boardIndex, cellIndex });
   };
 
-  // Determine if the current client is the authorized actor
-  const isMyTurn = socket?.id && socket.id === playerToMove;
-
-  // Check for simulation resolution
   const globalWinInfo = calculateGlobalWinner(boardWinners);
 
-  /**
-   * RENDER SECTOR
-   * Calculates targeting and turn logic for each of the 9 boards.
-   */
   const renderSector = (i) => {
-    // 1. TARGET LOGIC: Is this sector where the next move MUST happen?
-    // If activeBoard is null, all non-won boards are targets.
+    // Target logic: Where is the next move allowed?
     const isTarget = !gameWinner && (activeBoard === null || activeBoard === i) && !boardWinners[i];
-
+    
     return (
       <Board
         key={i}
@@ -93,31 +59,27 @@ const SuperBoard = ({
         squares={allBoards[i]}
         onPlay={(cellIndex) => handlePlay(i, cellIndex)}
         isTurn={isMyTurn}
-        isTarget={isTarget} // This triggers the High-Intensity Illumination
+        isTarget={isTarget}
       />
     );
   };
 
   return (
     <div className="super-board-container">
-      {/* HUD STATUS BAR */}
-      <div className="status-bar">
+      <div className={`status-bar ${isMyTurn && !gameWinner ? 'status-active' : ''}`}>
         {gameWinner ? (
-          <span className="text-titanium">SIMULATION_RESOLVED // WINNER_{gameWinner}</span>
+          <span style={{color: 'var(--text-1)'}}>Simulation Resolved // Winner: {gameWinner}</span>
         ) : isMyTurn ? (
-          <span className="status-active">DATA_INPUT_REQUIRED</span>
+          <span>Your Move</span>
         ) : (
-          <span>AWAITING_REMOTE_SIGNAL...</span>
+          <span>Awaiting Opponent...</span>
         )}
       </div>
 
       <div className="super-board">
-        {/* Render Victory Path if simulation is concluded */}
         {globalWinInfo && gameWinner !== "D" && (
           <VictoryLine lineIndex={globalWinInfo.lineIndex} winner={gameWinner} />
         )}
-
-        {/* Generate the 9 Recursive Sectors */}
         {Array(9).fill(null).map((_, i) => renderSector(i))}
       </div>
     </div>

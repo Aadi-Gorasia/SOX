@@ -1,160 +1,137 @@
 /* client/src/components/Board.css */
-
-/**
- * BOARD CONTAINER
- * The structural shell for each 3x3 sector.
- * Sharp edges, 1px steel border, and high-performance transitions.
- */
 .board-container {
   position: relative;
   width: 100%;
   height: 100%;
-  background-color: var(--carbon);
-  border: 1px solid var(--steel);
-  transition: all 0.4s cubic-bezier(0.19, 1, 0.22, 1);
+  background-color: var(--card);
+  border: 1px solid var(--border);
+  transition: all 0.3s cubic-bezier(0.19, 1, 0.22, 1);
   box-sizing: border-box;
-  overflow: visible; /* Allows the Target Lock brackets to extend beyond the border */
 }
 
-/**
- * THE MINI-GRID
- * Using a 1px gap with the Steel background color to create 
- * the technical "blueprint" lines between the 9 cells.
- */
 .board {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
   grid-template-rows: repeat(3, 1fr);
   aspect-ratio: 1 / 1;
   gap: 1px;
-  background-color: var(--steel);
+  background-color: var(--border-s); /* Creates the sharp 1px grid lines */
   width: 100%;
   height: 100%;
 }
 
-/**
- * --- THE TARGET LOCK (ACTIVE SECTOR) ---
- * Triggered when the game logic dictates this sector must be played in.
- * Uses Sulfur (#D4FF00) to signify a "System Focus" state.
- */
+/* ─── 1. YOUR TURN (Neon Target Lock) ─── */
 .is-active-target {
-  border: 1px solid var(--sulfur) !important;
+  border-color: var(--accent) !important;
   z-index: 50;
-  transform: scale(1.05); /* Physically lifts the sector closer to the user */
-  background-color: rgba(212, 255, 0, 0.03);
-  box-shadow: 
-    0 0 40px rgba(212, 255, 0, 0.2), 
-    inset 0 0 20px rgba(212, 255, 0, 0.1);
+  transform: scale(1.03);
+  background-color: rgba(200, 251, 87, 0.02);
+  box-shadow: 0 0 30px rgba(200, 251, 87, 0.1);
+  animation: target-lock-pulse 2s infinite ease-in-out;
 }
 
-/**
- * TACTICAL CORNER BRACKETS
- * Pseudo-elements that create the "HUD Lock-on" visual effect.
- */
 .is-active-target::before,
 .is-active-target::after {
   content: '';
   position: absolute;
-  width: 25px;
-  height: 25px;
-  border: 3px solid var(--sulfur);
+  width: 16px;
+  height: 16px;
+  border: 2px solid var(--accent);
   pointer-events: none;
   z-index: 60;
 }
 
-/* Top-Left and Top-Right Brackets */
 .is-active-target::before {
-  top: -6px;
-  left: -6px;
-  border-right: none;
-  border-bottom: none;
-  /* Double bracket effect using a box-shadow */
-  box-shadow: 155px 0 0 -3px var(--sulfur); /* This mocks the TR bracket */
+  top: -4px; left: -4px;
+  border-right: none; border-bottom: none;
+  box-shadow: calc(100% + 4px) 0 0 -2px var(--accent); 
 }
 
-/* Bottom-Left and Bottom-Right Brackets */
 .is-active-target::after {
-  bottom: -6px;
-  right: -6px;
-  border-left: none;
-  border-top: none;
-  box-shadow: -155px 0 0 -3px var(--sulfur); /* This mocks the BL bracket */
-}
-
-/**
- * YOUR TURN INDICATOR
- * Animated pulse to show the user exactly where their input is required.
- */
-.is-your-turn.is-active-target {
-  animation: target-lock-pulse 2s infinite ease-in-out;
+  bottom: -4px; right: -4px;
+  border-left: none; border-top: none;
+  box-shadow: calc(-100% - 4px) 0 0 -2px var(--accent); 
 }
 
 @keyframes target-lock-pulse {
-  0% { opacity: 1; transform: scale(1.05); }
-  50% { opacity: 0.8; transform: scale(1.06); box-shadow: 0 0 60px rgba(212, 255, 0, 0.3); }
-  100% { opacity: 1; transform: scale(1.05); }
+  0%   { opacity: 1; transform: scale(1.03); }
+  50%  { opacity: 0.9; transform: scale(1.05); box-shadow: 0 0 40px rgba(200, 251, 87, 0.2); }
+  100% { opacity: 1; transform: scale(1.03); }
 }
 
-/**
- * WINNER OVERLAY
- * Displays a massive, glowing mark once a 3x3 sector is captured.
- */
+/* ─── 2. OPPONENT'S TURN (Subtle Indicator) ─── */
+.is-opponent-target {
+  border-color: var(--text-3) !important;
+  z-index: 40;
+  /* NO glow, NO pulsing, NO scaling */
+}
+
+.is-opponent-target::before,
+.is-opponent-target::after {
+  content: '';
+  position: absolute;
+  width: 12px;
+  height: 12px;
+  border: 1px solid var(--text-3);
+  pointer-events: none;
+  z-index: 60;
+  opacity: 0.5;
+}
+
+.is-opponent-target::before {
+  top: -2px; left: -2px;
+  border-right: none; border-bottom: none;
+  box-shadow: calc(100% + 2px) 0 0 -1px var(--text-3); 
+}
+
+.is-opponent-target::after {
+  bottom: -2px; right: -2px;
+  border-left: none; border-top: none;
+  box-shadow: calc(-100% - 2px) 0 0 -1px var(--text-3); 
+}
+
+
+/* ─── Winner / Draw Overlays ─── */
 .winner-overlay {
   position: absolute;
   inset: 0;
-  background-color: rgba(8, 8, 8, 0.8);
-  backdrop-filter: blur(4px);
+  background-color: rgba(10, 10, 10, 0.85);
+  backdrop-filter: blur(2px);
   display: flex;
   justify-content: center;
   align-items: center;
   z-index: 20;
-  animation: overlay-init 0.5s cubic-bezier(0.19, 1, 0.22, 1);
-}
-
-@keyframes overlay-init {
-  from { opacity: 0; backdrop-filter: blur(0px); }
-  to { opacity: 1; backdrop-filter: blur(4px); }
 }
 
 .winner-mark {
-  font-family: 'Archivo', sans-serif;
-  font-size: 7.5rem;
-  font-weight: 900;
+  font-family: var(--display);
+  font-size: 8rem;
+  font-weight: 800;
   line-height: 1;
-  user-select: none;
 }
 
-.winner-x {
-  color: var(--cobalt);
-  text-shadow: 0 0 30px var(--cobalt);
-}
+.winner-x { color: var(--accent); text-shadow: 0 0 30px rgba(200, 251, 87, 0.3); }
+.winner-o { color: var(--red); text-shadow: 0 0 30px rgba(255, 69, 69, 0.3); }
 
-.winner-o {
-  color: var(--crimson);
-  text-shadow: 0 0 30px var(--crimson);
-}
-
-/**
- * DRAW STATE (VOID)
- */
-.draw-overlay {
-  background-color: rgba(22, 22, 22, 0.95);
-}
-
+.draw-overlay { background-color: rgba(17, 17, 17, 0.9); }
 .draw-overlay::after {
-  content: 'VOID';
-  font-family: 'IBM Plex Mono';
-  font-size: 1.2rem;
-  color: var(--silver);
-  letter-spacing: 4px;
+  content: 'DRAW';
+  font-family: var(--mono);
+  font-size: 14px;
+  color: var(--text-3);
+  letter-spacing: 0.15em;
 }
 
-/**
- * NON-ACTIVE STATE
- * Unlike previous versions, we keep visibility at 100% 
- * but use a grayscale filter to show it is not the current focus.
- */
-.not-playable {
-  filter: saturate(0.5);
-  border: 1px solid var(--steel);
+/* ─── Non-Active State ─── */
+.not-playable { 
+  filter: grayscale(100%); 
+  border: 1px solid var(--border); 
+}
+
+.not-playable .board > .cell {
+  background-color: var(--bg); 
+}
+
+.not-playable .cell-mark {
+  opacity: 0.25;
 }

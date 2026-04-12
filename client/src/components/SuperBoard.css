@@ -1,9 +1,4 @@
 /* client/src/components/SuperBoard.css */
-
-/**
- * SUPER BOARD CONTAINER
- * The main viewport for the tactical simulation.
- */
 .super-board-container {
   display: flex;
   flex-direction: column;
@@ -11,65 +6,45 @@
   align-items: center;
   width: 100%;
   height: 100%;
-  padding: 2rem;
+  padding: 1rem;
   box-sizing: border-box;
 }
 
-/**
- * STATUS READOUT
- * A monospaced terminal line above the board showing system state.
- */
 .status-bar {
   width: 100%;
   max-width: 720px;
   text-align: left;
   margin-bottom: 2rem;
-  font-family: 'IBM Plex Mono', monospace;
-  font-size: 0.8rem;
-  letter-spacing: 3px;
-  color: var(--silver);
+  font-family: var(--mono);
+  font-size: 12px;
+  letter-spacing: 0.1em;
+  color: var(--text-3);
   text-transform: uppercase;
-  border-left: 2px solid var(--steel);
-  padding-left: 1rem;
+  border-left: 2px solid var(--border);
+  padding-left: 14px;
 }
 
-/* Lights up when it is the local user's turn */
 .status-active {
-  color: var(--sulfur);
-  text-shadow: 0 0 10px rgba(212, 255, 0, 0.4);
+  color: var(--accent);
+  border-left-color: var(--accent);
 }
-
-/**
- * THE MASTER GRID
- * Arranges the nine 3x3 sectors. 
- * Increased gap (12px) to create the "Nested Component" aesthetic.
- */
-/* client/src/components/SuperBoard.css */
 
 .super-board {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
   grid-template-rows: repeat(3, 1fr);
-  
-  /* THIS IS THE KEY: Scaling */
-  width: 95%;      /* Occupy most of the center area */
-  max-width: 80vh; /* Don't let it get taller than the screen */
+  width: 100%;      
+  max-width: 80vh; 
   aspect-ratio: 1 / 1; 
-  
-  gap: 15px; 
-  background-color: var(--void);
+  gap: 12px; 
+  background-color: var(--bg);
   position: relative;
-  margin: 0 auto; /* Keep it centered in the 1fr column */
+  margin: 0 auto;
 }
 
-/**
- * --- GLOBAL VICTORY LINE ---
- * SVG layer that draws the final strike through the captured sectors.
- */
 .victory-svg {
   position: absolute;
-  top: -6px;
-  left: -6px;
+  top: -6px; left: -6px;
   width: calc(100% + 12px);
   height: calc(100% + 12px);
   overflow: visible;
@@ -78,28 +53,11 @@
 }
 
 .victory-svg path {
-  stroke-width: 4;
+  stroke-width: 6;
   stroke-linecap: square;
   fill: none;
-  filter: drop-shadow(0 0 15px currentColor);
+  filter: drop-shadow(0 0 10px currentColor);
 }
 
-/* Color modulation for victory path */
-.win-path-x { stroke: var(--cobalt); color: var(--cobalt); }
-.win-path-o { stroke: var(--crimson); color: var(--crimson); }
-
-/**
- * LOADING STATE
- */
-.loading-text {
-  font-family: 'Archivo';
-  font-size: 1.5rem;
-  color: var(--sulfur);
-  letter-spacing: 10px;
-  animation: pulse-sync 2s infinite;
-}
-
-@keyframes pulse-sync {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.3; }
-}
+.win-path-x { stroke: var(--accent); color: var(--accent); }
+.win-path-o { stroke: var(--red); color: var(--red); }
