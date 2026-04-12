@@ -70,27 +70,34 @@ io.on('connection', (socket) => {
   socket.on('joinGame', (gameId) => {
     const game = gameManager.getGame(gameId);
     if (game) {
-      // Find the player by their DB ID, NOT their socket ID
-      const pIdx = game.playerDetails.findIndex(p => p.id === socket.userId);
+      // 1. ALWAYS let the socket join the room so they can receive data
+      socket.join(gameId);
+
+      // 2. Find the player using loose String comparison (fixes ObjectId vs String mismatch)
+      const pIdx = game.playerDetails.findIndex(p => 
+        (p.id && p.id.toString() === socket.userId.toString()) || 
+        (p._id && p._id.toString() === socket.userId.toString())
+      );
       
       if (pIdx !== -1) {
         const oldSocketId = game.players[pIdx];
         
-        // 1. Update the player's socket ID in the game array
+        // Update the player's socket ID in the game array
         game.players[pIdx] = socket.id;
         
-        // 2. CRITICAL FIX: If it was their turn, update playerToMove to the NEW socket ID
+        // CRITICAL FIX: If it was their turn, update playerToMove to the NEW socket ID
         if (game.playerToMove === oldSocketId) {
           game.playerToMove = socket.id;
         }
 
-        socket.join(gameId);
-        
-        // 3. Broadcast updated game state to both players so UI unfreezes
-        io.to(gameId).emit('updateGame', game);
-        gameManager.sendPlayerStakes(gameId, socket);
         console.log(`[Game ${gameId}] Player reconnected. Replaced socket ${oldSocketId} with ${socket.id}`);
+        
+        // Send ELO stakes specifically to this reconnected player
+        gameManager.sendPlayerStakes(gameId, socket);
       }
+
+      // 3. ALWAYS broadcast the updated game state so the frontend loading screen unfreezes!
+      io.to(gameId).emit('updateGame', game);
     }
   });
 
