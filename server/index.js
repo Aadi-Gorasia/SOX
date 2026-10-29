@@ -25,6 +25,7 @@ if (!process.env.MONGO_URI) {
 
 const allowedOrigins = [
   'http://localhost:3000',
+  'https://soxc.vercel.app',
   ...(process.env.FRONTEND_URL
     ? process.env.FRONTEND_URL.split(',').map(url => url.trim())
     : [])
@@ -33,6 +34,10 @@ const allowedOrigins = [
 app.use(cors({
   origin(origin, callback) {
     // Allow requests without an Origin header (e.g. server-to-server).
+    console.log('[CORS DEBUG]', {
+  receivedOrigin: origin,
+  allowedOrigins
+});
     if (!origin || allowedOrigins.includes(origin)) {
       return callback(null, true);
     }
