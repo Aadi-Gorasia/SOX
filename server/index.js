@@ -33,20 +33,20 @@ const allowedOrigins = [
 
 app.use(cors({
   origin(origin, callback) {
-    // Allow requests without an Origin header (e.g. server-to-server).
-    console.log('[CORS DEBUG]', {
-  receivedOrigin: origin,
-  allowedOrigins
-});
-    if (!origin || allowedOrigins.includes(origin)) {
+    const isAllowed =
+      !origin ||
+      allowedOrigins.includes(origin) ||
+      /^https:\/\/sox-[a-z0-9-]+-aadis-projects-641df6d8\.vercel\.app$/.test(origin);
+
+    if (isAllowed) {
       return callback(null, true);
     }
 
+    console.error('[CORS] Rejected origin:', origin);
     return callback(new Error('Origin not allowed by CORS'));
   },
   credentials: true
 }));
-
 app.use(express.json({ limit: '1mb' }));
 // Apple sends OAuth callbacks as application/x-www-form-urlencoded POSTs.
 app.use(express.urlencoded({ extended: false, limit: '1mb' }));
