@@ -1,5 +1,10 @@
 @import url('https://fonts.googleapis.com/css2?family=Syne:wght@400;500;700;800&family=DM+Mono:wght@400;500&family=DM+Sans:wght@400;500&display=swap');
 
+/* Fix layout shifts and input sizing */
+*, *::before, *::after {
+  box-sizing: border-box;
+}
+
 /* ─── Tokens ─────────────────────────────────────────── */
 :root {
   --bg:       #0a0a0a;
@@ -106,6 +111,8 @@
   font-size: 14px;
   transition: border-color 0.15s, background 0.15s;
   outline: none;
+  appearance: none; /* Prevents iOS input styling bugs */
+  -webkit-appearance: none;
 }
 .auth-input-group input:focus {
   border-color: var(--accent);
@@ -115,11 +122,17 @@
   color: var(--text-3);
 }
 
+/* Fix WebKit autofill turning inputs white/yellow in dark mode */
+.auth-input-group input:-webkit-autofill {
+  -webkit-box-shadow: 0 0 0 30px var(--surface) inset !important;
+  -webkit-text-fill-color: var(--text-1) !important;
+}
+
 /* ─── Buttons ────────────────────────────────────────── */
 .auth-btn-primary {
   width: 100%;
   background: var(--accent);
-  color: #0a0a0a;
+  color: var(--bg); /* Enforced high contrast text */
   border: none;
   padding: 14px;
   font-family: var(--display);
@@ -127,9 +140,20 @@
   font-weight: 700;
   cursor: pointer;
   margin-top: 1rem;
-  transition: background 0.15s;
+  transition: all 0.15s ease;
+  appearance: none; /* Prevents OS overriding button color */
+  -webkit-appearance: none;
 }
-.auth-btn-primary:hover { background: var(--accent-d); }
+.auth-btn-primary:hover:not(:disabled) { 
+  background: var(--accent-d); 
+}
+/* Fixed "blackout" disabled state bug */
+.auth-btn-primary:disabled {
+  background: var(--surface);
+  color: var(--text-3);
+  cursor: not-allowed;
+  border: 1px solid var(--border);
+}
 
 .auth-btn-outline {
   width: 100%;
@@ -142,6 +166,8 @@
   cursor: pointer;
   transition: border-color 0.15s, color 0.15s;
   margin-top: 1rem;
+  appearance: none;
+  -webkit-appearance: none;
 }
 .auth-btn-outline:hover {
   border-color: var(--accent);
@@ -176,18 +202,20 @@
 .social-btn {
   background: var(--surface);
   border: 1px solid var(--border);
-  color: var(--text-2);
+  color: var(--text-1); /* Changed from --text-2 for readable contrast */
   padding: 10px;
   font-family: var(--mono);
   font-size: 11px;
   letter-spacing: 0.05em;
   cursor: pointer;
   transition: border-color 0.15s, color 0.15s, background 0.15s;
+  appearance: none; /* Removes the solid white default OS rendering */
+  -webkit-appearance: none;
 }
 .social-btn:hover {
   border-color: var(--border-s);
   color: var(--text-1);
-  background: rgba(255, 255, 255, 0.03);
+  background: rgba(255, 255, 255, 0.05);
 }
 
 /* ─── Footer ─────────────────────────────────────────── */
@@ -197,16 +225,23 @@
   color: var(--text-2);
   text-align: center;
 }
-.auth-footer a {
+/* Fixed visited link bug making links turn dark/black */
+.auth-footer a, 
+.auth-footer a:visited {
   color: var(--accent);
   text-decoration: none;
   font-weight: 500;
   transition: color 0.15s;
   margin-left: 6px;
 }
-.auth-footer a:hover { color: var(--accent-d); }
+.auth-footer a:hover { 
+  color: var(--accent-d); 
+}
 
-.text-accent { color: var(--accent); }
+/* Added !important to guarantee it overrides framework defaults */
+.text-accent { 
+  color: var(--accent) !important; 
+}
 
 /* Responsive adjustments */
 @media (max-width: 500px) {

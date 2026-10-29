@@ -1,18 +1,24 @@
+// client/src/components/SuperBoard.js
 import React from "react";
 import { motion } from "framer-motion";
 import Board from "./Board";
 import { useSocket } from "../context/SocketContext";
-import "./SuperBoard.css"; // (Assuming this is the CSS I provided in the previous prompt)
+import "./SuperBoard.css";
 
 function calculateGlobalWinner(boardWinners) {
   const lines = [
-    [0, 1, 2],[3, 4, 5], [6, 7, 8],
-    [0, 3, 6],[1, 4, 7], [2, 5, 8],[0, 4, 8], [2, 4, 6]            
+    [0, 1, 2], [3, 4, 5], [6, 7, 8], // Rows
+    [0, 3, 6], [1, 4, 7], [2, 5, 8], // Columns
+    [0, 4, 8], [2, 4, 6]             // Diagonals
   ];
   for (let i = 0; i < lines.length; i++) {
     const [a, b, c] = lines[i];
-    if (boardWinners[a] && boardWinners[a] !== "D" &&
-        boardWinners[a] === boardWinners[b] && boardWinners[a] === boardWinners[c]) {
+    if (
+      boardWinners[a] && 
+      boardWinners[a] !== "D" &&
+      boardWinners[a] === boardWinners[b] && 
+      boardWinners[a] === boardWinners[c]
+    ) {
       return { winner: boardWinners[a], lineIndex: i };
     }
   }
@@ -20,14 +26,18 @@ function calculateGlobalWinner(boardWinners) {
 }
 
 const VictoryLine = ({ lineIndex, winner }) => {
-  const linePaths =[
-    "M 0 16.66 L 100 16.66", "M 0 50 L 100 50", "M 0 83.33 L 100 83.33",
-    "M 16.66 0 L 16.66 100", "M 50 0 L 50 100", "M 83.33 0 L 83.33 100",
-    "M 5 5 L 95 95", "M 95 5 L 5 95"
+  const linePaths = [
+    "M 0 16.66 L 100 16.66", "M 0 50 L 100 50", "M 0 83.33 L 100 83.33", // Rows
+    "M 16.66 0 L 16.66 100", "M 50 0 L 50 100", "M 83.33 0 L 83.33 100", // Columns
+    "M 5 5 L 95 95", "M 95 5 L 5 95"                                     // Diagonals
   ];
 
   return (
-    <svg className={`victory-svg ${winner === 'X' ? 'win-path-x' : 'win-path-o'}`} viewBox="0 0 100 100" preserveAspectRatio="none">
+    <svg 
+      className={`victory-svg ${winner === 'X' ? 'win-path-x' : 'win-path-o'}`} 
+      viewBox="0 0 100 100" 
+      preserveAspectRatio="none"
+    >
       <motion.path
         d={linePaths[lineIndex]}
         initial={{ pathLength: 0, opacity: 0 }}
@@ -38,18 +48,30 @@ const VictoryLine = ({ lineIndex, winner }) => {
   );
 };
 
-const SuperBoard = ({ allBoards, activeBoard, boardWinners, gameWinner, isMyTurn, gameId }) => {
+const SuperBoard = ({ allBoards, activeBoard, boardWinners, gameWinner, isMyTurn, gameId, onPlay }) => {
   const socket = useSocket();
 
   const handlePlay = (boardIndex, cellIndex) => {
-    if (!socket || !isMyTurn) return;
+    if (!isMyTurn || gameWinner) return;
+
+    // ─── LOCAL INTERCEPT ROUTE (PUZZLES & SANDBOX) ───
+    if (onPlay) {
+      onPlay(boardIndex, cellIndex);
+      return;
+    }
+
+    // ─── LIVE STREAM ROUTE (MULTIPLAYER SOCKETS) ───
+    if (!socket) {
+      console.warn("[SuperBoard] Action blocked: Socket layer disconnected.");
+      return;
+    }
     socket.emit("makeMove", { gameId, boardIndex, cellIndex });
   };
 
   const globalWinInfo = calculateGlobalWinner(boardWinners);
 
   const renderSector = (i) => {
-    // Target logic: Where is the next move allowed?
+    // Ultimate Tic-Tac-Toe targeting rules mapping boundary logic
     const isTarget = !gameWinner && (activeBoard === null || activeBoard === i) && !boardWinners[i];
     
     return (
@@ -68,11 +90,13 @@ const SuperBoard = ({ allBoards, activeBoard, boardWinners, gameWinner, isMyTurn
     <div className="super-board-container">
       <div className={`status-bar ${isMyTurn && !gameWinner ? 'status-active' : ''}`}>
         {gameWinner ? (
-          <span style={{color: 'var(--text-1)'}}>Simulation Resolved // Winner: {gameWinner}</span>
+          <span style={{ color: 'var(--text-1)' }}>
+            {gameWinner === 'D' ? 'Simulation Terminated // Draw Matrix' : `Simulation Resolved // Winner: ${gameWinner}`}
+          </span>
         ) : isMyTurn ? (
-          <span>Your Move</span>
+          <span>Your Move — Intercept Target Vector</span>
         ) : (
-          <span>Awaiting Opponent...</span>
+          <span>Awaiting Opponent Link Stream...</span>
         )}
       </div>
 

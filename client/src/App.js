@@ -7,7 +7,7 @@ import './App.css';
 import { AuthProvider, AuthContext } from './context/AuthContext';
 import { SocketProvider } from './context/SocketContext';
 import { GameProvider } from './context/GameContext';
-import { ThemeProvider } from './context/ThemeContext'; // <--- 1. IMPORT THEME PROVIDER
+import { ThemeProvider } from './context/ThemeContext';
 
 // --- Components & Layouts ---
 import Navbar from './components/Navbar';
@@ -23,6 +23,11 @@ import ProfilePage from './pages/ProfilePage';
 import PlayPage from './pages/PlayPage';
 import GamePage from './pages/GamePage';
 import SettingsPage from './pages/SettingsPage';
+import TournamentPage from './pages/TournamentPage';
+
+// --- SOX Engine Pages (NEW) ---
+import ReviewPage from './pages/ReviewPage';
+import PuzzlePage from './pages/PuzzlePage';
 
 const MainLayout = () => (
   <>
@@ -57,12 +62,17 @@ const AppContent = () => {
           </PrivateRoute>
         }
       >
-        <Route path="/dashboard" element={<DashboardPage />} />
-        <Route path="/profile/:username" element={<ProfilePage />} />
-        <Route path="/play" element={<PlayPage />} />
-        
-        {/* 3. ADD SETTINGS ROUTE HERE */}
-        <Route path="/settings" element={<SettingsPage />} />
+        <Route path="/dashboard"                          element={<DashboardPage />} />
+        <Route path="/profile/:username"                  element={<ProfilePage />} />
+        <Route path="/play"                               element={<PlayPage />} />
+        <Route path="/settings"                           element={<SettingsPage />} />
+        <Route path="/tournament"                         element={<PrivateRoute><TournamentPage /></PrivateRoute>} />
+        <Route path="/tournament/:tournamentId"           element={<PrivateRoute><TournamentPage /></PrivateRoute>} />
+
+        {/* SOX Engine routes (NEW) */}
+        <Route path="/review/:gameId"                     element={<ReviewPage />} />
+        <Route path="/puzzles"                            element={<PuzzlePage />} />
+        <Route path="/puzzles/:gameId"                    element={<PuzzlePage />} />
       </Route>
 
       {/* Game Route (Special Layout) */}
@@ -85,15 +95,9 @@ function App() {
   return (
     <AuthProvider>
       <SocketProvider>
-        {/* 4. WRAP EVERYTHING WITH THEME PROVIDER */}
         <ThemeProvider>
           <Router>
-            {/* 
-               We update the background div to use CSS Variables 
-               so it changes color based on the selected theme.
-            */}
             <div className="app-background"></div>
-            
             <div className="App">
               <AppContent />
             </div>

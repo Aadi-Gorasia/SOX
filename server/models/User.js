@@ -10,6 +10,7 @@ const UserSchema = new mongoose.Schema({
   draws: { type: Number, default: 0 },
   date: { type: Date, default: Date.now },
   lastUsernameChange: { type: Date, default: null }, 
-  themePreference: { type: String, default: 'tonal-dark' } 
+  themePreference: { type: String, default: 'tonal-dark' },
+  puzzleRating: { type: Number, default: 1200 } 
 });
 module.exports = mongoose.model('User', UserSchema);

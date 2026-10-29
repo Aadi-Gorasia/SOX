@@ -1,0 +1,291 @@
+/* GameReview.css — Brutalist: black/white/red, thick borders, Courier */
+
+.game-review {
+  background:  #0a0a0a;
+  color:        #f0f0f0;
+  font-family: 'Courier New', Courier, monospace;
+  min-height:  100vh;
+  padding:     0;
+}
+
+/* ── Loading ──────────────────────────────────────────────────────────────── */
+.review-loading {
+  display:         flex;
+  flex-direction:  column;
+  align-items:     center;
+  justify-content: center;
+  height:          60vh;
+  gap:             16px;
+  font-size:       13px;
+  letter-spacing:  0.1em;
+  color:           #888;
+}
+.review-loading__bar {
+  width:      200px;
+  height:     3px;
+  background: #1a1a1a;
+  position:   relative;
+  overflow:   hidden;
+}
+.review-loading__bar::after {
+  content:    '';
+  position:   absolute;
+  left:       -60%;
+  width:      60%;
+  height:     100%;
+  background: #e8001c;
+  animation:  barSlide 1.2s linear infinite;
+}
+@keyframes barSlide {
+  to { left: 160%; }
+}
+.review-loading__sub { color: #444; font-size: 11px; }
+
+/* ── Error ────────────────────────────────────────────────────────────────── */
+.review-error {
+  padding:    32px;
+  color:      #e8001c;
+  font-size:  13px;
+}
+.review-error code {
+  display:    block;
+  margin-top: 8px;
+  color:      #888;
+  font-size:  11px;
+}
+
+/* ── Header ───────────────────────────────────────────────────────────────── */
+.review-header {
+  background:     #f0f0f0;
+  color:          #0a0a0a;
+  padding:        14px 24px;
+  display:        flex;
+  align-items:    center;
+  gap:            24px;
+  border-bottom:  3px solid #0a0a0a;
+}
+.review-header__title {
+  font-size:      13px;
+  font-weight:    bold;
+  letter-spacing: 0.15em;
+  flex-shrink:    0;
+}
+.review-header__players {
+  display:    flex;
+  gap:        12px;
+  align-items: center;
+  font-size:  13px;
+}
+.review-header__x   { color: #0a0a0a; font-weight: bold; }
+.review-header__vs  { color: #666;    font-size: 11px; }
+.review-header__o   { color: #e8001c; font-weight: bold; }
+
+/* ── Summary bar ──────────────────────────────────────────────────────────── */
+.review-summary {
+  display:        flex;
+  border-bottom:  1px solid #222;
+  background:     #111;
+}
+.review-summary__stat {
+  flex:           1;
+  padding:        14px 16px;
+  text-align:     center;
+  border-right:   1px solid #222;
+}
+.review-summary__stat:last-child { border-right: none; }
+.review-summary__num {
+  display:        block;
+  font-size:      22px;
+  font-weight:    bold;
+  color:          #f0f0f0;
+}
+.review-summary__lbl {
+  display:        block;
+  font-size:      8px;
+  letter-spacing: 0.12em;
+  color:          #555;
+  margin-top:     2px;
+}
+.review-summary__stat--blunder    .review-summary__num { color: #e8001c; }
+.review-summary__stat--mistake    .review-summary__num { color: #cc7700; }
+.review-summary__stat--inaccuracy .review-summary__num { color: #888; }
+
+/* ── Main panel ───────────────────────────────────────────────────────────── */
+.review-main {
+  display:   grid;
+  grid-template-columns: 1fr 260px;
+  gap:       0;
+  border-bottom: 1px solid #222;
+}
+
+/* ── Mini board ───────────────────────────────────────────────────────────── */
+.review-board-wrap {
+  padding: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-right: 1px solid #222;
+}
+.mini-board {
+  display:               grid;
+  grid-template-columns: repeat(9, 1fr);
+  width:                 min(420px, 90vw);
+  aspect-ratio:          1;
+  border:                3px solid #f0f0f0;
+  background:            #080808;
+}
+.mini-macro {
+  display:               grid;
+  grid-template-columns: repeat(3, 1fr);
+  grid-column:           span 3;
+  grid-row:              span 1;
+}
+/* Actually render as flat 9x9 with macro separators via border */
+.mini-board {
+  display:               grid;
+  grid-template-columns: repeat(9, 1fr);
+  grid-template-rows:    repeat(9, 1fr);
+}
+.mini-cell {
+  display:         flex;
+  align-items:     center;
+  justify-content: center;
+  font-size:       clamp(8px, 1.5vw, 14px);
+  font-weight:     bold;
+  border:          1px solid #1a1a1a;
+  color:           transparent;
+  transition:      background 0.1s;
+}
+/* Thick macro borders */
+.mini-cell:nth-child(3n) { border-right: 2px solid #f0f0f0; }
+.mini-cell:nth-child(n+19):nth-child(-n+27),
+.mini-cell:nth-child(n+46):nth-child(-n+54) {
+  border-bottom: 2px solid #f0f0f0;
+}
+.mini-cell--x     { color: #f0f0f0; }
+.mini-cell--o     { color: #e8001c; }
+.mini-cell--last  { background: #1c1c1c; outline: 2px solid #f0f0f0; outline-offset: -2px; }
+.mini-cell--best  { background: #1a0003; outline: 2px solid #e8001c; outline-offset: -2px; }
+
+/* ── Annotation panel ─────────────────────────────────────────────────────── */
+.review-panel {
+  padding:        24px 20px;
+  display:        flex;
+  flex-direction: column;
+  gap:            16px;
+}
+
+/* Quality badge */
+.review-quality {
+  padding:        10px 14px;
+  font-size:      11px;
+  font-weight:    bold;
+  letter-spacing: 0.15em;
+  border:         2px solid;
+  text-align:     center;
+}
+.review-quality--best       { border-color: #f0f0f0; color: #f0f0f0; background: #111; }
+.review-quality--good       { border-color: #555;    color: #888;     background: #0f0f0f; }
+.review-quality--inaccuracy { border-color: #555;    color: #888; }
+.review-quality--mistake    { border-color: #cc7700; color: #cc7700; background: #1a0e00; }
+.review-quality--blunder    { border-color: #e8001c; color: #e8001c; background: #150003; }
+.review-quality--unknown    { border-color: #333;    color: #444; }
+
+/* Score */
+.review-score {
+  display:     flex;
+  justify-content: space-between;
+  align-items: baseline;
+  padding:     10px 0;
+  border-top:  1px solid #1a1a1a;
+  border-bottom: 1px solid #1a1a1a;
+}
+.review-score__lbl { font-size: 9px; letter-spacing: 0.12em; color: #555; }
+.review-score__val { font-size: 18px; font-weight: bold; }
+
+/* Best move hint */
+.review-hint {
+  display:     flex;
+  justify-content: space-between;
+  font-size:   11px;
+  color:       #888;
+}
+.review-hint__lbl { letter-spacing: 0.1em; }
+.review-hint__idx { color: #e8001c; font-weight: bold; }
+
+/* Navigation */
+.review-nav {
+  display:     flex;
+  gap:         6px;
+  align-items: center;
+  margin-top:  auto;
+}
+.review-nav__btn {
+  background:  #1a1a1a;
+  border:      1px solid #333;
+  color:       #f0f0f0;
+  font-family: inherit;
+  font-size:   13px;
+  padding:     6px 10px;
+  cursor:      pointer;
+  flex:        1;
+  transition:  background 0.1s;
+}
+.review-nav__btn:hover { background: #e8001c; border-color: #e8001c; }
+.review-nav__counter {
+  font-size:  10px;
+  color:      #555;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+.review-nav__tip {
+  font-size:  9px;
+  color:      #333;
+  text-align: center;
+  letter-spacing: 0.08em;
+  margin:     0;
+}
+
+/* ── Move list ────────────────────────────────────────────────────────────── */
+.review-movelist {
+  display:   flex;
+  flex-wrap: wrap;
+  gap:       2px;
+  padding:   12px;
+  background: #080808;
+}
+.review-movelist__item {
+  display:        flex;
+  gap:            6px;
+  align-items:    center;
+  padding:        5px 8px;
+  background:     #111;
+  border:         1px solid #1e1e1e;
+  color:          #888;
+  font-family:    inherit;
+  font-size:      10px;
+  cursor:         pointer;
+  transition:     background 0.1s, border-color 0.1s;
+  min-width:      90px;
+}
+.review-movelist__item:hover { background: #1a1a1a; }
+.review-movelist__item--active {
+  background:   #1a1a1a;
+  border-color: #f0f0f0;
+  color:        #f0f0f0;
+}
+.review-movelist__item--blunder    { border-left: 3px solid #e8001c; }
+.review-movelist__item--mistake    { border-left: 3px solid #cc7700; }
+.review-movelist__item--inaccuracy { border-left: 3px solid #555; }
+.review-movelist__item--best       { border-left: 3px solid #f0f0f0; }
+
+.review-movelist__num   { color: #333; min-width: 18px; }
+.review-movelist__side  { font-weight: bold; min-width: 12px; }
+.review-movelist__sq    { flex: 1; }
+.review-movelist__badge { font-size: 9px; letter-spacing: 0.05em; }
+
+/* ── Responsive ───────────────────────────────────────────────────────────── */
+@media (max-width: 700px) {
+  .review-main { grid-template-columns: 1fr; }
+  .review-board-wrap { border-right: none; border-bottom: 1px solid #222; }
+}

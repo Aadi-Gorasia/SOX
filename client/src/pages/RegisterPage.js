@@ -55,18 +55,12 @@ const RegisterPage = () => {
 
   return (
     <div className="auth-root">
+        <br />
+        <br />
       <InteractiveBG />
       
       <div className="auth-wrap">
         
-        <div className="auth-brand">
-          <div className="auth-logo-grid">
-            {Array.from({ length: 9 }).map((_, i) => (
-              <div key={i} className={`auth-logo-cell ${i === 4 ? 'auth-logo-cell--accent' : ''}`} />
-            ))}
-          </div>
-          <span className="auth-brand-text">super ttt</span>
-        </div>
 
         <header className="auth-header">
           <h1 className="auth-title">Create account</h1>

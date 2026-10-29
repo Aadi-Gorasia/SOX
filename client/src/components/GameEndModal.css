@@ -23,14 +23,13 @@
 
 @keyframes modal-fade-in {
   from { opacity: 0; transform: scale(0.95); }
-  to { opacity: 1; transform: scale(1); }
+  to   { opacity: 1; transform: scale(1); }
 }
 
-.end-report-frame.win { border-color: var(--accent); }
+.end-report-frame.win  { border-color: var(--accent); }
 .end-report-frame.loss { border-color: var(--red); }
 .end-report-frame.draw { border-color: var(--text-3); }
 
-/* Grid Background matches Dashboard Search Modal */
 .end-grid-bg {
   position: absolute;
   inset: 0;
@@ -53,7 +52,7 @@
   letter-spacing: -0.02em;
 }
 
-.win .end-outcome-title { color: var(--accent); }
+.win  .end-outcome-title { color: var(--accent); }
 .loss .end-outcome-title { color: var(--red); }
 .draw .end-outcome-title { color: var(--text-1); }
 
@@ -76,8 +75,8 @@
   margin-bottom: 3rem;
 }
 
-.end-stat-block { flex: 1; }
-.end-vs-divider { color: var(--text-3); font-family: var(--display); font-size: 14px; font-weight: 700; padding: 0 1rem; }
+.end-stat-block    { flex: 1; }
+.end-vs-divider    { color: var(--text-3); font-family: var(--display); font-size: 14px; font-weight: 700; padding: 0 1rem; }
 
 .end-player-name {
   font-family: var(--display);
@@ -117,6 +116,21 @@
   color: var(--bg);
 }
 .end-btn-primary:hover { background-color: var(--accent); color: #000; }
+
+/* NEW: SOX Engine review button */
+.end-btn-review {
+  background: transparent;
+  border: 1px solid var(--accent);
+  color: var(--accent);
+  font-family: var(--mono);
+  font-size: 13px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+.end-btn-review:hover {
+  background-color: var(--accent);
+  color: #000;
+}
 
 .end-btn-secondary {
   background: transparent;

@@ -16,6 +16,10 @@ function calculateWinner(squares) {
   return null;
 }
 
+function toEngineIdx(boardIndex, cellIndex) {
+  return boardIndex * 9 + cellIndex;
+}
+
 class GameManager {
   constructor(io) {
     this.io = io;
@@ -85,6 +89,7 @@ class GameManager {
       lastTickTimestamp: Date.now(),
       chat: [],
       moves: [],
+      engineMoves: [], 
       drawOffer: null,
     };
 
@@ -156,6 +161,12 @@ class GameManager {
       timestamp: Date.now()
     });
 
+    if (!game.engineMoves) game.engineMoves = [];
+game.engineMoves.push({
+  idx:  toEngineIdx(boardIndex, cellIndex),
+  side: pIdx,   // 0=X, 1=O
+});
+
     // 2. Update Board & Time
     game.allBoards[boardIndex][cellIndex] = symbol;
     game.playerTimes[pIdx] += game.timeControl.increment;
@@ -204,7 +215,12 @@ class GameManager {
         const lId = result.winner === 'X' ? p2.id : p1.id;
         eloResult = await updateEloAndStats(wId, lId, false);
       }
-      await saveGameResult(game);
+      await saveGameResult({
+  playerDetails: game.playerDetails,
+  gameWinner:    game.gameWinner,
+  timeControl:   game.timeControl,
+  moves:         game.engineMoves || [],
+});
     } catch (e) { console.error(e); }
 
     // Prepare Payload

@@ -244,7 +244,17 @@ const PlayPage = () => {
                         </div>
 
                         {/* SYSTEM LOGS */}
-                       
+                       {/* In PlayPage.js Deploy Grid */}
+<div className="deploy-card">
+    <div className="deploy-bg-text">TRN</div>
+    <div className="deploy-content">
+        <h3 className="deploy-title">Tournament</h3>
+        <p className="deploy-desc">Enter a 4-player Sit & Go bracket. Winner takes all ELO stakes.</p>
+        <button className="btn-deploy btn-deploy--secondary" onClick={() => navigate('/tournament')}>
+            Enter Lobby
+        </button>
+    </div>
+</div>
 
                     </main>
                 </div>

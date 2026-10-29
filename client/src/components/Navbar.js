@@ -19,7 +19,7 @@ const Navbar = () => {
     <header className="glass-nav-container">
       <div className="glass-nav-inner">
         <div className="nav-logo">
-          <Link to={isAuthenticated ? "/dashboard" : "/"}>SOX<span>——</span>VOID</Link>
+          <Link to={isAuthenticated ? "/dashboard" : "/"}>SOX</Link>
         </div>
 
         <nav className="nav-links-group">

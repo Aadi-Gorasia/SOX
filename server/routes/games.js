@@ -13,7 +13,7 @@ const {
 } = require('../services/engineService');
 
 // =============================================================================
-// ─── 1. STATIC ROUTES (MUST BE DEFINED FIRST) ────────────────────────────────
+// ─── 1. STATIC PATH COMPONENT ENDPOINTS (EXPLICIT MATCHES) ───────────────────
 // =============================================================================
 
 // ─── GAME MATCH HISTORY METADATA ───
@@ -46,13 +46,11 @@ router.get('/leaderboard', async (req, res) => {
 });
 
 // ─── PROGRESSIVE ADAPTIVE TRAINING: INFINITE GENERATE ───
-// Assembles valid random positions matching user threshold bounds on demand
 router.get('/puzzle/infinite-generate', authMiddleware, async (req, res) => {
   try {
     const user = await User.findById(req.user.id);
     const userRating = user.puzzleRating || 1200;
 
-    // Map user rank caps to C++ sub-engine scaling variables
     let targetDifficulty = 'easy';
     let engineSearchDepthElo = 1000; 
 
@@ -66,9 +64,8 @@ router.get('/puzzle/infinite-generate', authMiddleware, async (req, res) => {
 
     const positionSequence = [];
     const macroBlocksPlayed = Array(9).fill(0);
-    let currentFocusMacro = 9; // 9 represents an open board condition
+    let currentFocusMacro = 9; 
 
-    // Playout simulation depth calculation loop (Arbitrary board setups 8-16 moves out)
     const randomPlayoutDepth = 8 + Math.floor(Math.random() * 8); 
     
     for (let step = 0; step < randomPlayoutDepth; step++) {
@@ -94,10 +91,8 @@ router.get('/puzzle/infinite-generate', authMiddleware, async (req, res) => {
       currentFocusMacro = pickedMove % 9;
     }
 
-    // Ping runtime binary to evaluate optimal solution step
     const evaluation = await getBestMove(positionSequence, engineSearchDepthElo);
 
-    // Fallback recursive bypass if engine execution path errors out
     if (evaluation.bestMove < 0) {
       return res.redirect('/api/games/puzzle/infinite-generate');
     }
@@ -175,11 +170,11 @@ router.post('/hint', authMiddleware, async (req, res) => {
 });
 
 // =============================================================================
-// ─── 2. DYNAMIC PARAMETER ROUTES (MUST BE DEFINED LAST) ──────────────────────
+// ─── 2. DYNAMIC PARAMETER ROUTES (REGEX GUARDED AGAINST AMBIGUITY) ──────────
 // =============================================================================
 
 // ─── GET SINGLE MATCH RECORD FROM MOUNT PROFILE ───
-router.get('/:id', authMiddleware, async (req, res) => {
+router.get('/:id([0-9a-fA-F]{24})', authMiddleware, async (req, res) => {
   try {
     const game = await Game.findById(req.params.id)
       .populate('players', 'username elo')
@@ -198,7 +193,7 @@ router.get('/:id', authMiddleware, async (req, res) => {
 });
 
 // ─── POST-GAME ENGINE GRAPH ANALYSIS REVIEW ───
-router.get('/:id/review', authMiddleware, async (req, res) => {
+router.get('/:id([0-9a-fA-F]{24})/review', authMiddleware, async (req, res) => {
   try {
     const game = await Game.findById(req.params.id);
     if (!game) return res.status(404).json({ msg: 'Game profile entry not found' });
@@ -235,7 +230,7 @@ router.get('/:id/review', authMiddleware, async (req, res) => {
 });
 
 // ─── REVIEW PUZZLES GENERATION ───
-router.post('/:id/puzzles', authMiddleware, async (req, res) => {
+router.post('/:id([0-9a-fA-F]{24})/puzzles', authMiddleware, async (req, res) => {
   try {
     const game = await Game.findById(req.params.id);
     if (!game) return res.status(404).json({ msg: 'Target Game Entry Absent' });
