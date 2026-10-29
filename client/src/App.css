@@ -1,62 +1,36 @@
-/* client/src/App.css */
+/* Shared application foundation */
+:root { --void: #080808; --carbon: #161616; --steel: #fff; --silver: #a0a0a0; --crimson: #ff3e3e; --sulfur: #d4ff00; }
+*, *::before, *::after { box-sizing: border-box; }
+html, body, #root { min-height: 100%; }
+body { margin: 0; background: var(--void); color: var(--steel); font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
+button, input, select, textarea { font: inherit; }
+button { cursor: pointer; }
+button:disabled { cursor: not-allowed; }
+:focus-visible { outline: 2px solid var(--sulfur); outline-offset: 3px; }
+.app-background { position: fixed; inset: 0; z-index: -2; background: radial-gradient(circle at 85% -15%, rgba(255, 62, 62, .09), transparent 30rem), var(--void); }
+.App { position: relative; min-height: 100vh; }
+.spinner-container { min-height: 100vh; display: grid; place-items: center; }
+.spinner { width: 40px; height: 40px; border: 3px solid rgba(255,255,255,.15); border-top-color: var(--crimson); border-radius: 50%; animation: spin .8s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+.text-sulfur { color: var(--sulfur) !important; }
+.text-crimson { color: var(--crimson) !important; }
+.text-steel, .text-titanium { color: var(--steel) !important; }
+.text-silver { color: var(--silver) !important; }
 
-:root {
-  --crimson: #D96868;
-  --taupe: #FBF6F6;
-  --olive: #6A7E3F;
-  --olive-dark: #4C5C2D;
+/* The arena screens share one palette even when their component styles load separately. */
+.auth-root, .dash-root, .tourney-root, .game-root, .profile-body, .play-body {
+  --bg: #080808;
+  --surface: #101010;
+  --card: #161616;
+  --border: rgba(255,255,255,.11);
+  --border-s: rgba(255,255,255,.22);
+  --text-1: #fff;
+  --text-2: #b2b2b2;
+  --text-3: #777;
+  --accent: #d4ff00;
+  --accent-d: #b6d900;
+  --red: #ff3e3e;
+  --mono: 'IBM Plex Mono', monospace;
+  --sans: 'DM Sans', sans-serif;
+  --display: 'Archivo', sans-serif;
 }
-
-body, html {
-  margin: 0;
-  padding: 0;
-  background-color: var(--taupe); /* Sets the base to Taupe */
-  color: #333;
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-}
-
-/* Fixes the background div you have in App.js */
-.app-background {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background: var(--taupe); 
-  z-index: -2;
-}
-
-/* Remove any global glows/pinks */
-* {
-  text-shadow: none !important;
-  box-shadow: none;
-}
-
-.App {
-  position: relative;
-  z-index: 1;
-}
-
-/* Spinner fix to match the new palette */
-.spinner {
-  border: 4px solid rgba(0, 0, 0, 0.1);
-  border-top: 4px solid var(--crimson);
-  border-radius: 50%;
-  width: 40px;
-  height: 40px;
-  animation: spin 1s linear infinite;
-}
-@keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-
-/* FORCE VISIBILITY ON ALL PAGES */
-h1, h2, h3, h4, h5, h6 { color: #FFFFFF !important; }
-p, li, label { color: #A0A0A0 !important; }
-input, select, textarea { color: #FFFFFF !important; }
-button { color: #FFFFFF; }
-
-.text-sulfur { color: #D4FF00 !important; }
-.text-crimson { color: #FF3E3E !important; }
-.text-cobalt { color: #2E5BFF !important; }
-.text-steel { color: #282828 !important; }
-.text-silver { color: #A0A0A0 !important; }
-.text-titanium { color: #FFFFFF !important; }

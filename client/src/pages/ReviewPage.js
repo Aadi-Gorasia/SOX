@@ -5,17 +5,6 @@ import { AuthContext } from '../context/AuthContext';
 import './ReviewPage.css';
 
 // ── Helpers ────────────────────────────────────────────────────────────────────
-function fromEngineIdx(idx) {
-  const macro = Math.floor(idx / 9);
-  const cell  = idx % 9;
-  return {
-    macroRow: Math.floor(macro / 3),
-    macroCol: macro % 3,
-    cellRow:  Math.floor(cell / 3),
-    cellCol:  cell % 3,
-  };
-}
-
 function buildBoard(moves) {
   // moves = [{ idx, side }, ...]
   const board = Array(81).fill(null);

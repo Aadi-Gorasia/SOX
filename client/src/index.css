@@ -1,36 +1,8 @@
-/* client/src/index.css */
-:root {
-  /* --- The New "Midnight & Mint" Color Palette --- */
-  --midnight-dark: #191E24;  /* Deepest background */
-  --slate-panel: #242C37;   /* Panels, sidebars, etc. */
-  --slate-light: #354150;   /* Borders, hover states */
-  --off-white: #E6E6E6;      /* Main text and marks (X, O) */
-  --mint-accent: #6EE7B7;    /* Highlights, buttons, active states */
-  --mint-dark: #1A5D43;      /* Text on mint buttons */
-}
-html, body, #root {
-  height: 100%;
-  margin: 0;
-  padding: 0;
-  background-color: var(--midnight-dark);
-  color: var(--off-white);
-}
-body {
-  font-family: 'Poppins', sans-serif;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-}
+@import url('https://fonts.googleapis.com/css2?family=Archivo:wght@900&family=DM+Mono:wght@400;500&family=DM+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&family=Inter:wght@400;500;600;700&display=swap');
 
+html { background: #080808; }
+body { -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale; }
 
-/* FORCE VISIBILITY ON ALL PAGES */
-h1, h2, h3, h4, h5, h6 { color: #FFFFFF !important; }
-p, li, label { color: #A0A0A0 !important; }
-input, select, textarea { color: #FFFFFF !important; }
-button { color: #FFFFFF; }
-
-.text-sulfur { color: #D4FF00 !important; }
-.text-crimson { color: #FF3E3E !important; }
-.text-cobalt { color: #2E5BFF !important; }
-.text-steel { color: #282828 !important; }
-.text-silver { color: #A0A0A0 !important; }
-.text-titanium { color: #FFFFFF !important; }
+/* Fixed navigation needs breathing room on every standard application screen. */
+.auth-root, .dash-root, .tourney-root, .pz-clean-layout, .review-page, .settings-tonal-container { padding-top: 92px; }
+@media (max-width: 600px) { .auth-root, .dash-root, .tourney-root, .pz-clean-layout, .review-page, .settings-tonal-container { padding-top: 72px; } }

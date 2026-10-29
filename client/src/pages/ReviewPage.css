@@ -388,3 +388,20 @@
   }
   .rp-board { width: min(340px, 90vw); }
 }
+
+/* Arena visual system overrides */
+.review-page { background: #080808; color: #fff; font-family: 'IBM Plex Mono', monospace; }
+.review-page__topbar { width: min(1200px, calc(100% - 48px)); min-height: 58px; height: auto; margin: 0 auto; padding: 10px 16px; background: #161616; color: #fff; border: 1px solid rgba(255,255,255,.15); }
+.review-page__back { color: #a0a0a0; }
+.review-page__title { color: #fff; font-family: 'Archivo', sans-serif; font-size: 16px; }
+.review-page__px { color: #fff; } .review-page__po { color: #ff3e3e; }
+.review-page__puzzle-btn, .review-page__gate-btn { background: #ff3e3e; border-radius: 3px; }
+.review-page__puzzle-btn:hover, .review-page__gate-btn:hover { background: #ff6262; }
+.review-page__summary { max-width: 1200px; width: calc(100% - 48px); margin: 14px auto 0; border: 1px solid rgba(255,255,255,.12); }
+.review-page__main { max-width: 1200px; width: calc(100% - 48px); margin: 14px auto 28px; border: 1px solid rgba(255,255,255,.12); background: #111; }
+.rp-evalbar__o { background: #ff3e3e; }
+.rp-board { border-color: #fff; box-shadow: 0 20px 50px rgba(0,0,0,.4); }
+.rp-cell--best { background: rgba(212,255,0,.1); outline-color: #d4ff00; }
+.review-page__quality--best, .review-page__quality--good { border-color: #d4ff00; color: #d4ff00; }
+.review-page__nav-btn:hover { background: #ff3e3e; border-color: #ff3e3e; }
+@media (max-width: 768px) { .review-page__topbar, .review-page__summary, .review-page__main { width: calc(100% - 24px); } .review-page__players { display: none; } }

@@ -177,7 +177,7 @@ const DashboardPage = () => {
             </div>
 
             <div className="sidebar-card">
-              <div class="sidebar-card-label">System</div>
+              <div className="sidebar-card-label">System</div>
               <div className="sys-rows">
                 <div className="sys-row">
                   <span className="sys-key">Ping</span>
