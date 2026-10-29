@@ -238,6 +238,10 @@
   color: var(--accent-d); 
 }
 
+.auth-callback-state { text-align: center; line-height: 1.6; }
+.auth-callback-link { display: block; text-decoration: none; }
+.auth-error-label { color: var(--red); font-family: var(--mono); font-size: 11px; letter-spacing: .12em; }
+
 /* Added !important to guarantee it overrides framework defaults */
 .text-accent { 
   color: var(--accent) !important; 

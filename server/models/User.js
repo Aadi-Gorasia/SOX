@@ -3,7 +3,12 @@ const mongoose = require('mongoose');
 const UserSchema = new mongoose.Schema({
   username: { type: String, required: true, unique: true, trim: true, minlength: 3 },
   email: { type: String, required: true, unique: true, trim: true, lowercase: true, match: [/.+\@.+\..+/, 'Please fill a valid email address'] },
-  password: { type: String, required: true, minlength: 6 },
+  // Password is optional for accounts created through an OAuth provider.
+  password: { type: String, minlength: 6 },
+  oauthProviders: [{
+    provider: { type: String, enum: ['google', 'facebook', 'apple'], required: true },
+    providerId: { type: String, required: true }
+  }],
   elo: { type: Number, default: 1200 },
   wins: { type: Number, default: 0 },
   losses: { type: Number, default: 0 },

@@ -41,6 +41,9 @@ router.post('/login', async (req, res) => {
   try {
     let user = await User.findOne({ email });
     if (!user) { return res.status(400).json({ msg: 'Invalid Credentials' }); }
+    if (!user.password) {
+      return res.status(400).json({ msg: 'This account uses social sign-in. Please continue with its provider.' });
+    }
     const isMatch = await bcrypt.compare(password, user.password);
     if (!isMatch) { return res.status(400).json({ msg: 'Invalid Credentials' }); }
     const payload = { user: { id: user.id } };

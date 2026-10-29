@@ -40,6 +40,13 @@ const AuthProvider = ({ children }) => {
     }
   };
 
+  const completeOAuthLogin = (oauthToken) => {
+    if (!oauthToken) return false;
+    localStorage.setItem('token', oauthToken);
+    setToken(oauthToken);
+    return true;
+  };
+
   const logout = () => {
     localStorage.removeItem('token');
     setToken(null);
@@ -48,7 +55,7 @@ const AuthProvider = ({ children }) => {
   };
 
   return (
-    <AuthContext.Provider value={{ token, isAuthenticated, loading, user, login, logout }}>
+    <AuthContext.Provider value={{ token, isAuthenticated, loading, user, login, completeOAuthLogin, logout }}>
       {children}
     </AuthContext.Provider>
   );

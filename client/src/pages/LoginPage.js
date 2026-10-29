@@ -4,6 +4,8 @@ import { AuthContext } from '../context/AuthContext';
 import InteractiveBG from '../components/InteractiveBG';
 import './AuthPage.css';
 
+const API_BASE = process.env.REACT_APP_API_URL || '';
+
 const LoginPage = () => {
   const navigate = useNavigate();
   const { login, isAuthenticated } = useContext(AuthContext);
@@ -16,7 +18,7 @@ const LoginPage = () => {
   };
 
   const handleSocialAuth = (provider) => {
-    window.location.href = `${process.env.REACT_APP_API_URL}/api/auth/${provider}`;
+    window.location.href = `${API_BASE}/api/auth/${provider}`;
   };
 
   useEffect(() => {

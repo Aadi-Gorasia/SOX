@@ -4,6 +4,8 @@ import axios from 'axios';
 import InteractiveBG from '../components/InteractiveBG';
 import './AuthPage.css';
 
+const API_BASE = process.env.REACT_APP_API_URL || '';
+
 const RegisterPage = () => {
   const navigate = useNavigate();
   const[isVerifying, setIsVerifying] = useState(false);
@@ -20,7 +22,7 @@ const RegisterPage = () => {
   };
 
   const handleSocialAuth = (provider) => {
-    window.location.href = `${process.env.REACT_APP_API_URL}/api/auth/${provider}`;
+    window.location.href = `${API_BASE}/api/auth/${provider}`;
   };
 
   if (isVerifying) {

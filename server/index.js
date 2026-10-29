@@ -43,6 +43,8 @@ app.use(cors({
 }));
 
 app.use(express.json({ limit: '1mb' }));
+// Apple sends OAuth callbacks as application/x-www-form-urlencoded POSTs.
+app.use(express.urlencoded({ extended: false, limit: '1mb' }));
 
 // ─── HEALTH AND READINESS ─────────────────────────────────────────────────────
 
@@ -70,7 +72,8 @@ app.get('/ready', (req, res) => {
 
 app.use('/api/users', require('./routes/users'));
 app.use('/api/auth', require('./routes/auth'));
-
+console.log('[DEBUG] Auth routes mounted');
+console.log('[DEBUG] Working directory:', process.cwd());
 const gamesRouter = require('./routes/games');
 
 app.use('/api/games', gamesRouter);
