@@ -1,0 +1,274 @@
+.games-history-page {
+  min-height: calc(100vh - 64px);
+  padding: 0 0 56px;
+  color: var(--text-1, #f0f0f0);
+  background:
+    radial-gradient(ellipse at 50% -18%, rgba(200,251,87,.07), transparent 42%),
+    var(--bg, #0a0a0a);
+  font-family: var(--sans, 'DM Sans', sans-serif);
+}
+
+.games-history-wrap {
+  width: min(1120px, calc(100% - 48px));
+  margin: 0 auto;
+}
+
+.games-history-header {
+  min-height: 64px;
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  border-bottom: 1px solid var(--border, rgba(255,255,255,.07));
+}
+
+.games-history-back {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  color: var(--text-2, #999);
+  font-family: var(--mono, monospace);
+  font-size: 11px;
+  text-decoration: none;
+}
+
+.games-history-back:hover { color: var(--text-1, #f0f0f0); }
+.games-history-brand {
+  font-family: var(--display, sans-serif);
+  font-size: 14px;
+  font-weight: 800;
+  letter-spacing: .06em;
+}
+
+.games-history-brand b {
+  margin-left: 6px;
+  color: var(--accent, #c8fb57);
+  font-family: var(--mono, monospace);
+  font-size: 9px;
+  font-weight: 400;
+  letter-spacing: .13em;
+}
+
+.games-history-user {
+  margin-left: auto;
+  color: var(--text-2, #999);
+  font-size: 12px;
+}
+
+.games-history-intro { padding: 36px 0 24px; }
+.games-history-eyebrow {
+  color: var(--text-3, #555);
+  font-family: var(--mono, monospace);
+  font-size: 9px;
+  letter-spacing: .14em;
+  text-transform: uppercase;
+}
+
+.games-history-intro h1 {
+  margin: 7px 0;
+  font-family: var(--display, sans-serif);
+  font-size: clamp(30px, 5vw, 42px);
+  letter-spacing: -.045em;
+}
+
+.games-history-intro p {
+  margin: 0;
+  color: var(--text-2, #999);
+  font-size: 13px;
+}
+
+.games-history-card {
+  border: 1px solid var(--border, rgba(255,255,255,.07));
+  background: rgba(17,17,17,.94);
+}
+
+.games-history-card__head {
+  min-height: 74px;
+  padding: 15px 20px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 1px solid var(--border, rgba(255,255,255,.07));
+  color: var(--text-3, #555);
+}
+
+.games-history-card__head h2 {
+  margin: 5px 0 0;
+  color: var(--text-1, #f0f0f0);
+  font-family: var(--display, sans-serif);
+  font-size: 17px;
+}
+
+.games-history-card__head h2 span {
+  margin-left: 6px;
+  color: var(--text-3, #555);
+  font-family: var(--mono, monospace);
+  font-size: 10px;
+  font-weight: 400;
+}
+
+.games-history-row {
+  min-height: 74px;
+  padding: 12px 20px;
+  display: grid;
+  grid-template-columns: 72px minmax(170px, 1fr) 120px 145px;
+  align-items: center;
+  gap: 16px;
+  border-bottom: 1px solid var(--border, rgba(255,255,255,.07));
+  border-left: 2px solid transparent;
+  transition: background .15s ease;
+}
+
+.games-history-row:hover { background: rgba(255,255,255,.025); }
+.games-history-row:last-child { border-bottom: 0; }
+.games-history-row:has(.games-history-result--win) { border-left-color: var(--accent, #c8fb57); }
+.games-history-row:has(.games-history-result--loss) { border-left-color: #ff6969; }
+.games-history-row:has(.games-history-result--draw) { border-left-color: #666; }
+
+.games-history-result {
+  font-family: var(--mono, monospace);
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: .07em;
+  text-transform: uppercase;
+}
+
+.games-history-result--win { color: var(--accent, #c8fb57); }
+.games-history-result--loss { color: #ff7777; }
+.games-history-result--draw { color: var(--text-2, #999); }
+
+.games-history-opponent {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.games-history-opponent strong {
+  overflow: hidden;
+  color: var(--text-1, #f0f0f0);
+  font-size: 13px;
+  font-weight: 500;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.games-history-opponent span,
+.games-history-details {
+  color: var(--text-3, #555);
+  font-family: var(--mono, monospace);
+  font-size: 9px;
+}
+
+.games-history-details { display: flex; flex-direction: column; gap: 5px; }
+.games-history-review {
+  justify-self: end;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  padding: 8px 10px;
+  border: 1px solid rgba(200,251,87,.3);
+  color: var(--accent, #c8fb57);
+  font-family: var(--mono, monospace);
+  font-size: 9px;
+  text-decoration: none;
+  transition: background .15s ease, border-color .15s ease;
+}
+
+.games-history-review:hover {
+  border-color: var(--accent, #c8fb57);
+  background: rgba(200,251,87,.08);
+}
+
+.games-history-state {
+  min-height: 170px;
+  padding: 26px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  gap: 12px;
+  color: var(--text-2, #999);
+  font-size: 13px;
+  text-align: center;
+}
+
+.games-history-state p { margin: 0; }
+.games-history-state > a,
+.games-history-state > button {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 10px;
+  border: 1px solid var(--border-s, rgba(255,255,255,.14));
+  background: transparent;
+  color: var(--text-1, #f0f0f0);
+  cursor: pointer;
+  font-family: var(--mono, monospace);
+  font-size: 10px;
+  text-decoration: none;
+}
+
+.games-history-state--error { color: #ff8a80; }
+.games-history-state--error button { color: #ff8a80; }
+.games-history-spinner {
+  width: 15px;
+  height: 15px;
+  display: inline-block;
+  border: 2px solid rgba(255,255,255,.2);
+  border-top-color: var(--accent, #c8fb57);
+  border-radius: 50%;
+  animation: games-history-spin .8s linear infinite;
+}
+
+.games-history-more {
+  min-height: 58px;
+  padding: 10px 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  border-top: 1px solid var(--border, rgba(255,255,255,.07));
+}
+
+.games-history-more > span { color: #ff8a80; font-size: 11px; }
+.games-history-more button {
+  min-height: 34px;
+  padding: 0 13px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  border: 1px solid var(--border-s, rgba(255,255,255,.14));
+  background: #171717;
+  color: var(--text-1, #f0f0f0);
+  cursor: pointer;
+  font-family: var(--mono, monospace);
+  font-size: 10px;
+}
+
+.games-history-more button:hover:not(:disabled) {
+  border-color: var(--accent, #c8fb57);
+  color: var(--accent, #c8fb57);
+}
+
+.games-history-more button:disabled { cursor: wait; opacity: .7; }
+@keyframes games-history-spin { to { transform: rotate(360deg); } }
+
+@media (max-width: 640px) {
+  .games-history-wrap { width: calc(100% - 28px); }
+  .games-history-header { min-height: 56px; gap: 13px; }
+  .games-history-intro { padding: 27px 0 18px; }
+  .games-history-intro p { max-width: 340px; line-height: 1.5; }
+  .games-history-card__head { padding: 13px; }
+  .games-history-row {
+    grid-template-columns: 48px minmax(100px, 1fr) 95px;
+    gap: 9px;
+    padding: 11px 10px;
+  }
+  .games-history-result { font-size: 9px; }
+  .games-history-opponent strong { font-size: 11px; }
+  .games-history-opponent span { font-size: 8px; }
+  .games-history-details { font-size: 8px; }
+  .games-history-review { grid-column: 2 / -1; justify-self: start; padding: 6px 8px; }
+}

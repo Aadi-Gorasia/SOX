@@ -20,9 +20,17 @@ const {
 // ─── GAME MATCH HISTORY METADATA ───
 router.get('/history', authMiddleware, async (req, res) => {
   try {
+    const limit = req.query.limit === undefined ? 20 : Number(req.query.limit);
+    const offset = req.query.offset === undefined ? 0 : Number(req.query.offset);
+    if (!Number.isInteger(limit) || limit < 1 || limit > 50 ||
+        !Number.isInteger(offset) || offset < 0) {
+      return res.status(400).json({ msg: 'Invalid game history pagination.' });
+    }
+
     const games = await Game.find({ players: req.user.id })
       .sort({ endDate: -1 })
-      .limit(20)
+      .skip(offset)
+      .limit(limit)
       .populate('players', 'username')
       .populate('winner', 'username');
     res.json(games);

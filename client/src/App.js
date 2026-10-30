@@ -29,6 +29,7 @@ import TournamentPage from './pages/TournamentPage';
 // --- SOX Engine Pages (NEW) ---
 import ReviewPage from './pages/ReviewPage';
 import PuzzlePage from './pages/PuzzlePage';
+import GamesHistoryPage from './pages/GamesHistoryPage';
 
 const MainLayout = () => (
   <>
@@ -66,6 +67,7 @@ const AppContent = () => {
       >
         <Route path="/dashboard"                          element={<DashboardPage />} />
         <Route path="/profile/:username"                  element={<ProfilePage />} />
+        <Route path="/games/history"                      element={<GamesHistoryPage />} />
         <Route path="/play"                               element={<PlayPage />} />
         <Route path="/settings"                           element={<SettingsPage />} />
         <Route path="/tournament"                         element={<PrivateRoute><TournamentPage /></PrivateRoute>} />

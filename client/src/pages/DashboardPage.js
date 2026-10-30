@@ -256,12 +256,15 @@ const DashboardPage = () => {
             <section className="history-section">
               <div className="section-header">
                 <h2 className="section-title">Recent games</h2>
-                <span className="section-count">{games.length} total</span>
+                <Link to="/games/history" className="section-count history-view-all">
+                  View all games →
+                </Link>
               </div>
 
               <div className="history-list">
                 {games.length > 0 ? games.slice(0, 8).map((g) => {
-                  const isWin       = g.winner?._id === user._id;
+                  const winnerId    = g.winner?._id ?? g.winner?.id ?? g.winner;
+                  const isWin       = String(winnerId) === String(user._id);
                   const isDraw      = g.status === 'DRAW';
                   const opponent    = g.players?.find(p => p._id !== user._id);
                   const result      = isDraw ? 'draw' : isWin ? 'win' : 'loss';
@@ -275,7 +278,7 @@ const DashboardPage = () => {
                       <div className="history-opp">vs {opponent?.username || 'Unknown'}</div>
                       <div className="history-tc">{timeControl}</div>
                       <div className={`history-elo history-elo--${result}`}>{eloChange}</div>
-                      <Link to={`/game/${g._id}`} className="history-replay">Replay</Link>
+                      <Link to={`/review/${g._id}`} className="history-replay">Review</Link>
                     </div>
                   );
                 }) : (

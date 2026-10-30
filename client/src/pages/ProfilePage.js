@@ -301,12 +301,15 @@ const ProfilePage = () => {
             <div className="history-section" style={{ padding: '1.5rem' }}>
               <div className="section-header">
                 <h2 className="section-title">Transaction Logs</h2>
-                <span className="section-count">Recent games</span>
+                {isOwnProfile
+                  ? <Link to="/games/history" className="section-count history-view-all">View all games →</Link>
+                  : <span className="section-count">Recent games</span>}
               </div>
 
               <div className="history-list">
                 {games.length > 0 ? games.slice(0, 10).map((g) => {
-                  const isWin       = g.winner?._id === user._id;
+                  const winnerId    = g.winner?._id ?? g.winner?.id ?? g.winner;
+                  const isWin       = String(winnerId) === String(user._id);
                   const isDraw      = g.status === 'DRAW';
                   const opponent    = g.players?.find(p => p._id !== user._id);
                   const result      = isDraw ? 'draw' : isWin ? 'win' : 'loss';
@@ -318,7 +321,9 @@ const ProfilePage = () => {
                       <div className={`result-tag result-tag--${result}`}>{resultLabel}</div>
                       <div className="history-opp">vs {opponent?.username || 'Unknown'}</div>
                       <div className={`history-elo history-elo--${result}`}>{eloChange}</div>
-                      <Link to={`/game/${g._id}`} className="history-replay">Replay</Link>
+                      {isOwnProfile && (
+                        <Link to={`/review/${g._id}`} className="history-replay">Review</Link>
+                      )}
                     </div>
                   );
                 }) : (
