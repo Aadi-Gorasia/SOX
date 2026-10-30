@@ -286,6 +286,7 @@ export default function PuzzlePage() {
                 <Info size={16} />
                 <span>Find the strongest legal move. Hover to see which sector each square sends your opponent to.</span>
               </div>
+              {error && <p className="pz-inline-error" role="alert">{error}</p>}
               <div className="pz-session-stats">
                 <span>Session solved</span>
                 <strong>{solvedCount}/{attemptCount}</strong>

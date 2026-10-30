@@ -4,6 +4,8 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { AuthContext } from '../context/AuthContext';
 import './ReviewPage.css';
 
+const API_BASE = process.env.REACT_APP_API_URL || '';
+
 // ── Helpers ────────────────────────────────────────────────────────────────────
 function buildBoard(moves) {
   // moves = [{ idx, side }, ...]
@@ -17,8 +19,8 @@ function moveQuality(ann) {
   if (ann.blunder)        return { label: 'BLUNDER',      cls: 'blunder',    symbol: '??' };
   if (ann.mistake)        return { label: 'MISTAKE',      cls: 'mistake',    symbol: '?' };
   if (ann.inaccuracy)     return { label: 'INACCURACY',   cls: 'inaccuracy', symbol: '⁉' };
-  if (ann.isEnginePick)   return { label: 'BEST MOVE',    cls: 'best',       symbol: '✓' };
-  return                         { label: 'GOOD',         cls: 'good',       symbol: '·' };
+  if (ann.isEnginePick || ann.wasOptimal) return { label: 'BEST MOVE', cls: 'best', symbol: '✓' };
+  return { label: 'REVIEW MOVE', cls: 'inaccuracy', symbol: '!' };
 }
 
 function formatScore(score) {
@@ -98,21 +100,41 @@ export default function ReviewPage() {
   const [summary,     setSummary]     = useState(null);
   const [status,      setStatus]      = useState('idle');   // idle | loading | done | error
   const [error,       setError]       = useState(null);
+  const [gameLoading, setGameLoading] = useState(true);
+  const [gameError,   setGameError]   = useState(null);
   const [current,     setCurrent]     = useState(0);
 
-  // Fetch game metadata on mount
+  // Load the metadata needed to show the review entry state and replay.
   useEffect(() => {
-    fetch(`/api/games/${gameId}`, {
-      headers: { 'x-auth-token': token }
+    const controller = new AbortController();
+    setGameLoading(true);
+    setGameError(null);
+    setGame(null);
+    fetch(`${API_BASE}/api/games/${gameId}`, {
+      headers: { 'x-auth-token': token },
+      signal: controller.signal
     })
-      .then(r => r.json())
-      .then(g => setGame(g))
-      .catch(err => setError(err.message));
+      .then(async response => {
+        const data = await response.json();
+        if (!response.ok) throw new Error(data.msg || data.error || 'Unable to load this game.');
+        return data;
+      })
+      .then(data => setGame(data))
+      .catch(err => {
+        if (err.name !== 'AbortError') setGameError(err.message);
+      })
+      .finally(() => {
+        if (!controller.signal.aborted) setGameLoading(false);
+      });
+    return () => controller.abort();
   }, [gameId, token]);
 
   // Keyboard nav
   useEffect(() => {
     const handler = (e) => {
+      if (!annotations.length) return;
+      if (e.target instanceof HTMLElement &&
+          ['INPUT', 'TEXTAREA', 'SELECT'].includes(e.target.tagName)) return;
       if (e.key === 'ArrowLeft')
         setCurrent(c => Math.max(0, c - 1));
       if (e.key === 'ArrowRight')
@@ -126,13 +148,29 @@ export default function ReviewPage() {
   function requestReview() {
     setStatus('loading');
     setError(null);
-    fetch(`/api/games/${gameId}/review`, {
+    fetch(`${API_BASE}/api/games/${gameId}/review`, {
       headers: { 'x-auth-token': token }
     })
-      .then(r => { if (!r.ok) throw new Error(`Server error ${r.status}`); return r.json(); })
+      .then(async response => {
+        const data = await response.json();
+        if (!response.ok) throw new Error(data.msg || data.error || `Server error ${response.status}`);
+        return data;
+      })
       .then(data => {
-        setAnnotations(data.annotations || []);
-        setSummary(data.reviewSummary   || null);
+        const normalizedAnnotations = (data.annotations || []).map((annotation, index) => {
+          const idx = annotation.idx ?? annotation.playedMove ?? game?.moves?.[index]?.idx;
+          const bestMove = annotation.bestMove ?? annotation.optimalMove;
+          return {
+            ...annotation,
+            idx,
+            bestMove,
+            isEnginePick: annotation.isEnginePick ?? annotation.wasOptimal ?? bestMove === idx,
+            score: annotation.score ?? annotation.positionalScore
+          };
+        });
+        setAnnotations(normalizedAnnotations);
+        setSummary(data.reviewSummary || null);
+        setCurrent(0);
         setStatus('done');
       })
       .catch(err => {
@@ -143,7 +181,7 @@ export default function ReviewPage() {
 
   const ann       = annotations[current] || null;
   const quality   = moveQuality(ann);
-  const movesUpTo = game?.moves?.slice(0, (current + 1)) || [];
+  const movesUpTo = game?.moves?.slice(0, current + 1) || [];
 
   // ── IDLE — show "Request Review" screen ────────────────────────────────────
   if (status === 'idle') return (
@@ -157,12 +195,14 @@ export default function ReviewPage() {
           <div className="review-page__gate-label">SOX ENGINE</div>
           <h2 className="review-page__gate-heading">Analyze This Game</h2>
           <p className="review-page__gate-sub">
-            The engine will evaluate every position and annotate
-            blunders, mistakes, and best moves.
+            The engine evaluates each position, highlighting its preferred moves
+            and opportunities worth revisiting.
             {game?.moves?.length
               ? ` ${game.moves.length} moves to analyze.`
               : ''}
           </p>
+          {gameLoading && <p className="review-page__gate-sub">Loading game details…</p>}
+          {gameError && <p className="review-page__gate-warn" role="alert">{gameError}</p>}
           {game?.moves?.length === 0 && (
             <p className="review-page__gate-warn">
               No moves were recorded for this game.<br />
@@ -172,9 +212,9 @@ export default function ReviewPage() {
           <button
             className="review-page__gate-btn"
             onClick={requestReview}
-            disabled={!game || game.moves?.length === 0}
+            disabled={gameLoading || !game || !game.moves?.length}
           >
-            ANALYZE GAME
+            Analyze game
           </button>
         </div>
       </div>
@@ -247,10 +287,10 @@ export default function ReviewPage() {
       {summary && (
         <div className="review-page__summary">
           {[
-            { label: 'ACCURACY',     val: summary.accuracy != null ? `${summary.accuracy}%` : '—', cls: '' },
-            { label: 'BLUNDERS',     val: summary.blunders?.length    ?? 0,  cls: 'blunder' },
-            { label: 'MISTAKES',     val: summary.mistakes?.length    ?? 0,  cls: 'mistake' },
-            { label: 'INACCURACIES', val: summary.inaccuracies?.length ?? 0, cls: 'inaccuracy' },
+            { label: 'ENGINE MATCH', val: summary.accuracy != null ? `${summary.accuracy}%` : '—', cls: '' },
+            { label: 'MOVES REVIEWED', val: annotations.length, cls: '' },
+            { label: 'BEST MOVES', val: annotations.filter(move => move.wasOptimal ?? move.isEnginePick).length, cls: 'best' },
+            { label: 'ALTERNATIVES', val: summary.tacticalMissesCount ?? annotations.filter(move => !(move.wasOptimal ?? move.isEnginePick)).length, cls: 'inaccuracy' },
           ].map(({ label, val, cls }) => (
             <div key={label} className={`review-page__stat ${cls ? `review-page__stat--${cls}` : ''}`}>
               <span className="review-page__stat-num">{val}</span>
@@ -308,11 +348,11 @@ export default function ReviewPage() {
 
           {/* Navigation */}
           <div className="review-page__nav">
-            <button onClick={() => setCurrent(0)}                                        className="review-page__nav-btn">⏮</button>
-            <button onClick={() => setCurrent(c => Math.max(0, c - 1))}                  className="review-page__nav-btn">◀</button>
+            <button onClick={() => setCurrent(0)} disabled={current === 0}               className="review-page__nav-btn" aria-label="First move">⏮</button>
+            <button onClick={() => setCurrent(c => Math.max(0, c - 1))} disabled={current === 0} className="review-page__nav-btn" aria-label="Previous move">◀</button>
             <span className="review-page__nav-counter">{current + 1} / {annotations.length}</span>
-            <button onClick={() => setCurrent(c => Math.min(annotations.length-1, c+1))} className="review-page__nav-btn">▶</button>
-            <button onClick={() => setCurrent(annotations.length - 1)}                   className="review-page__nav-btn">⏭</button>
+            <button onClick={() => setCurrent(c => Math.min(annotations.length-1, c+1))} disabled={current >= annotations.length - 1} className="review-page__nav-btn" aria-label="Next move">▶</button>
+            <button onClick={() => setCurrent(annotations.length - 1)} disabled={current >= annotations.length - 1} className="review-page__nav-btn" aria-label="Last move">⏭</button>
           </div>
           <p className="review-page__nav-tip">← → arrow keys</p>
         </div>
