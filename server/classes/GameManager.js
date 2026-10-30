@@ -20,11 +20,24 @@ function toEngineIdx(boardIndex, cellIndex) {
   return boardIndex * 9 + cellIndex;
 }
 
+function parseTimeControl(timeControl) {
+  if (typeof timeControl !== 'string') return null;
+  const match = /^(\d{1,2})\+(\d{1,2})$/.exec(timeControl);
+  if (!match) return null;
+
+  const minutes = Number(match[1]);
+  const seconds = Number(match[2]);
+  if (minutes < 1 || minutes > 60 || seconds > 30) return null;
+
+  return { base: minutes * 60 * 1000, increment: seconds * 1000 };
+}
+
 class GameManager {
   constructor(io) {
     this.io = io;
     this.games = new Map();
     this.activeUserGames = new Map();
+    this.pendingUserGames = new Set();
     this.waitingPlayers = new Map();
     this.timers = new Map();
   }
@@ -42,7 +55,11 @@ class GameManager {
 
   cancelMatchmaking(socket) {
     for (const [timeControl, queue] of this.waitingPlayers) {
-      const remainingPlayers = queue.filter(player => player.socket.id !== socket.id);
+      const remainingPlayers = queue.filter(player =>
+        player.socket.id !== socket.id &&
+        (socket.userId == null ||
+          String(player.socket.userId) !== String(socket.userId))
+      );
 
       if (remainingPlayers.length === 0) {
         this.waitingPlayers.delete(timeControl);
@@ -53,8 +70,24 @@ class GameManager {
   }
 
   async findMatch(socket, timeControl, preferredSymbol) {
+    if (!socket?.id || !parseTimeControl(timeControl) ||
+        !['X', 'O'].includes(preferredSymbol)) {
+      throw new Error('Invalid matchmaking request');
+    }
+
+    if (this.getActiveGameId(socket.userId) ||
+        this.pendingUserGames.has(String(socket.userId))) {
+      throw new Error('Player already has an active game');
+    }
+
     const queue = this.waitingPlayers.get(timeControl) || [];
-    const opponentIndex = queue.findIndex(p => p.socket.id !== socket.id && !p.socket.disconnected);
+    const opponentIndex = queue.findIndex(player =>
+      player.socket.id !== socket.id &&
+      String(player.socket.userId) !== String(socket.userId) &&
+      !player.socket.disconnected &&
+      !this.getActiveGameId(player.socket.userId) &&
+      !this.pendingUserGames.has(String(player.socket.userId))
+    );
     
     if (opponentIndex === -1) {
       this.addPlayerToQueue(socket, timeControl, preferredSymbol);
@@ -63,17 +96,61 @@ class GameManager {
 
     const opponent = queue[opponentIndex];
     queue.splice(opponentIndex, 1);
-    this.waitingPlayers.set(timeControl, queue);
+    if (queue.length) this.waitingPlayers.set(timeControl, queue);
+    else this.waitingPlayers.delete(timeControl);
 
-    return this.createGame([opponent.socket, socket], timeControl, opponent.preferredSymbol, preferredSymbol);
+    try {
+      return await this.createGame(
+        [opponent.socket, socket],
+        timeControl,
+        opponent.preferredSymbol,
+        preferredSymbol
+      );
+    } catch (error) {
+      if (!opponent.socket.disconnected) {
+        this.addPlayerToQueue(opponent.socket, timeControl, opponent.preferredSymbol);
+      }
+      throw error;
+    }
   }
 
   // --- 2. GAME CREATION ---
   async createGame(sockets, timeControlStr, p1Pref, p2Pref) {
+    const timeControl = parseTimeControl(timeControlStr);
+    if (!timeControl || !Array.isArray(sockets) || sockets.length !== 2 ||
+        sockets.some(socket => !socket?.id || !socket.userId) ||
+        String(sockets[0].userId) === String(sockets[1].userId)) {
+      throw new Error('Cannot create a game from invalid players or time control');
+    }
+
+    if (sockets.some(socket =>
+      this.getActiveGameId(socket.userId) ||
+      this.pendingUserGames.has(String(socket.userId))
+    )) {
+      throw new Error('A player already has an active game');
+    }
+
     const gameId = uuidv4();
-    const [u1, u2] = await Promise.all(sockets.map(s => User.findById(s.userId).select('username elo')));
-    
-    if (!u1 || !u2) return null;
+    sockets.forEach(socket => this.pendingUserGames.add(String(socket.userId)));
+    let users;
+    try {
+      users = await Promise.all(
+        sockets.map(socket => User.findById(socket.userId).select('username elo'))
+      );
+    } catch (error) {
+      sockets.forEach(socket => this.pendingUserGames.delete(String(socket.userId)));
+      throw error;
+    }
+    const [u1, u2] = users;
+
+    if (!u1 || !u2) {
+      sockets.forEach(socket => this.pendingUserGames.delete(String(socket.userId)));
+      throw new Error('Unable to find both players for this game');
+    }
+    if (sockets.some(socket => socket.disconnected)) {
+      sockets.forEach(socket => this.pendingUserGames.delete(String(socket.userId)));
+      throw new Error('A player disconnected before the game could start');
+    }
 
     let p1Symbol = 'X';
     if (p1Pref === 'O' || (p2Pref === 'X' && p1Pref !== 'X')) p1Symbol = 'O';
@@ -81,10 +158,6 @@ class GameManager {
 
     const playersInOrder = p1Symbol === 'X' ? [sockets[0], sockets[1]] : [sockets[1], sockets[0]];
     const detailsInOrder = p1Symbol === 'X' ? [u1, u2] : [u2, u1];
-
-    const timeParts = timeControlStr.split('+');
-    const initialTime = parseInt(timeParts[0]) * 60 * 1000;
-    const increment = parseInt(timeParts[1] || '0') * 1000;
 
     const newGame = {
       id: gameId,
@@ -95,8 +168,8 @@ class GameManager {
       boardWinners: Array(9).fill(null),
       activeBoard: null,
       gameWinner: null,
-      timeControl: { base: initialTime, increment },
-      playerTimes: [initialTime, initialTime],
+      timeControl,
+      playerTimes: [timeControl.base, timeControl.base],
       lastMoveTimestamp: Date.now(),
       lastTickTimestamp: Date.now(),
       chat: [],
@@ -107,6 +180,7 @@ class GameManager {
 
     this.games.set(gameId, newGame);
     detailsInOrder.forEach(u => this.activeUserGames.set(u.id, gameId));
+    detailsInOrder.forEach(u => this.pendingUserGames.delete(u.id));
     sockets.forEach(s => s.join(gameId));
 
     this.io.to(gameId).emit('gameStarted', { gameId });
@@ -114,6 +188,143 @@ class GameManager {
     
     this.startGameTimer(gameId);
     return newGame;
+  }
+
+  async createPrivateGame(socket, timeControlStr, preferredSymbol = 'X') {
+    const timeControl = parseTimeControl(timeControlStr);
+    if (!socket?.id || !socket.userId || !timeControl ||
+        !['X', 'O'].includes(preferredSymbol)) {
+      throw new Error('Invalid private game request');
+    }
+    if (this.getActiveGameId(socket.userId) ||
+        this.pendingUserGames.has(String(socket.userId))) {
+      throw new Error('Player already has an active game');
+    }
+
+    const userId = String(socket.userId);
+    this.pendingUserGames.add(userId);
+    let user;
+    try {
+      user = await User.findById(socket.userId).select('username elo');
+    } catch (error) {
+      this.pendingUserGames.delete(userId);
+      throw error;
+    }
+    if (!user) {
+      this.pendingUserGames.delete(userId);
+      throw new Error('Unable to find the game creator');
+    }
+
+    const userDetails = {
+      id: user._id.toString(),
+      username: user.username,
+      elo: user.elo
+    };
+    const hostIsX = preferredSymbol === 'X';
+    const players = hostIsX ? [socket.id, null] : [null, socket.id];
+    const playerDetails = hostIsX ? [userDetails, null] : [null, userDetails];
+    const gameId = uuidv4();
+    const game = {
+      id: gameId,
+      players,
+      playerDetails,
+      playerToMove: null,
+      allBoards: Array.from({ length: 9 }, () => Array(9).fill(null)),
+      boardWinners: Array(9).fill(null),
+      activeBoard: null,
+      gameWinner: null,
+      timeControl,
+      playerTimes: [timeControl.base, timeControl.base],
+      lastMoveTimestamp: Date.now(),
+      lastTickTimestamp: Date.now(),
+      chat: [],
+      moves: [],
+      engineMoves: [],
+      drawOffer: null,
+      waitingForOpponent: true
+    };
+
+    this.games.set(gameId, game);
+    this.activeUserGames.set(userDetails.id, gameId);
+    this.pendingUserGames.delete(userId);
+    socket.join(gameId);
+    return game;
+  }
+
+  async joinGame(socket, gameId) {
+    const game = this.games.get(gameId);
+    if (!game || !socket?.userId) return null;
+
+    let playerIndex = game.playerDetails.findIndex(player =>
+      player && String(player.id ?? player._id) === String(socket.userId)
+    );
+
+    if (playerIndex === -1 && game.waitingForOpponent) {
+      playerIndex = game.playerDetails.findIndex(player => player === null);
+      if (playerIndex === -1 || game.joiningUserId) return null;
+      if (this.getActiveGameId(socket.userId) ||
+          this.pendingUserGames.has(String(socket.userId))) return null;
+
+      game.joiningUserId = String(socket.userId);
+      this.pendingUserGames.add(String(socket.userId));
+      let user;
+      try {
+        user = await User.findById(socket.userId).select('username elo');
+      } catch (error) {
+        delete game.joiningUserId;
+        this.pendingUserGames.delete(String(socket.userId));
+        throw error;
+      }
+      if (!user) {
+        delete game.joiningUserId;
+        this.pendingUserGames.delete(String(socket.userId));
+        throw new Error('Unable to find the joining player');
+      }
+
+      const userDetails = {
+        id: user._id.toString(),
+        username: user.username,
+        elo: user.elo
+      };
+      game.playerDetails[playerIndex] = userDetails;
+      game.players[playerIndex] = socket.id;
+      game.waitingForOpponent = false;
+      delete game.joiningUserId;
+      this.activeUserGames.set(userDetails.id, game.id);
+      this.pendingUserGames.delete(userDetails.id);
+      game.playerToMove = game.players[0];
+    } else if (playerIndex === -1) {
+      return null;
+    } else {
+      const oldSocketId = game.players[playerIndex];
+      game.players[playerIndex] = socket.id;
+      if (game.playerToMove === oldSocketId) game.playerToMove = socket.id;
+    }
+
+    socket.join(gameId);
+    if (!game.waitingForOpponent) {
+      this.io.to(gameId).emit('gameStarted', { gameId });
+      this.sendPlayerStakes(gameId, socket);
+      this.startGameTimer(gameId);
+    }
+    this.io.to(gameId).emit('updateGame', game);
+    return game;
+  }
+
+  async createTournamentGame(player1Id, player2Id, timeControlStr = '5+0') {
+    const sockets = [...this.io.sockets.sockets.values()];
+    const player1 = sockets.find(socket =>
+      String(socket.userId) === String(player1Id) && !socket.disconnected
+    );
+    const player2 = sockets.find(socket =>
+      String(socket.userId) === String(player2Id) && !socket.disconnected
+    );
+
+    if (!player1 || !player2) {
+      throw new Error('Both tournament players must be connected to start a match');
+    }
+
+    return this.createGame([player1, player2], timeControlStr, 'X', 'O');
   }
 
   // --- 3. SEND PERSONAL STAKES (Called on Join) ---
@@ -151,16 +362,20 @@ class GameManager {
   }
 
   // --- 4. MOVE LOGIC ---
-  async makeMove(socket, { gameId, boardIndex, cellIndex }) {
+  async makeMove(socket, { gameId, boardIndex, cellIndex } = {}) {
     const game = this.games.get(gameId);
-    if (!game || game.gameWinner) return;
+    if (!game || game.gameWinner || game.waitingForOpponent) return;
+    if (!Number.isInteger(boardIndex) || boardIndex < 0 || boardIndex > 8 ||
+        !Number.isInteger(cellIndex) || cellIndex < 0 || cellIndex > 8) return;
 
     // Validate Turn
     if (game.playerToMove !== socket.id) return;
-    if (game.boardWinners[boardIndex] || game.allBoards[boardIndex][cellIndex]) return;
+    if (game.boardWinners[boardIndex] !== null ||
+        game.allBoards[boardIndex][cellIndex] !== null) return;
     if (game.activeBoard !== null && game.activeBoard !== boardIndex) return;
 
     const pIdx = game.players.indexOf(socket.id);
+    if (pIdx === -1) return;
     const symbol = pIdx === 0 ? 'X' : 'O';
 
     game.drawOffer = null;
@@ -199,7 +414,10 @@ game.engineMoves.push({
     // 5. Check Big Win
     const bigWin = calculateWinner(game.boardWinners);
     if (bigWin) {
-      await this.endGame(gameId, { winner: bigWin.winner, reason: 'checkmate' });
+      await this.endGame(gameId, {
+        winner: bigWin.winner,
+        reason: bigWin.winner === 'D' ? 'draw' : 'checkmate'
+      });
     } else {
       // Switch Turn
       game.playerToMove = game.players[pIdx === 0 ? 1 : 0];
@@ -210,7 +428,8 @@ game.engineMoves.push({
   // --- 5. END GAME ---
   async endGame(gameId, result) {
     const game = this.games.get(gameId);
-    if (!game || game.gameWinner) return;
+    if (!game || game.gameWinner || game.waitingForOpponent ||
+        !game.playerDetails?.[0] || !game.playerDetails?.[1]) return;
 
     if (this.timers.has(gameId)) {
       clearInterval(this.timers.get(gameId));
@@ -258,7 +477,21 @@ game.engineMoves.push({
 
     this.io.to(gameId).emit('gameEnded', payload);
     this.io.to(gameId).emit('updateGame', game);
-    game.playerDetails.forEach(p => this.activeUserGames.delete(p.id));
+    game.playerDetails.forEach(player => {
+      if (this.activeUserGames.get(player.id) === gameId) {
+        this.activeUserGames.delete(player.id);
+      }
+    });
+    game.playerDetails.forEach(player =>
+      this.pendingUserGames.delete(String(player.id))
+    );
+    if (typeof this.onGameEnded === 'function') {
+      try {
+        await this.onGameEnded(game, result);
+      } catch (error) {
+        console.error('[Tournament] Game-end processing failed:', error);
+      }
+    }
   }
 
   // --- 6. UTILS ---
@@ -266,7 +499,11 @@ game.engineMoves.push({
     if (this.timers.has(gameId)) return;
     const interval = setInterval(() => {
       const game = this.games.get(gameId);
-      if (!game || game.gameWinner) { clearInterval(interval); return; }
+      if (!game || game.gameWinner || game.waitingForOpponent) {
+        clearInterval(interval);
+        this.timers.delete(gameId);
+        return;
+      }
       
       const now = Date.now();
       const delta = now - (game.lastTickTimestamp || now);
@@ -280,7 +517,8 @@ game.engineMoves.push({
 
       if (game.playerTimes[activeIdx] <= 0) {
         const winSym = activeIdx === 0 ? 'O' : 'X';
-        this.endGame(gameId, { winner: winSym, reason: 'timeout' });
+        this.endGame(gameId, { winner: winSym, reason: 'timeout' })
+          .catch(error => console.error(`[Game ${gameId}] Timeout handling failed:`, error));
       } else {
         this.io.to(gameId).emit('updateGame', game);
       }
@@ -290,12 +528,25 @@ game.engineMoves.push({
 
   handleDisconnect(socket) {
     this.cancelMatchmaking(socket);
+    for (const [gameId, game] of this.games) {
+      if (!game.waitingForOpponent || !game.players.includes(socket.id)) continue;
+
+      game.playerDetails.forEach(player => {
+        if (player && this.activeUserGames.get(player.id) === gameId) {
+          this.activeUserGames.delete(player.id);
+        }
+      });
+      this.games.delete(gameId);
+      this.io.to(gameId).emit('gameCancelled', {
+        reason: 'creator-disconnected'
+      });
+    }
   }
 
   // Draw handlers
   offerDraw(gameId, userId) {
     const game = this.games.get(gameId);
-    if (!game || game.gameWinner || game.drawOffer) return;
+    if (!game || game.gameWinner || game.waitingForOpponent || game.drawOffer) return;
 
     const playerIndex = game.playerDetails.findIndex(player =>
       String(player.id ?? player._id) === String(userId)

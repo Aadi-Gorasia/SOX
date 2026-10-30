@@ -13,6 +13,11 @@ const AnnotationSchema = new mongoose.Schema({
   moveNumber:  { type: Number },
   idx:         { type: Number },  // move played
   bestMove:    { type: Number },  // engine's preferred move
+  playedMove:  { type: Number },
+  optimalMove: { type: Number },
+  positionStateBefore: { type: [Number], default: undefined },
+  wasOptimal:  { type: Boolean },
+  positionalScore: { type: Number },
   score:       { type: Number },  // centipawns after move, X-relative
   scoreBefore: { type: Number },  // centipawns before move
   delta:       { type: Number },  // score change (negative = worse for mover)
@@ -40,6 +45,8 @@ const GameSchema = new mongoose.Schema({
     mistakes:    { type: [Number], default: [] },
     inaccuracies:{ type: [Number], default: [] },
     accuracy:    { type: Number, default: null },  // 0-100 overall accuracy
+    tacticalMissesCount: { type: Number, default: 0 },
+    compiledAtTimestamp: { type: String, default: null },
   },
 
 }, { timestamps: true });

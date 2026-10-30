@@ -3,8 +3,12 @@ const test = require('node:test');
 const {
   checkPuzzleAnswer,
   difficultyForRating,
-  getBestMove
+  getBestMove,
+  annotateGame,
+  buildReviewSummary,
+  generatePuzzlesFromAnnotations
 } = require('./engineService');
+const Game = require('../models/Game');
 
 test('puzzle difficulty tracks the competitive rating bands', () => {
   assert.equal(difficultyForRating(700).label, 'Beginner');
@@ -32,4 +36,38 @@ test('invalid move histories and out-of-range answers are rejected', async () =>
   assert.equal(invalidPosition.bestMove, -1);
   assert.equal(invalidAnswer.correct, false);
   assert.equal(invalidAnswer.bestMove, -1);
+});
+
+test('review annotations and summary fields survive game schema serialization', async () => {
+  const annotations = await annotateGame([40, 39, 27, 0, 1]);
+  const reviewSummary = buildReviewSummary(annotations);
+  const persistedGame = new Game({
+    annotations,
+    reviewSummary
+  }).toObject();
+
+  assert.equal(persistedGame.annotations.length, annotations.length);
+  assert.deepEqual(persistedGame.annotations[4].positionStateBefore, [40, 39, 27, 0]);
+  assert.equal(persistedGame.reviewSummary.tacticalMissesCount, reviewSummary.tacticalMissesCount);
+  assert.equal(
+    persistedGame.reviewSummary.compiledAtTimestamp,
+    reviewSummary.compiledAtTimestamp
+  );
+});
+
+test('review puzzles expose a valid prior position and engine solution', () => {
+  const puzzles = generatePuzzlesFromAnnotations([], [{
+    moveNumber: 5,
+    wasOptimal: false,
+    positionStateBefore: [40, 39, 27, 0],
+    bestMove: 1
+  }]);
+
+  assert.deepEqual(puzzles, [{
+    difficulty: 'Developing',
+    moveNumber: 5,
+    position: [40, 39, 27, 0],
+    solution: 1,
+    theme: 'Tactical improvement'
+  }]);
 });

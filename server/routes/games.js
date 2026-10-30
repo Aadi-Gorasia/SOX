@@ -69,7 +69,9 @@ router.get('/puzzle/infinite-generate', authMiddleware, async (req, res) => {
 
 // ─── PROGRESSIVE ADAPTIVE TRAINING: SUBMIT RESPONSE ───
 router.post('/puzzle/infinite-submit', authMiddleware, async (req, res) => {
-  const { answer, position } = req.body;
+  const { answer, position } = req.body && typeof req.body === 'object'
+    ? req.body
+    : {};
   if (!Number.isInteger(answer) || answer < 0 || answer > 80 ||
       !Array.isArray(position) || position.length > 80 ||
       position.some(move => !Number.isInteger(move) || move < 0 || move > 80)) {
@@ -105,7 +107,9 @@ router.post('/puzzle/infinite-submit', authMiddleware, async (req, res) => {
 // ─── BASELINE MATCH PUZZLE VERIFY ENDPOINT ───
 router.post('/puzzle/check', authMiddleware, async (req, res) => {
   try {
-    const { position, answer } = req.body;
+    const { position, answer } = req.body && typeof req.body === 'object'
+      ? req.body
+      : {};
     if (!Array.isArray(position) || position.length > 80 ||
         position.some(move => !Number.isInteger(move) || move < 0 || move > 80) ||
         !Number.isInteger(answer) || answer < 0 || answer > 80) {
@@ -122,8 +126,17 @@ router.post('/puzzle/check', authMiddleware, async (req, res) => {
 // ─── MATCH ENGINE IN-GAME LIVE HELPER EXTRACTOR ───
 router.post('/hint', authMiddleware, async (req, res) => {
   try {
-    const { moves = [], elo = 1500 } = req.body;
-    const result = await getBestMove(moves, elo);
+    const { moves = [] } = req.body && typeof req.body === 'object'
+      ? req.body
+      : {};
+    if (!Array.isArray(moves) || moves.length > 80 ||
+        moves.some(move => !Number.isInteger(move) || move < 0 || move > 80)) {
+      return res.status(400).json({ msg: 'A valid move sequence is required' });
+    }
+
+    const user = await User.findById(req.user.id).select('elo');
+    if (!user) return res.status(404).json({ msg: 'User not found' });
+    const result = await getBestMove(moves, user.elo || 1200);
     res.json(result);
   } catch (err) {
     console.error('[Live Match Optimization Extraction Mistake]:', err.message);
@@ -163,7 +176,11 @@ router.get('/:id([0-9a-fA-F]{24})/review', authMiddleware, async (req, res) => {
     const isPlayer = game.players.some(p => p.toString() === req.user.id);
     if (!isPlayer) return res.status(403).json({ msg: 'Access Denied: Player mismatch error' });
 
-    if (game.reviewedAt && game.annotations.length > 0) {
+    const hasCompleteAnnotations = game.annotations.length > 0 &&
+      game.annotations.every(annotation =>
+        Array.isArray(annotation.positionStateBefore)
+      );
+    if (game.reviewedAt && hasCompleteAnnotations) {
       return res.json({
         annotations:   game.annotations,
         reviewSummary: game.reviewSummary,
@@ -196,6 +213,11 @@ async function reviewPuzzles(req, res) {
   try {
     const game = await Game.findById(req.params.id);
     if (!game) return res.status(404).json({ msg: 'Target Game Entry Absent' });
+
+    const isPlayer = game.players.some(player =>
+      player.toString() === req.user.id
+    );
+    if (!isPlayer) return res.status(403).json({ msg: 'Access denied' });
 
     if (!game.reviewedAt || game.annotations.length === 0) {
       return res.status(400).json({ msg: 'Please call the baseline review pipeline endpoint first.' });

@@ -18,8 +18,10 @@ const PORT = process.env.PORT || 5001;
 
 // ─── CONFIGURATION ────────────────────────────────────────────────────────────
 
-if (!process.env.MONGO_URI) {
-  console.error('[Startup] MONGO_URI is missing.');
+const missingRequiredConfig = ['MONGO_URI', 'JWT_SECRET']
+  .filter(key => !process.env[key]);
+if (missingRequiredConfig.length) {
+  console.error(`[Startup] Required configuration is missing: ${missingRequiredConfig.join(', ')}`);
   process.exit(1);
 }
 
@@ -31,20 +33,20 @@ const allowedOrigins = [
     : [])
 ].filter(Boolean);
 
+function allowOrigin(origin, callback) {
+  const isAllowed =
+    !origin ||
+    allowedOrigins.includes(origin) ||
+    /^https:\/\/sox-[a-z0-9-]+-aadis-projects-641df6d8\.vercel\.app$/.test(origin);
+
+  if (isAllowed) return callback(null, true);
+
+  console.error('[CORS] Rejected origin:', origin);
+  return callback(new Error('Origin not allowed by CORS'));
+}
+
 app.use(cors({
-  origin(origin, callback) {
-    const isAllowed =
-      !origin ||
-      allowedOrigins.includes(origin) ||
-      /^https:\/\/sox-[a-z0-9-]+-aadis-projects-641df6d8\.vercel\.app$/.test(origin);
-
-    if (isAllowed) {
-      return callback(null, true);
-    }
-
-    console.error('[CORS] Rejected origin:', origin);
-    return callback(new Error('Origin not allowed by CORS'));
-  },
+  origin: allowOrigin,
   credentials: true
 }));
 app.use(express.json({ limit: '1mb' }));
@@ -86,7 +88,7 @@ app.use('/api/puzzles', gamesRouter);
 
 const io = new Server(server, {
   cors: {
-    origin: allowedOrigins,
+    origin: allowOrigin,
     methods: ['GET', 'POST'],
     credentials: true
   }
@@ -128,7 +130,9 @@ io.on('connection', (socket) => {
     socket.emit('pong_latency');
   });
 
-  socket.on('findGame', ({ timeControl, preferredSymbol } = {}) => {
+  socket.on('findGame', (payload = {}) => {
+    const timeControl = payload?.timeControl;
+    const preferredSymbol = payload?.preferredSymbol;
     console.log(
       `[Matchmaking] Request: user=${socket.userId}, socket=${socket.id}, timeControl=${timeControl}, symbol=${preferredSymbol}`
     );
@@ -144,10 +148,15 @@ io.on('connection', (socket) => {
           `[Matchmaking] ${game ? 'Paired' : 'No game returned'}: user=${socket.userId}, socket=${socket.id}, timeControl=${timeControl}${game ? `, game=${game.id}` : ''}`
         );
       })
-      .catch(err => console.error(
-        `[Matchmaking] Error: user=${socket.userId}, socket=${socket.id}, timeControl=${timeControl}`,
-        err
-      ));
+      .catch(err => {
+        console.error(
+          `[Matchmaking] Error: user=${socket.userId}, socket=${socket.id}, timeControl=${timeControl}`,
+          err
+        );
+        socket.emit('matchmakingError', {
+          message: 'Unable to start matchmaking. Please try again.'
+        });
+      });
   });
 
   socket.on('cancelFindGame', () => {
@@ -157,49 +166,69 @@ io.on('connection', (socket) => {
     );
   });
 
-  socket.on('joinGame', (gameId) => {
-    try {
-      const game = gameManager.getGame(gameId);
-      if (!game) return;
-
-      socket.join(gameId);
-
-      const userId = String(socket.userId);
-      const pIdx = game.playerDetails.findIndex(p =>
-        String(p.id ?? p._id) === userId
-      );
-
-      if (pIdx !== -1) {
-        const oldSocketId = game.players[pIdx];
-
-        game.players[pIdx] = socket.id;
-
-        if (game.playerToMove === oldSocketId) {
-          game.playerToMove = socket.id;
+  socket.on('createFriendGame', (payload = {}, acknowledge) => {
+    const timeControl = payload?.timeControl;
+    const preferredSymbol = payload?.preferredSymbol;
+    gameManager.createPrivateGame(socket, timeControl, preferredSymbol)
+      .then(game => {
+        if (typeof acknowledge === 'function') acknowledge({ gameId: game.id });
+      })
+      .catch(err => {
+        console.error('[Game] Private game creation error:', err);
+        if (typeof acknowledge === 'function') {
+          acknowledge({ error: err.message || 'Unable to create a private game.' });
         }
+      });
+  });
 
-        console.log(
-          `[Game ${gameId}] Reconnected: ${oldSocketId} -> ${socket.id}`
-        );
+  socket.on('joinGame', (gameId) => {
+    gameManager.joinGame(socket, gameId)
+      .then(game => {
+        if (!game) {
+          socket.emit('gameJoinError', {
+            message: 'This game is unavailable or you are not a participant.'
+          });
+          return;
+        }
+        console.log(`[Game ${gameId}] Joined by user=${socket.userId}, socket=${socket.id}`);
+      })
+      .catch(err => {
+        console.error('[Game] Join error:', err);
+        socket.emit('gameJoinError', {
+          message: 'Unable to join this game. Please try again.'
+        });
+      });
+  });
 
-        gameManager.sendPlayerStakes(gameId, socket);
-      }
-
-      io.to(gameId).emit('updateGame', game);
-    } catch (err) {
-      console.error('[Game] Join error:', err);
+  socket.on('requestGameState', (payload = {}) => {
+    const gameId = payload?.gameId;
+    const game = gameManager.getGame(gameId);
+    if (!game) {
+      socket.emit('gameJoinError', { message: 'Game not found.' });
+      return;
     }
+
+    const isPlayer = game.playerDetails.some(player =>
+      player && String(player.id ?? player._id) === String(socket.userId)
+    );
+    if (!isPlayer) {
+      if (game.waitingForOpponent) return;
+      socket.emit('gameJoinError', {
+        message: 'You are not a participant in this game.'
+      });
+      return;
+    }
+
+    socket.emit('updateGame', game);
   });
 
   socket.on('makeMove', (data) => {
-    try {
-      gameManager.makeMove(socket, data);
-    } catch (err) {
-      console.error('[Game] Move error:', err);
-    }
+    gameManager.makeMove(socket, data ?? {})
+      .catch(err => console.error('[Game] Move error:', err));
   });
 
-  socket.on('resign', ({ gameId } = {}) => {
+  socket.on('resign', (payload = {}) => {
+    const gameId = payload?.gameId;
     try {
       const game = gameManager.getGame(gameId);
       if (!game) return;
@@ -209,41 +238,35 @@ io.on('connection', (socket) => {
 
       const winnerSymbol = pIdx === 0 ? 'O' : 'X';
 
-      const winnerDetails = game.playerDetails.find(p =>
-        String(p.id ?? p._id) !== String(socket.userId)
-      );
-
-      gameManager.endGame(gameId, {
+      Promise.resolve(gameManager.endGame(gameId, {
         winner: winnerSymbol,
         reason: 'resignation'
-      });
-
-      if (winnerDetails) {
-        Promise.resolve(
-          tournamentManager.handleMatchEnd(gameId, winnerDetails)
-        ).catch(err =>
-          console.error('[Tournament] Match-end error:', err)
-        );
-      }
+      })).catch(err => console.error('[Game] Resignation error:', err));
     } catch (err) {
       console.error('[Game] Resignation error:', err);
     }
   });
 
-  socket.on('offerDraw', ({ gameId } = {}) => {
+  socket.on('offerDraw', (payload = {}) => {
+    const gameId = payload?.gameId;
     gameManager.offerDraw(gameId, socket.userId);
   });
 
-  socket.on('acceptDraw', ({ gameId } = {}) => {
-    gameManager.acceptDraw(gameId, socket.userId);
+  socket.on('acceptDraw', (payload = {}) => {
+    const gameId = payload?.gameId;
+    gameManager.acceptDraw(gameId, socket.userId)
+      .catch(err => console.error('[Game] Draw acceptance error:', err));
   });
 
-  socket.on('declineDraw', ({ gameId } = {}) => {
+  socket.on('declineDraw', (payload = {}) => {
+    const gameId = payload?.gameId;
     gameManager.declineDraw(gameId, socket.userId);
   });
 
-  socket.on('sendChatMessage', ({ gameId, message } = {}) => {
+  socket.on('sendChatMessage', (payload = {}) => {
     try {
+      const gameId = payload?.gameId;
+      const message = payload?.message;
       if (typeof message !== 'string' || !message.trim()) return;
       if (message.length > 2000) return;
 
@@ -271,7 +294,7 @@ io.on('connection', (socket) => {
 
   // ─── TOURNAMENT EVENTS ────────────────────────────────────────────────────
 
-  socket.on('joinTournamentQueue', (user) => {
+  socket.on('joinTournamentQueue', (user = {}) => {
     try {
       // Never trust a client-supplied user identity.
       tournamentManager.joinQueue(socket, {
@@ -280,6 +303,9 @@ io.on('connection', (socket) => {
       });
     } catch (err) {
       console.error('[Tournament] Queue join error:', err);
+      socket.emit('tournamentError', {
+        message: err.message || 'Unable to join the tournament queue.'
+      });
     }
   });
 
@@ -288,11 +314,15 @@ io.on('connection', (socket) => {
   });
 
   socket.on('requestTournamentState', (tId) => {
-    const tournament = tournamentManager.tournaments.get(tId);
+    const tournament = tournamentManager.getTournamentForUser(tId, socket.userId);
 
     if (tournament) {
       socket.join(tId);
       socket.emit('tournamentState', tournament);
+    } else {
+      socket.emit('tournamentError', {
+        message: 'Tournament not found or you are not a participant.'
+      });
     }
   });
 

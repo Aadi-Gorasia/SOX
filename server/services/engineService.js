@@ -147,6 +147,10 @@ async function getBestMove(positionSequence = [], difficultyRating = 1500) {
     score: bestScore,
     theme: candidates[0].theme,
     alternatives: candidates.slice(1, 4).map(candidate => candidate.move),
+    moveScores: candidates.map(candidate => ({
+      move: candidate.move,
+      score: candidate.score
+    })),
     acceptableMoves: candidates
       .filter(candidate => candidate.score === bestScore)
       .map(candidate => candidate.move),
@@ -231,22 +235,73 @@ async function annotateGame(moves = [], evaluationElo = 3500) {
   for (let i = 0; i < moves.length; i += 1) {
     const movePlayed = typeof moves[i] === 'number' ? moves[i] : moves[i].idx;
     const evaluation = await getBestMove(runningSequence, evaluationElo);
-    annotations.push({ moveIndex: i, playedMove: movePlayed, optimalMove: evaluation.bestMove, positionStateBefore: [...runningSequence], wasOptimal: evaluation.bestMove === movePlayed, positionalScore: evaluation.score });
+    const playedScore = evaluation.moveScores?.find(candidate =>
+      candidate.move === movePlayed
+    )?.score;
+    const regret = playedScore === undefined
+      ? 0
+      : Math.max(0, evaluation.score - playedScore);
+    const wasOptimal = evaluation.acceptableMoves?.includes(movePlayed) || false;
+    annotations.push({
+      moveNumber: i + 1,
+      idx: movePlayed,
+      bestMove: evaluation.bestMove,
+      playedMove: movePlayed,
+      optimalMove: evaluation.bestMove,
+      positionStateBefore: [...runningSequence],
+      wasOptimal,
+      positionalScore: playedScore ?? 0,
+      score: playedScore ?? 0,
+      scoreBefore: evaluation.score,
+      delta: wasOptimal ? 0 : -regret,
+      blunder: !wasOptimal && regret > 200,
+      mistake: !wasOptimal && regret > 100 && regret <= 200,
+      inaccuracy: !wasOptimal && regret > 50 && regret <= 100,
+      isEnginePick: wasOptimal,
+      mateIn: null
+    });
     runningSequence.push(movePlayed);
   }
   return annotations;
 }
 
 function buildReviewSummary(annotations = []) {
-  if (!annotations.length) return { accuracy: 0, tacticalMissesCount: 0 };
-  const optimalCount = annotations.filter(annotation => annotation.wasOptimal).length;
-  return { accuracy: Math.round((optimalCount / annotations.length) * 100), tacticalMissesCount: annotations.length - optimalCount, compiledAtTimestamp: new Date().toISOString() };
+  if (!annotations.length) {
+    return {
+      accuracy: 0,
+      tacticalMissesCount: 0,
+      blunders: [],
+      mistakes: [],
+      inaccuracies: []
+    };
+  }
+
+  const optimalCount = annotations.filter(annotation =>
+    annotation.wasOptimal ?? annotation.isEnginePick
+  ).length;
+  return {
+    accuracy: Math.round((optimalCount / annotations.length) * 100),
+    tacticalMissesCount: annotations.length - optimalCount,
+    blunders: annotations.filter(annotation => annotation.blunder).map(annotation => annotation.moveNumber),
+    mistakes: annotations.filter(annotation => annotation.mistake).map(annotation => annotation.moveNumber),
+    inaccuracies: annotations.filter(annotation => annotation.inaccuracy).map(annotation => annotation.moveNumber),
+    compiledAtTimestamp: new Date().toISOString()
+  };
 }
 
 function generatePuzzlesFromAnnotations(moves = [], annotations = []) {
-  return annotations.filter(annotation => !annotation.wasOptimal && annotation.positionStateBefore.length >= 4)
+  return annotations.filter(annotation =>
+    !(annotation.wasOptimal ?? annotation.isEnginePick) &&
+    (annotation.positionStateBefore?.length ?? 0) >= 4
+  )
     .slice(0, 8)
-    .map((annotation, index) => ({ difficulty: index > 4 ? 'Advanced' : index > 1 ? 'Intermediate' : 'Developing', moveNumber: annotation.moveIndex, position: annotation.positionStateBefore, solution: annotation.optimalMove }));
+    .map((annotation, index) => ({
+      difficulty: index > 4 ? 'Advanced' : index > 1 ? 'Intermediate' : 'Developing',
+      moveNumber: annotation.moveNumber,
+      position: annotation.positionStateBefore,
+      solution: annotation.bestMove ?? annotation.optimalMove,
+      theme: 'Tactical improvement'
+    }));
 }
 
 module.exports = {
