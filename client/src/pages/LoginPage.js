@@ -62,7 +62,6 @@ const LoginPage = () => {
 
         <div className="social-grid">
           <button className="social-btn" onClick={() => handleSocialAuth('google')}>Google</button>
-          <button className="social-btn" onClick={() => handleSocialAuth('apple')}>Apple</button>
           <button className="social-btn" onClick={() => handleSocialAuth('facebook')}>Facebook</button>
         </div>
 

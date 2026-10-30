@@ -9,7 +9,8 @@ const {
   buildReviewSummary,
   generatePuzzlesFromAnnotations,
   checkPuzzleAnswer,
-  getBestMove
+  getBestMove,
+  generateAdaptivePuzzle
 } = require('../services/engineService');
 
 // =============================================================================
@@ -49,63 +50,15 @@ router.get('/leaderboard', async (req, res) => {
 router.get('/puzzle/infinite-generate', authMiddleware, async (req, res) => {
   try {
     const user = await User.findById(req.user.id);
-    const userRating = user.puzzleRating || 1200;
-
-    let targetDifficulty = 'easy';
-    let engineSearchDepthElo = 1000; 
-
-    if (userRating >= 1800) {
-      targetDifficulty = 'hard';
-      engineSearchDepthElo = 3000;
-    } else if (userRating >= 1400) {
-      targetDifficulty = 'medium';
-      engineSearchDepthElo = 2000;
-    }
-
-    const positionSequence = [];
-    const macroBlocksPlayed = Array(9).fill(0);
-    let currentFocusMacro = 9; 
-
-    const randomPlayoutDepth = 8 + Math.floor(Math.random() * 8); 
-    
-    for (let step = 0; step < randomPlayoutDepth; step++) {
-      let validMovesInMacro = [];
-      
-      if (currentFocusMacro === 9 || macroBlocksPlayed[currentFocusMacro] >= 9) {
-        for (let baseIdx = 0; baseIdx < 81; baseIdx++) {
-          if (!positionSequence.includes(baseIdx)) validMovesInMacro.push(baseIdx);
-        }
-      } else {
-        const structuralBase = currentFocusMacro * 9;
-        for (let cell = 0; cell < 9; cell++) {
-          const targetCellIdx = structuralBase + cell;
-          if (!positionSequence.includes(targetCellIdx)) validMovesInMacro.push(targetCellIdx);
-        }
-      }
-
-      if (validMovesInMacro.length === 0) break;
-
-      const pickedMove = validMovesInMacro[Math.floor(Math.random() * validMovesInMacro.length)];
-      positionSequence.push(pickedMove);
-      macroBlocksPlayed[Math.floor(pickedMove / 9)]++;
-      currentFocusMacro = pickedMove % 9;
-    }
-
-    const evaluation = await getBestMove(positionSequence, engineSearchDepthElo);
-
-    if (evaluation.bestMove < 0) {
-      return res.redirect('/api/games/puzzle/infinite-generate');
-    }
+    if (!user) return res.status(404).json({ msg: 'User not found' });
+    // Match training difficulty to the player's live competitive Elo.
+    const userRating = user.elo || 1200;
+    const puzzle = await generateAdaptivePuzzle(userRating);
 
     res.json({
-      difficulty: targetDifficulty,
+      difficulty: puzzle.difficulty,
       userCurrentRating: userRating,
-      puzzle: {
-        moveNumber: positionSequence.length,
-        position:   positionSequence,
-        solution:   evaluation.bestMove,
-        score:      evaluation.score
-      }
+      puzzle
     });
 
   } catch (err) {
@@ -116,16 +69,17 @@ router.get('/puzzle/infinite-generate', authMiddleware, async (req, res) => {
 
 // ─── PROGRESSIVE ADAPTIVE TRAINING: SUBMIT RESPONSE ───
 router.post('/puzzle/infinite-submit', authMiddleware, async (req, res) => {
-  const { answer, correctSolution } = req.body;
-  if (typeof answer !== 'number' || typeof correctSolution !== 'number') {
-    return res.status(400).json({ msg: 'Missing numerical verification coordinates' });
+  const { answer, position } = req.body;
+  if (typeof answer !== 'number' || !Array.isArray(position)) {
+    return res.status(400).json({ msg: 'A position and numerical answer are required' });
   }
 
   try {
-    const isCorrect = answer === correctSolution;
     const user = await User.findById(req.user.id);
-    
-    const K_FACTOR = 25; 
+    if (!user) return res.status(404).json({ msg: 'User not found' });
+    const result = await checkPuzzleAnswer(position, answer, user.elo || 1200);
+    const isCorrect = result.correct;
+    const K_FACTOR = 20;
     const ratingDelta = isCorrect ? K_FACTOR : -K_FACTOR;
     
     user.puzzleRating = Math.max(100, (user.puzzleRating || 1200) + ratingDelta);
@@ -134,7 +88,8 @@ router.post('/puzzle/infinite-submit', authMiddleware, async (req, res) => {
     res.json({
       correct: isCorrect,
       newRating: user.puzzleRating,
-      delta: ratingDelta
+      delta: ratingDelta,
+      bestMove: result.bestMove
     });
   } catch (err) {
     console.error('[Puzzle Submission Pipeline Error]:', err.message);
@@ -230,7 +185,7 @@ router.get('/:id([0-9a-fA-F]{24})/review', authMiddleware, async (req, res) => {
 });
 
 // ─── REVIEW PUZZLES GENERATION ───
-router.post('/:id([0-9a-fA-F]{24})/puzzles', authMiddleware, async (req, res) => {
+async function reviewPuzzles(req, res) {
   try {
     const game = await Game.findById(req.params.id);
     if (!game) return res.status(404).json({ msg: 'Target Game Entry Absent' });
@@ -245,6 +200,9 @@ router.post('/:id([0-9a-fA-F]{24})/puzzles', authMiddleware, async (req, res) =>
     console.error('[Review Analysis Extraction Failure]:', err.message);
     res.status(500).send('Server Error');
   }
-});
+}
+
+router.get('/:id([0-9a-fA-F]{24})/puzzles', authMiddleware, reviewPuzzles);
+router.post('/:id([0-9a-fA-F]{24})/puzzles', authMiddleware, reviewPuzzles);
 
 module.exports = router;

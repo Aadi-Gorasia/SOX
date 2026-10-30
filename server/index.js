@@ -48,8 +48,6 @@ app.use(cors({
   credentials: true
 }));
 app.use(express.json({ limit: '1mb' }));
-// Apple sends OAuth callbacks as application/x-www-form-urlencoded POSTs.
-app.use(express.urlencoded({ extended: false, limit: '1mb' }));
 
 // ─── HEALTH AND READINESS ─────────────────────────────────────────────────────
 

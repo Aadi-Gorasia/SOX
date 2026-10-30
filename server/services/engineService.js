@@ -1,185 +1,230 @@
 /**
- * server/services/engineService.js
- * SOX Tactical Analysis & Positional Evaluation Engine Core Pipeline
+ * Lightweight Ultimate Tic-Tac-Toe tactical engine used by hints, reviews, and
+ * training. It always derives legal moves from the same rules used by the board.
  */
+const WIN_LINES = [
+  [0, 1, 2], [3, 4, 5], [6, 7, 8],
+  [0, 3, 6], [1, 4, 7], [2, 5, 8],
+  [0, 4, 8], [2, 4, 6]
+];
 
-/**
- * Computes the optimal intercept move coordinates for a given sequential game state matrix.
- * @param {Array<number>} positionSequence - Array of move index placements (0-80)
- * @param {number} engineSearchDepthElo - Relative threshold difficulty score constraint
- * @returns {Promise<{bestMove: number, score: number}>}
- */
-async function getBestMove(positionSequence = [], engineSearchDepthElo = 1500) {
-  try {
-    // 1. Structural Validation
-    if (!Array.isArray(positionSequence)) {
-      return { bestMove: -1, score: 0 };
-    }
+const clamp = (value, min, max) => Math.max(min, Math.min(max, value));
+const other = player => (player === 'X' ? 'O' : 'X');
 
-    // 2. Map board parameters out to calculate legal open canvas intersections
-    const board = Array(81).fill(null);
-    positionSequence.forEach((idx, i) => {
-      board[idx] = i % 2 === 0 ? 'X' : 'O';
-    });
-
-    // 3. Extract the active relative macro-block constraint context
-    let activeMacro = 9; // 9 points to an unrestricted open board state
-    if (positionSequence.length > 0) {
-      const lastMove = positionSequence[positionSequence.length - 1];
-      activeMacro = lastMove % 9;
-    }
-
-    // Evaluate macro completion statuses to check for wildcard conditions
-    const macroBlocksPlayed = Array(9).fill(0);
-    positionSequence.forEach(idx => {
-      macroBlocksPlayed[Math.floor(idx / 9)]++;
-    });
-
-    // Reset constraint parameter if targeted sub-block grid is full
-    if (activeMacro !== 9 && macroBlocksPlayed[activeMacro] >= 9) {
-      activeMacro = 9;
-    }
-
-    // 4. Extract legal indices mapping options
-    const legalMoves = [];
-    if (activeMacro === 9) {
-      for (let i = 0; i < 81; i++) {
-        if (!positionSequence.includes(i)) legalMoves.push(i);
-      }
-    } else {
-      const baseOffset = activeMacro * 9;
-      for (let cell = 0; cell < 9; cell++) {
-        const targetCell = baseOffset + cell;
-        if (!positionSequence.includes(targetCell)) legalMoves.push(targetCell);
-      }
-    }
-
-    // Boundary absolute fallback guard condition
-    if (legalMoves.length === 0) {
-      return { bestMove: -1, score: 0 };
-    }
-
-    // 5. Tactical Evaluation Weights (Prioritizing block captures & strategic focal lines)
-    // Heuristic weight scores assigned to internal coordinates relative to matching vectors
-    let bestMoveSelected = legalMoves[0];
-    let topHeuristicScore = -Infinity;
-
-    for (const move of legalMoves) {
-      let score = 0;
-      const cellInMacro = move % 9;
-      const macroContainer = Math.floor(move / 9);
-
-      // Rule A: Favor setting up micro-center controls
-      if (cellInMacro === 4) score += 15;
-      
-      // Rule B: Favor critical structural corners
-      if ([0, 2, 6, 8].includes(cellInMacro)) score += 8;
-
-      // Rule C: Scaling algorithmic variation offsets based on active database target ELO limits
-      const varianceFactor = Math.max(1, (3500 - engineSearchDepthElo) / 100);
-      const noise = (Math.sin(move) * varianceFactor);
-      score += noise;
-
-      if (score > topHeuristicScore) {
-        topHeuristicScore = score;
-        bestMoveSelected = move;
-      }
-    }
-
-    return {
-      bestMove: bestMoveSelected,
-      score: Math.round(topHeuristicScore)
-    };
-
-  } catch (err) {
-    console.error('[Engine Service Sub-Routine Core Fault]:', err.message);
-    return { bestMove: -1, score: 0 };
+function boardWinner(cells) {
+  for (const [a, b, c] of WIN_LINES) {
+    if (cells[a] && cells[a] === cells[b] && cells[a] === cells[c]) return cells[a];
   }
+  return cells.every(Boolean) ? 'D' : null;
 }
 
-/**
- * Validates whether a user's intercept target matching response meets optimization parameters.
- * @param {Array<number>} position - Active board position history trace sequence
- * @param {number} answer - Client selected cell coordinate input
- */
-async function checkPuzzleAnswer(position = [], answer = -1) {
-  const evaluation = await getBestMove(position, 2000);
+function globalWinner(winners) {
+  for (const [a, b, c] of WIN_LINES) {
+    if (winners[a] && winners[a] !== 'D' && winners[a] === winners[b] && winners[a] === winners[c]) return winners[a];
+  }
+  return null;
+}
+
+function emptyState() {
   return {
-    correct: evaluation.bestMove === answer,
-    bestMove: evaluation.bestMove,
-    score: evaluation.score
+    boards: Array.from({ length: 9 }, () => Array(9).fill(null)),
+    winners: Array(9).fill(null),
+    activeBoard: null,
+    turn: 'X',
+    gameWinner: null
   };
 }
 
-/**
- * Runs historical frame analysis profiling on an absolute game records stack trace array.
- * @param {Array<number>} moves - Total execution array tracking sequential match path
- * @param {number} evaluationElo - Structural difficulty constraints limit configuration
- */
+function cloneState(state) {
+  return {
+    boards: state.boards.map(board => [...board]),
+    winners: [...state.winners],
+    activeBoard: state.activeBoard,
+    turn: state.turn,
+    gameWinner: state.gameWinner
+  };
+}
+
+function legalMoves(state) {
+  if (state.gameWinner) return [];
+  const eligibleBoards = state.activeBoard === null
+    ? state.winners.map((winner, index) => (winner ? null : index)).filter(index => index !== null)
+    : [state.activeBoard];
+  return eligibleBoards.flatMap(macro => state.boards[macro]
+    .map((mark, cell) => (mark || state.winners[macro] ? null : macro * 9 + cell))
+    .filter(move => move !== null));
+}
+
+function applyMove(state, move) {
+  const macro = Math.floor(move / 9);
+  const cell = move % 9;
+  if (!Number.isInteger(move) || macro < 0 || macro > 8 || cell < 0 || cell > 8 || !legalMoves(state).includes(move)) {
+    return null;
+  }
+
+  const next = cloneState(state);
+  const player = next.turn;
+  next.boards[macro][cell] = player;
+  next.winners[macro] = boardWinner(next.boards[macro]);
+  next.gameWinner = globalWinner(next.winners);
+  const targetBoard = cell;
+  next.activeBoard = next.winners[targetBoard] ? null : targetBoard;
+  next.turn = other(player);
+  return next;
+}
+
+function deriveState(positionSequence = []) {
+  const state = emptyState();
+  for (const move of positionSequence) {
+    const next = applyMove(state, move);
+    if (!next) return null;
+    Object.assign(state, next);
+  }
+  return state;
+}
+
+function microThreats(board, player) {
+  let total = 0;
+  for (const [a, b, c] of WIN_LINES) {
+    const line = [board[a], board[b], board[c]];
+    if (line.filter(mark => mark === player).length === 2 && line.filter(mark => mark === null).length === 1) total += 1;
+  }
+  return total;
+}
+
+function scoreMove(state, move, difficultyRating) {
+  const player = state.turn;
+  const opponent = other(player);
+  const macro = Math.floor(move / 9);
+  const cell = move % 9;
+  const before = state.boards[macro];
+  const opponentThreat = microThreats(before, opponent);
+  const next = applyMove(state, move);
+  let score = 0;
+  let theme = 'Sector control';
+
+  if (next.gameWinner === player) {
+    score += 10000;
+    theme = 'Macro checkmate';
+  }
+  if (next.winners[macro] === player && state.winners[macro] !== player) {
+    score += 950;
+    theme = 'Capture a sector';
+  }
+  if (opponentThreat) {
+    score += 240 * opponentThreat;
+    theme = 'Block the threat';
+  }
+  if (cell === 4) score += 60;
+  if ([0, 2, 6, 8].includes(cell)) score += 35;
+  if (next.activeBoard === null) score += 75;
+  if (next.activeBoard !== null) {
+    const forcedBoard = next.boards[next.activeBoard];
+    const ownThreats = microThreats(forcedBoard, player);
+    const theirThreats = microThreats(forcedBoard, opponent);
+    score += ownThreats * 90 - theirThreats * 65;
+    if (ownThreats) theme = 'Forced vector';
+  }
+
+  // At lower ratings obvious board geometry remains decisive. At higher ratings
+  // forcing vectors and threats carry more weight, making positions meaningfully harder.
+  const advancedWeight = clamp((difficultyRating - 900) / 1300, 0, 1);
+  score += Math.round((Math.sin(move * 19 + state.boards.flat().filter(Boolean).length) + 1) * (1 - advancedWeight) * 28);
+  return { score, theme };
+}
+
+async function getBestMove(positionSequence = [], difficultyRating = 1500) {
+  const state = deriveState(positionSequence);
+  if (!state) return { bestMove: -1, score: 0, theme: 'Invalid position' };
+  const candidates = legalMoves(state).map(move => ({ move, ...scoreMove(state, move, difficultyRating) }))
+    .sort((a, b) => b.score - a.score);
+  if (!candidates.length) return { bestMove: -1, score: 0, theme: 'No legal moves' };
+  return {
+    bestMove: candidates[0].move,
+    score: candidates[0].score,
+    theme: candidates[0].theme,
+    alternatives: candidates.slice(1, 4).map(candidate => candidate.move),
+    margin: candidates.length > 1 ? candidates[0].score - candidates[1].score : candidates[0].score
+  };
+}
+
+function difficultyForRating(rating) {
+  if (rating < 900) return { label: 'Beginner', minPlies: 7, maxPlies: 13, band: '900' };
+  if (rating < 1200) return { label: 'Developing', minPlies: 12, maxPlies: 20, band: '1200' };
+  if (rating < 1500) return { label: 'Intermediate', minPlies: 18, maxPlies: 29, band: '1500' };
+  if (rating < 1800) return { label: 'Advanced', minPlies: 26, maxPlies: 40, band: '1800' };
+  return { label: 'Expert', minPlies: 34, maxPlies: 52, band: '2200' };
+}
+
+function weightedRandomMove(state, rating) {
+  const moves = legalMoves(state);
+  if (!moves.length) return null;
+  const ranked = moves.map(move => ({ move, ...scoreMove(state, move, rating) })).sort((a, b) => b.score - a.score);
+  // Natural-looking games: lower skill makes more varied moves; advanced games
+  // still include inaccuracies to create tactical opportunities.
+  const spread = rating < 1200 ? Math.min(8, ranked.length) : rating < 1700 ? Math.min(5, ranked.length) : Math.min(3, ranked.length);
+  return ranked[Math.floor(Math.random() * spread)].move;
+}
+
+async function generateAdaptivePuzzle(rating = 1200) {
+  const normalizedRating = clamp(Math.round(rating / 25) * 25, 400, 2600);
+  const difficulty = difficultyForRating(normalizedRating);
+
+  for (let attempt = 0; attempt < 35; attempt += 1) {
+    let state = emptyState();
+    const position = [];
+    const length = difficulty.minPlies + Math.floor(Math.random() * (difficulty.maxPlies - difficulty.minPlies + 1));
+    for (let ply = 0; ply < length && !state.gameWinner; ply += 1) {
+      const move = weightedRandomMove(state, normalizedRating);
+      if (move === null) break;
+      position.push(move);
+      state = applyMove(state, move);
+    }
+    if (state.gameWinner || legalMoves(state).length < 2) continue;
+    // eslint-disable-next-line no-await-in-loop
+    const evaluation = await getBestMove(position, normalizedRating);
+    if (evaluation.bestMove < 0) continue;
+    return {
+      difficulty: difficulty.label,
+      difficultyRating: normalizedRating,
+      theme: evaluation.theme,
+      position,
+      solution: evaluation.bestMove,
+      score: evaluation.score,
+      alternatives: evaluation.alternatives,
+      moveNumber: position.length
+    };
+  }
+  throw new Error('Unable to create a legal tactical position. Please retry.');
+}
+
+async function checkPuzzleAnswer(position = [], answer = -1, rating = 1500) {
+  const evaluation = await getBestMove(position, rating);
+  return { correct: evaluation.bestMove === answer, bestMove: evaluation.bestMove, score: evaluation.score };
+}
+
 async function annotateGame(moves = [], evaluationElo = 3500) {
   const annotations = [];
   const runningSequence = [];
-
-  for (let i = 0; i < moves.length; i++) {
-    const movePlayed = moves[i];
+  for (let i = 0; i < moves.length; i += 1) {
+    const movePlayed = typeof moves[i] === 'number' ? moves[i] : moves[i].idx;
     const evaluation = await getBestMove(runningSequence, evaluationElo);
-    
-    annotations.push({
-      moveIndex: i,
-      playedMove: movePlayed,
-      optimalMove: evaluation.bestMove,
-      positionStateBefore: [...runningSequence],
-      wasOptimal: evaluation.bestMove === movePlayed,
-      positionalScore: evaluation.score
-    });
-
+    annotations.push({ moveIndex: i, playedMove: movePlayed, optimalMove: evaluation.bestMove, positionStateBefore: [...runningSequence], wasOptimal: evaluation.bestMove === movePlayed, positionalScore: evaluation.score });
     runningSequence.push(movePlayed);
   }
-
   return annotations;
 }
 
-/**
- * Groups compiled timeline notations into actionable algorithmic metrics data structures.
- */
 function buildReviewSummary(annotations = []) {
-  if (annotations.length === 0) return { accuracy: 0, tacticalMissesCount: 0 };
-
-  const optimalCount = annotations.filter(ann => ann.wasOptimal).length;
-  const accuracy = Math.round((optimalCount / annotations.length) * 100);
-
-  return {
-    accuracy: accuracy,
-    tacticalMissesCount: annotations.length - optimalCount,
-    compiledAtTimestamp: new Date().toISOString()
-  };
+  if (!annotations.length) return { accuracy: 0, tacticalMissesCount: 0 };
+  const optimalCount = annotations.filter(annotation => annotation.wasOptimal).length;
+  return { accuracy: Math.round((optimalCount / annotations.length) * 100), tacticalMissesCount: annotations.length - optimalCount, compiledAtTimestamp: new Date().toISOString() };
 }
 
-/**
- * Isolates turning-point deviation indices to assemble puzzle datasets.
- */
 function generatePuzzlesFromAnnotations(moves = [], annotations = []) {
-  const extractedPuzzles = [];
-
-  annotations.forEach((ann, index) => {
-    // If a tactical deviation occurs, generate an entry challenge state out of it
-    if (!ann.wasOptimal && ann.positionStateBefore.length >= 4) {
-      extractedPuzzles.push({
-        difficulty: index > 20 ? 'hard' : index > 10 ? 'medium' : 'easy',
-        moveNumber: index,
-        position: ann.positionStateBefore,
-        solution: ann.optimalMove
-      });
-    }
-  });
-
-  return extractedPuzzles.slice(0, 5); // Return a maximum block subset payload
+  return annotations.filter(annotation => !annotation.wasOptimal && annotation.positionStateBefore.length >= 4)
+    .slice(0, 8)
+    .map((annotation, index) => ({ difficulty: index > 4 ? 'Advanced' : index > 1 ? 'Intermediate' : 'Developing', moveNumber: annotation.moveIndex, position: annotation.positionStateBefore, solution: annotation.optimalMove }));
 }
 
-module.exports = {
-  getBestMove,
-  checkPuzzleAnswer,
-  annotateGame,
-  buildReviewSummary,
-  generatePuzzlesFromAnnotations
-};
+module.exports = { getBestMove, checkPuzzleAnswer, annotateGame, buildReviewSummary, generatePuzzlesFromAnnotations, generateAdaptivePuzzle };

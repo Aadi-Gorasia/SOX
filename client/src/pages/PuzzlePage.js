@@ -97,6 +97,7 @@ export default function PuzzlePage() {
   const navigate = useNavigate();
 
   const [status, setStatus] = useState('loading');
+  const [error, setError] = useState('');
   const [puzzles, setPuzzles] = useState([]);
   const [index, setIndex] = useState(0);
   const [userRating, setUserRating] = useState(1200);
@@ -107,14 +108,19 @@ export default function PuzzlePage() {
 
   const loadPuzzle = useCallback(async () => {
     setStatus('loading');
+    setError('');
     setResult(null);
     setHoveredCell(null);
     try {
       const url = gameId ? `${API_BASE}/api/games/${gameId}/puzzles` : `${API_BASE}/api/games/puzzle/infinite-generate`;
       const res = await fetch(url, { headers: { 'x-auth-token': token } });
       const data = await res.json();
+      if (!res.ok || (!data.puzzle && !data.puzzles)) {
+        throw new Error(data.msg || data.error || 'Puzzle generation failed.');
+      }
       
       const pzList = gameId ? data.puzzles : [data.puzzle];
+      if (!pzList?.length) throw new Error('No puzzles are available for this game yet.');
       setPuzzles(pzList);
       setIndex(0);
       setOptimisticSeq(pzList[0].position || []);
@@ -122,6 +128,7 @@ export default function PuzzlePage() {
       
       setStatus('ready');
     } catch (e) {
+      setError(e.message || 'Unable to load a puzzle.');
       setStatus('error');
     }
   }, [gameId, token]);
@@ -132,21 +139,23 @@ export default function PuzzlePage() {
     if (result || status !== 'ready') return;
     const moveIdx = m * 9 + c;
     const current = puzzles[index];
-    
+    setStatus('submitting');
     setOptimisticSeq([...current.position, moveIdx]);
 
     try {
       const res = await fetch(`${API_BASE}/api/games/puzzle/infinite-submit`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'x-auth-token': token },
-        body: JSON.stringify({ answer: moveIdx, correctSolution: current.solution }),
+        body: JSON.stringify({ answer: moveIdx, position: current.position }),
       });
       const data = await res.json();
-      setResult({ ...data, bestMove: current.solution, selected: moveIdx });
-      setUserRating(data.newRating);
+      if (!res.ok) throw new Error(data.msg || 'Unable to check this move.');
+      setResult({ ...data, bestMove: data.bestMove, selected: moveIdx });
+      setStatus('ready');
     } catch (e) { 
-      // Revert if network fails
       setOptimisticSeq(current.position); 
+      setError(e.message || 'Unable to submit the move.');
+      setStatus('ready');
     }
   };
 
@@ -163,6 +172,16 @@ export default function PuzzlePage() {
     );
   }
 
+  if (status === 'error') {
+    return (
+      <div className="pz-clean-layout center-all">
+        <XCircle size={40} />
+        <p>{error}</p>
+        <button className="pz-btn-primary pz-retry-btn" onClick={loadPuzzle}>Try again</button>
+      </div>
+    );
+  }
+
   return (
     <div className="pz-clean-layout">
       {/* 1. Header Area */}
@@ -172,7 +191,7 @@ export default function PuzzlePage() {
         </button>
         <div className="pz-header-title">Tactical Training</div>
         <div className="pz-rating-badge">
-          Rating <span className="font-bold">{userRating}</span>
+          Elo <span className="font-bold">{userRating}</span>
         </div>
       </header>
 
@@ -203,7 +222,7 @@ export default function PuzzlePage() {
                 allBoards={allBoards}
                 boardWinners={boardWinners}
                 activeBoard={activeBoard}
-                isMyTurn={!result}
+                isMyTurn={!result && status === 'ready'}
                 onPlay={handleMove}
                 onHoverCell={(m, c) => setHoveredCell(m === null ? null : m * 9 + c)}
               />
@@ -217,6 +236,10 @@ export default function PuzzlePage() {
             <div className="pz-panel pz-panel-pending">
               <h2>Your Turn</h2>
               <p className="pz-text-muted mb-4">Find the move that forces the opponent into a closed or disadvantageous sector.</p>
+              <div className="pz-difficulty">
+                <span>{puzzle?.difficulty || 'Training'}</span>
+                <span>{puzzle?.theme || 'Tactical position'}</span>
+              </div>
               
               <div className="pz-turn-indicator">
                 <span className={`turn-token ${isX ? 'turn-x' : 'turn-o'}`}>{isX ? 'X' : 'O'}</span>
@@ -227,6 +250,7 @@ export default function PuzzlePage() {
                 <Info size={16} />
                 <span>Hover over squares to see where they send the opponent.</span>
               </div>
+              {status === 'submitting' && <p className="pz-submitting">Checking move…</p>}
             </div>
           ) : (
             <div className={`pz-panel pz-panel-result ${result.correct ? 'success' : 'error'}`}>

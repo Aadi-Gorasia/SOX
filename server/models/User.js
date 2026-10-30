@@ -6,7 +6,7 @@ const UserSchema = new mongoose.Schema({
   // Password is optional for accounts created through an OAuth provider.
   password: { type: String, minlength: 6 },
   oauthProviders: [{
-    provider: { type: String, enum: ['google', 'facebook', 'apple'], required: true },
+    provider: { type: String, enum: ['google', 'facebook'], required: true },
     providerId: { type: String, required: true }
   }],
   elo: { type: Number, default: 1200 },
