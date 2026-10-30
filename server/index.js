@@ -231,15 +231,15 @@ io.on('connection', (socket) => {
   });
 
   socket.on('offerDraw', ({ gameId } = {}) => {
-    gameManager.offerDraw(gameId, socket.id);
+    gameManager.offerDraw(gameId, socket.userId);
   });
 
   socket.on('acceptDraw', ({ gameId } = {}) => {
-    gameManager.acceptDraw(gameId, socket.id);
+    gameManager.acceptDraw(gameId, socket.userId);
   });
 
   socket.on('declineDraw', ({ gameId } = {}) => {
-    gameManager.declineDraw(gameId);
+    gameManager.declineDraw(gameId, socket.userId);
   });
 
   socket.on('sendChatMessage', ({ gameId, message } = {}) => {

@@ -93,14 +93,17 @@ const ArrowOverlay = ({ startCell, targetMacro, type }) => {
 
 export default function PuzzlePage() {
   const { gameId } = useParams();
-  const { token } = useContext(AuthContext);
+  const { token, user } = useContext(AuthContext);
   const navigate = useNavigate();
 
   const [status, setStatus] = useState('loading');
   const [error, setError] = useState('');
   const [puzzles, setPuzzles] = useState([]);
   const [index, setIndex] = useState(0);
-  const [userRating, setUserRating] = useState(1200);
+  const [userRating, setUserRating] = useState(user?.puzzleRating || 1200);
+  const [competitiveRating, setCompetitiveRating] = useState(user?.elo || 1200);
+  const [solvedCount, setSolvedCount] = useState(0);
+  const [attemptCount, setAttemptCount] = useState(0);
   
   const [result, setResult] = useState(null); 
   const [hoveredCell, setHoveredCell] = useState(null);
@@ -124,14 +127,15 @@ export default function PuzzlePage() {
       setPuzzles(pzList);
       setIndex(0);
       setOptimisticSeq(pzList[0].position || []);
-      if (data.userCurrentRating) setUserRating(data.userCurrentRating);
+      setUserRating(data.userCurrentRating || user?.puzzleRating || 1200);
+      setCompetitiveRating(data.competitiveRating || user?.elo || 1200);
       
       setStatus('ready');
     } catch (e) {
       setError(e.message || 'Unable to load a puzzle.');
       setStatus('error');
     }
-  }, [gameId, token]);
+  }, [gameId, token, user]);
 
   useEffect(() => { if(token) loadPuzzle(); }, [loadPuzzle, token]);
 
@@ -143,7 +147,10 @@ export default function PuzzlePage() {
     setOptimisticSeq([...current.position, moveIdx]);
 
     try {
-      const res = await fetch(`${API_BASE}/api/games/puzzle/infinite-submit`, {
+      const endpoint = gameId
+        ? `${API_BASE}/api/games/puzzle/check`
+        : `${API_BASE}/api/games/puzzle/infinite-submit`;
+      const res = await fetch(endpoint, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'x-auth-token': token },
         body: JSON.stringify({ answer: moveIdx, position: current.position }),
@@ -151,6 +158,9 @@ export default function PuzzlePage() {
       const data = await res.json();
       if (!res.ok) throw new Error(data.msg || 'Unable to check this move.');
       setResult({ ...data, bestMove: data.bestMove, selected: moveIdx });
+      setAttemptCount(count => count + 1);
+      if (data.correct) setSolvedCount(count => count + 1);
+      if (typeof data.newRating === 'number') setUserRating(data.newRating);
       setStatus('ready');
     } catch (e) { 
       setOptimisticSeq(current.position); 
@@ -162,6 +172,27 @@ export default function PuzzlePage() {
   const { allBoards, boardWinners, activeBoard } = useMemo(() => deriveState(optimisticSeq), [optimisticSeq]);
   const puzzle = puzzles[index];
   const isX = puzzle?.position.length % 2 === 0;
+  const showRatingChange = !gameId && typeof result?.delta === 'number';
+
+  const handleNextPuzzle = () => {
+    if (!gameId) {
+      loadPuzzle();
+      return;
+    }
+
+    if (index >= puzzles.length - 1) {
+      navigate(`/review/${gameId}`);
+      return;
+    }
+
+    const nextIndex = index + 1;
+    setIndex(nextIndex);
+    setResult(null);
+    setError('');
+    setHoveredCell(null);
+    setOptimisticSeq(puzzles[nextIndex].position || []);
+    setStatus('ready');
+  };
 
   if (status === 'loading') {
     return (
@@ -191,7 +222,7 @@ export default function PuzzlePage() {
         </button>
         <div className="pz-header-title">Tactical Training</div>
         <div className="pz-rating-badge">
-          Elo <span className="font-bold">{userRating}</span>
+          Puzzle rating <span className="font-bold">{userRating}</span>
         </div>
       </header>
 
@@ -240,6 +271,11 @@ export default function PuzzlePage() {
                 <span>{puzzle?.difficulty || 'Training'}</span>
                 <span>{puzzle?.theme || 'Tactical position'}</span>
               </div>
+              {!gameId && (
+                <p className="pz-level-note">
+                  Difficulty matched to your competitive Elo of {competitiveRating}.
+                </p>
+              )}
               
               <div className="pz-turn-indicator">
                 <span className={`turn-token ${isX ? 'turn-x' : 'turn-o'}`}>{isX ? 'X' : 'O'}</span>
@@ -248,7 +284,11 @@ export default function PuzzlePage() {
 
               <div className="pz-hint-box">
                 <Info size={16} />
-                <span>Hover over squares to see where they send the opponent.</span>
+                <span>Find the strongest legal move. Hover to see which sector each square sends your opponent to.</span>
+              </div>
+              <div className="pz-session-stats">
+                <span>Session solved</span>
+                <strong>{solvedCount}/{attemptCount}</strong>
               </div>
               {status === 'submitting' && <p className="pz-submitting">Checking move…</p>}
             </div>
@@ -261,19 +301,27 @@ export default function PuzzlePage() {
               
               <p className="pz-text-muted mb-4">
                 {result.correct 
-                  ? "Great job! You found the optimal positional advantage." 
-                  : "The best move is marked on the board. Notice where it sends the opponent."}
+                  ? "You found one of the engine's highest-scoring legal moves."
+                  : "The engine's top move is marked in green. Compare how it controls the next sector."}
               </p>
 
-              <div className="pz-stat-row">
-                <span>Rating Change</span>
-                <span className={`stat-delta ${result.delta > 0 ? 'positive' : 'negative'}`}>
-                  {result.delta > 0 ? `+${result.delta}` : result.delta}
-                </span>
-              </div>
+              {showRatingChange ? (
+                <div className="pz-stat-row">
+                  <span>Puzzle rating change</span>
+                  <span className={`stat-delta ${result.delta > 0 ? 'positive' : 'negative'}`}>
+                    {result.delta > 0 ? `+${result.delta}` : result.delta}
+                  </span>
+                </div>
+              ) : (
+                <div className="pz-stat-row">
+                  <span>Training result</span>
+                  <span>{result.correct ? 'Solved' : 'Reviewed'}</span>
+                </div>
+              )}
 
-              <button className="pz-btn-primary" onClick={loadPuzzle}>
-                Next Puzzle <ArrowRight size={18} />
+              <button className="pz-btn-primary" onClick={handleNextPuzzle}>
+                {gameId && index === puzzles.length - 1 ? 'Back to Review' : 'Next Puzzle'}
+                <ArrowRight size={18} />
               </button>
             </div>
           )}

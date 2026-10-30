@@ -163,6 +163,8 @@ class GameManager {
     const pIdx = game.players.indexOf(socket.id);
     const symbol = pIdx === 0 ? 'X' : 'O';
 
+    game.drawOffer = null;
+
     // 1. Save Move to History
     if (!game.moves) game.moves = [];
     game.moves.push({
@@ -208,7 +210,7 @@ game.engineMoves.push({
   // --- 5. END GAME ---
   async endGame(gameId, result) {
     const game = this.games.get(gameId);
-    if (!game) return;
+    if (!game || game.gameWinner) return;
 
     if (this.timers.has(gameId)) {
       clearInterval(this.timers.get(gameId));
@@ -216,6 +218,7 @@ game.engineMoves.push({
     }
 
     game.gameWinner = result.winner;
+    game.drawOffer = null;
     const p1 = game.playerDetails[0];
     const p2 = game.playerDetails[1];
     
@@ -290,23 +293,47 @@ game.engineMoves.push({
   }
 
   // Draw handlers
-  offerDraw(gameId, socketId) {
+  offerDraw(gameId, userId) {
     const game = this.games.get(gameId);
-    if (!game || game.gameWinner) return;
-    game.drawOffer = socketId;
-    const oppId = game.players.find(id => id !== socketId);
-    if (oppId) this.io.to(oppId).emit('drawOffered');
+    if (!game || game.gameWinner || game.drawOffer) return;
+
+    const playerIndex = game.playerDetails.findIndex(player =>
+      String(player.id ?? player._id) === String(userId)
+    );
+    if (playerIndex === -1) return;
+
+    game.drawOffer = String(userId);
+    const opponentSocketId = game.players[playerIndex === 0 ? 1 : 0];
+    this.io.to(opponentSocketId).emit('drawOffered', {
+      username: game.playerDetails[playerIndex].username
+    });
+    this.io.to(gameId).emit('updateGame', game);
   }
 
-  async acceptDraw(gameId, socketId) {
+  async acceptDraw(gameId, userId) {
     const game = this.games.get(gameId);
-    if (!game || !game.drawOffer || game.drawOffer === socketId) return;
+    if (!game || game.gameWinner || !game.drawOffer) return;
+
+    const playerIndex = game.playerDetails.findIndex(player =>
+      String(player.id ?? player._id) === String(userId)
+    );
+    if (playerIndex === -1 || game.drawOffer === String(userId)) return;
+
     await this.endGame(gameId, { winner: 'D', reason: 'agreement' });
   }
 
-  declineDraw(gameId) {
+  declineDraw(gameId, userId) {
     const game = this.games.get(gameId);
-    if (game) { game.drawOffer = null; this.io.to(gameId).emit('drawDeclined'); }
+    if (!game || game.gameWinner || !game.drawOffer || game.drawOffer === String(userId)) return;
+
+    const isPlayer = game.playerDetails.some(player =>
+      String(player.id ?? player._id) === String(userId)
+    );
+    if (!isPlayer) return;
+
+    game.drawOffer = null;
+    this.io.to(gameId).emit('drawDeclined');
+    this.io.to(gameId).emit('updateGame', game);
   }
 }
 

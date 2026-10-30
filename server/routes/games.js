@@ -51,13 +51,13 @@ router.get('/puzzle/infinite-generate', authMiddleware, async (req, res) => {
   try {
     const user = await User.findById(req.user.id);
     if (!user) return res.status(404).json({ msg: 'User not found' });
-    // Match training difficulty to the player's live competitive Elo.
-    const userRating = user.elo || 1200;
-    const puzzle = await generateAdaptivePuzzle(userRating);
+    const competitiveRating = user.elo || 1200;
+    const puzzle = await generateAdaptivePuzzle(competitiveRating);
 
     res.json({
       difficulty: puzzle.difficulty,
-      userCurrentRating: userRating,
+      competitiveRating,
+      userCurrentRating: user.puzzleRating || 1200,
       puzzle
     });
 
@@ -70,26 +70,31 @@ router.get('/puzzle/infinite-generate', authMiddleware, async (req, res) => {
 // ─── PROGRESSIVE ADAPTIVE TRAINING: SUBMIT RESPONSE ───
 router.post('/puzzle/infinite-submit', authMiddleware, async (req, res) => {
   const { answer, position } = req.body;
-  if (typeof answer !== 'number' || !Array.isArray(position)) {
+  if (!Number.isInteger(answer) || answer < 0 || answer > 80 ||
+      !Array.isArray(position) || position.length > 80 ||
+      position.some(move => !Number.isInteger(move) || move < 0 || move > 80)) {
     return res.status(400).json({ msg: 'A position and numerical answer are required' });
   }
 
   try {
     const user = await User.findById(req.user.id);
     if (!user) return res.status(404).json({ msg: 'User not found' });
-    const result = await checkPuzzleAnswer(position, answer, user.elo || 1200);
+    const competitiveRating = user.elo || 1200;
+    const result = await checkPuzzleAnswer(position, answer, competitiveRating);
     const isCorrect = result.correct;
-    const K_FACTOR = 20;
-    const ratingDelta = isCorrect ? K_FACTOR : -K_FACTOR;
-    
-    user.puzzleRating = Math.max(100, (user.puzzleRating || 1200) + ratingDelta);
+    const oldRating = user.puzzleRating || 1200;
+    const expectedScore = 1 / (1 + Math.pow(10, (competitiveRating - oldRating) / 400));
+    const proposedDelta = Math.round(24 * ((isCorrect ? 1 : 0) - expectedScore));
+    user.puzzleRating = Math.max(100, oldRating + proposedDelta);
+    const ratingDelta = user.puzzleRating - oldRating;
     await user.save();
 
     res.json({
       correct: isCorrect,
       newRating: user.puzzleRating,
       delta: ratingDelta,
-      bestMove: result.bestMove
+      bestMove: result.bestMove,
+      theme: result.theme
     });
   } catch (err) {
     console.error('[Puzzle Submission Pipeline Error]:', err.message);
@@ -101,10 +106,12 @@ router.post('/puzzle/infinite-submit', authMiddleware, async (req, res) => {
 router.post('/puzzle/check', authMiddleware, async (req, res) => {
   try {
     const { position, answer } = req.body;
-    if (!Array.isArray(position) || typeof answer !== 'number') {
-      return res.status(400).json({ msg: 'Array configuration mismatch error' });
+    if (!Array.isArray(position) || position.length > 80 ||
+        position.some(move => !Number.isInteger(move) || move < 0 || move > 80) ||
+        !Number.isInteger(answer) || answer < 0 || answer > 80) {
+      return res.status(400).json({ msg: 'A valid position and move are required' });
     }
-    const result = await checkPuzzleAnswer(position, answer);
+    const result = await checkPuzzleAnswer(position, answer, 3500);
     res.json(result);
   } catch (err) {
     console.error('[Manual Check Endpoint Trap Failure]:', err.message);

@@ -128,6 +128,11 @@ export default function GamePage() {
   // ==========================================
   const myIndex = gameState.playerDetails.findIndex(p => p.id === user?._id);
   const isMyTurn = !gameState.gameWinner && (gameState.playerToMove === gameState.players[myIndex]);
+  const drawOffer = gameState.drawOffer;
+  const hasIncomingDrawOffer = drawOffer && String(drawOffer) !== String(user?._id);
+  const drawOfferer = gameState.playerDetails.find(player =>
+    String(player.id) === String(drawOffer)
+  );
 
   return (
     <div className="game-root">
@@ -219,9 +224,9 @@ export default function GamePage() {
                 <button 
                   className="tactical-btn" 
                   onClick={() => socket.emit("offerDraw", { gameId })} 
-                  disabled={!!gameState.gameWinner}
+                  disabled={!!gameState.gameWinner || !!drawOffer}
                 >
-                  Draw
+                  {drawOffer ? 'Draw pending' : 'Offer draw'}
                 </button>
                 <button 
                   className="tactical-btn resign" 
@@ -231,6 +236,31 @@ export default function GamePage() {
                   Resign
                 </button>
             </div>
+            {drawOffer && (
+              <div className="game-draw-status" role="status">
+                <p>
+                  {hasIncomingDrawOffer
+                    ? `${drawOfferer?.username || 'Your opponent'} offered a draw.`
+                    : 'Draw offer sent. Waiting for your opponent.'}
+                </p>
+                {hasIncomingDrawOffer && (
+                  <div className="game-draw-actions">
+                    <button
+                      className="tactical-btn"
+                      onClick={() => socket.emit('acceptDraw', { gameId })}
+                    >
+                      Accept
+                    </button>
+                    <button
+                      className="tactical-btn"
+                      onClick={() => socket.emit('declineDraw', { gameId })}
+                    >
+                      Decline
+                    </button>
+                  </div>
+                )}
+              </div>
+            )}
 
             <BattleChat 
               messages={chatMessages} 

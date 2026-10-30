@@ -296,6 +296,17 @@
   background: rgba(255, 69, 69, 0.03);
 }
 .tactical-btn:disabled { opacity: 0.3; cursor: not-allowed; }
+.game-draw-status {
+  border: 1px solid var(--border-s);
+  background: var(--surface);
+  color: var(--text-2);
+  padding: 10px 12px;
+  font-size: 12px;
+  line-height: 1.4;
+}
+.game-draw-status p { margin: 0; }
+.game-draw-actions { display: flex; gap: 8px; margin-top: 10px; }
+.game-draw-actions .tactical-btn { flex: 1; }
 
 /* ─── Loading Gate ───────────────────────────────────── */
 .loading-gate { 

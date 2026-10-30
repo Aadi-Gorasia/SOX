@@ -98,8 +98,9 @@ function scoreMove(state, move, difficultyRating) {
   const macro = Math.floor(move / 9);
   const cell = move % 9;
   const before = state.boards[macro];
-  const opponentThreat = microThreats(before, opponent);
   const next = applyMove(state, move);
+  const remainingOpponentThreats = microThreats(next.boards[macro], opponent);
+  const blockedThreats = microThreats(before, opponent) - remainingOpponentThreats;
   let score = 0;
   let theme = 'Sector control';
 
@@ -111,8 +112,8 @@ function scoreMove(state, move, difficultyRating) {
     score += 950;
     theme = 'Capture a sector';
   }
-  if (opponentThreat) {
-    score += 240 * opponentThreat;
+  if (blockedThreats > 0) {
+    score += 240 * blockedThreats;
     theme = 'Block the threat';
   }
   if (cell === 4) score += 60;
@@ -136,15 +137,20 @@ function scoreMove(state, move, difficultyRating) {
 async function getBestMove(positionSequence = [], difficultyRating = 1500) {
   const state = deriveState(positionSequence);
   if (!state) return { bestMove: -1, score: 0, theme: 'Invalid position' };
-  const candidates = legalMoves(state).map(move => ({ move, ...scoreMove(state, move, difficultyRating) }))
-    .sort((a, b) => b.score - a.score);
+  const candidates = legalMoves(state)
+    .map(move => ({ move, ...scoreMove(state, move, difficultyRating) }))
+    .sort((a, b) => b.score - a.score || a.move - b.move);
   if (!candidates.length) return { bestMove: -1, score: 0, theme: 'No legal moves' };
+  const bestScore = candidates[0].score;
   return {
     bestMove: candidates[0].move,
-    score: candidates[0].score,
+    score: bestScore,
     theme: candidates[0].theme,
     alternatives: candidates.slice(1, 4).map(candidate => candidate.move),
-    margin: candidates.length > 1 ? candidates[0].score - candidates[1].score : candidates[0].score
+    acceptableMoves: candidates
+      .filter(candidate => candidate.score === bestScore)
+      .map(candidate => candidate.move),
+    margin: candidates.length > 1 ? bestScore - candidates[1].score : bestScore
   };
 }
 
@@ -169,8 +175,11 @@ function weightedRandomMove(state, rating) {
 async function generateAdaptivePuzzle(rating = 1200) {
   const normalizedRating = clamp(Math.round(rating / 25) * 25, 400, 2600);
   const difficulty = difficultyForRating(normalizedRating);
+  const minimumTacticalScore = normalizedRating < 900 ? 150
+    : normalizedRating < 1500 ? 200
+      : normalizedRating < 1800 ? 240 : 300;
 
-  for (let attempt = 0; attempt < 35; attempt += 1) {
+  for (let attempt = 0; attempt < 60; attempt += 1) {
     let state = emptyState();
     const position = [];
     const length = difficulty.minPlies + Math.floor(Math.random() * (difficulty.maxPlies - difficulty.minPlies + 1));
@@ -184,6 +193,7 @@ async function generateAdaptivePuzzle(rating = 1200) {
     // eslint-disable-next-line no-await-in-loop
     const evaluation = await getBestMove(position, normalizedRating);
     if (evaluation.bestMove < 0) continue;
+    if (evaluation.score < minimumTacticalScore || evaluation.theme === 'Sector control') continue;
     return {
       difficulty: difficulty.label,
       difficultyRating: normalizedRating,
@@ -199,8 +209,20 @@ async function generateAdaptivePuzzle(rating = 1200) {
 }
 
 async function checkPuzzleAnswer(position = [], answer = -1, rating = 1500) {
+  if (!Array.isArray(position) || position.length > 80 ||
+      position.some(move => !Number.isInteger(move) || move < 0 || move > 80) ||
+      !Number.isInteger(answer) || answer < 0 || answer > 80) {
+    return { correct: false, bestMove: -1, score: 0 };
+  }
+
   const evaluation = await getBestMove(position, rating);
-  return { correct: evaluation.bestMove === answer, bestMove: evaluation.bestMove, score: evaluation.score };
+  return {
+    correct: evaluation.acceptableMoves?.includes(answer) || false,
+    bestMove: evaluation.bestMove,
+    score: evaluation.score,
+    theme: evaluation.theme,
+    acceptableMoves: evaluation.acceptableMoves || []
+  };
 }
 
 async function annotateGame(moves = [], evaluationElo = 3500) {
@@ -227,4 +249,12 @@ function generatePuzzlesFromAnnotations(moves = [], annotations = []) {
     .map((annotation, index) => ({ difficulty: index > 4 ? 'Advanced' : index > 1 ? 'Intermediate' : 'Developing', moveNumber: annotation.moveIndex, position: annotation.positionStateBefore, solution: annotation.optimalMove }));
 }
 
-module.exports = { getBestMove, checkPuzzleAnswer, annotateGame, buildReviewSummary, generatePuzzlesFromAnnotations, generateAdaptivePuzzle };
+module.exports = {
+  getBestMove,
+  checkPuzzleAnswer,
+  annotateGame,
+  buildReviewSummary,
+  generatePuzzlesFromAnnotations,
+  generateAdaptivePuzzle,
+  difficultyForRating
+};
