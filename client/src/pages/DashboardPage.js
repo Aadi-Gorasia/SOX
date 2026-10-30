@@ -59,11 +59,15 @@ const DashboardPage = () => {
 
   useEffect(() => {
     if (!socket) return;
-    socket.on('gameStarted', (data) => {
+    const onGameStarted = (data) => {
       setIsSearching(false);
       navigate(`/game/${data.gameId}`);
-    });
-    return () => socket.off('gameStarted');
+    };
+    socket.on('gameStarted', onGameStarted);
+    return () => {
+      socket.off('gameStarted', onGameStarted);
+      socket.emit('cancelFindGame');
+    };
   }, [socket, navigate]);
 
   useEffect(() => {
@@ -81,6 +85,11 @@ const DashboardPage = () => {
     setIsSearching(true);
     setSearchTc(tc);
     socket.emit('findGame', { timeControl: tc, preferredSymbol: 'X' });
+  };
+
+  const cancelSearch = () => {
+    socket?.emit('cancelFindGame');
+    setIsSearching(false);
   };
 
   const totalGames     = user ? (user.wins + user.losses + user.draws) : 0;
@@ -119,7 +128,7 @@ const DashboardPage = () => {
               <h2 className="search-tc">{searchTc}</h2>
               <div className="search-pulse" />
               <div className="search-timer">{searchTimer}s elapsed</div>
-              <button className="search-abort" onClick={() => setIsSearching(false)}>Cancel search</button>
+              <button className="search-abort" onClick={cancelSearch}>Cancel search</button>
             </div>
           </div>
         </div>

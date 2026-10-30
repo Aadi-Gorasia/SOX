@@ -34,10 +34,22 @@ class GameManager {
 
   // --- 1. MATCHMAKING ---
   addPlayerToQueue(socket, timeControl, preferredSymbol) {
+    this.cancelMatchmaking(socket);
     const queue = this.waitingPlayers.get(timeControl) || [];
-    const cleanQueue = queue.filter(p => p.socket.id !== socket.id);
-    cleanQueue.push({ socket, preferredSymbol });
-    this.waitingPlayers.set(timeControl, cleanQueue);
+    queue.push({ socket, preferredSymbol });
+    this.waitingPlayers.set(timeControl, queue);
+  }
+
+  cancelMatchmaking(socket) {
+    for (const [timeControl, queue] of this.waitingPlayers) {
+      const remainingPlayers = queue.filter(player => player.socket.id !== socket.id);
+
+      if (remainingPlayers.length === 0) {
+        this.waitingPlayers.delete(timeControl);
+      } else if (remainingPlayers.length !== queue.length) {
+        this.waitingPlayers.set(timeControl, remainingPlayers);
+      }
+    }
   }
 
   async findMatch(socket, timeControl, preferredSymbol) {
@@ -274,9 +286,7 @@ game.engineMoves.push({
   }
 
   handleDisconnect(socket) {
-    for (const [tc, queue] of this.waitingPlayers) {
-      this.waitingPlayers.set(tc, queue.filter(p => p.socket.id !== socket.id));
-    }
+    this.cancelMatchmaking(socket);
   }
 
   // Draw handlers

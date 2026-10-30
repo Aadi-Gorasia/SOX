@@ -50,8 +50,9 @@ const PlayPage = () => {
         socket.on('gameStarted', onStart);
         socket.on('friendJoined', onStart);
         return () => {
-            socket.off('gameStarted');
-            socket.off('friendJoined');
+            socket.off('gameStarted', onStart);
+            socket.off('friendJoined', onStart);
+            socket.emit('cancelFindGame');
         };
     },[socket, navigate]);
 
@@ -73,6 +74,11 @@ const PlayPage = () => {
         socket.emit('findGame', { timeControl: tc, preferredSymbol: config.symbol });
         setLobbyState('QUEUING');
     }, [socket, config]);
+
+    const cancelMatchmaking = () => {
+        socket?.emit('cancelFindGame');
+        setLobbyState('IDLE');
+    };
 
     const triggerPrivate = useCallback(() => {
         if (!socket) return;
@@ -125,7 +131,7 @@ const PlayPage = () => {
                             </>
                         )}
 
-                        <button className="search-abort" onClick={() => setLobbyState('IDLE')}>Cancel Search</button>
+                        <button className="search-abort" onClick={cancelMatchmaking}>Cancel Search</button>
                     </div>
                 </div>
             )}

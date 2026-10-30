@@ -138,6 +138,10 @@ io.on('connection', (socket) => {
       .catch(err => console.error('[Game] Matchmaking error:', err));
   });
 
+  socket.on('cancelFindGame', () => {
+    gameManager.cancelMatchmaking(socket);
+  });
+
   socket.on('joinGame', (gameId) => {
     try {
       const game = gameManager.getGame(gameId);
