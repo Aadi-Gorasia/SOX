@@ -129,17 +129,32 @@ io.on('connection', (socket) => {
   });
 
   socket.on('findGame', ({ timeControl, preferredSymbol } = {}) => {
+    console.log(
+      `[Matchmaking] Request: user=${socket.userId}, socket=${socket.id}, timeControl=${timeControl}, symbol=${preferredSymbol}`
+    );
+
     Promise.resolve()
       .then(() => gameManager.findMatch(
         socket,
         timeControl,
         preferredSymbol
       ))
-      .catch(err => console.error('[Game] Matchmaking error:', err));
+      .then(game => {
+        console.log(
+          `[Matchmaking] ${game ? 'Paired' : 'No game returned'}: user=${socket.userId}, socket=${socket.id}, timeControl=${timeControl}${game ? `, game=${game.id}` : ''}`
+        );
+      })
+      .catch(err => console.error(
+        `[Matchmaking] Error: user=${socket.userId}, socket=${socket.id}, timeControl=${timeControl}`,
+        err
+      ));
   });
 
   socket.on('cancelFindGame', () => {
     gameManager.cancelMatchmaking(socket);
+    console.log(
+      `[Matchmaking] Cancelled: user=${socket.userId}, socket=${socket.id}`
+    );
   });
 
   socket.on('joinGame', (gameId) => {
@@ -281,7 +296,7 @@ io.on('connection', (socket) => {
     }
   });
 
-  socket.on('disconnect', () => {
+  socket.on('disconnect', (reason) => {
     try {
       gameManager.handleDisconnect(socket);
       tournamentManager.leaveQueue(socket);
@@ -289,7 +304,9 @@ io.on('connection', (socket) => {
       console.error('[Socket] Disconnect cleanup error:', err);
     }
 
-    console.log(`[Socket] Disconnected: ${socket.id}`);
+    console.log(
+      `[Socket] Disconnected: user=${socket.userId}, socket=${socket.id}, reason=${reason}`
+    );
   });
 });
 
