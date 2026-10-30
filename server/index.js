@@ -132,7 +132,8 @@ io.on('connection', (socket) => {
     Promise.resolve()
       .then(() => gameManager.findMatch(
         socket,
-        { timeControl, preferredSymbol }
+        timeControl,
+        preferredSymbol
       ))
       .catch(err => console.error('[Game] Matchmaking error:', err));
   });
