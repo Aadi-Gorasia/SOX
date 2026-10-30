@@ -1,66 +1,102 @@
-// client/src/pages/ReviewPage.jsx
-import React, { useContext, useEffect, useState } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import React, { useContext, useEffect, useMemo, useState } from 'react';
+import { useNavigate, useParams } from 'react-router-dom';
+import {
+  AlertCircle,
+  ArrowLeft,
+  ChevronLeft,
+  ChevronRight,
+  ChevronsLeft,
+  ChevronsRight,
+  Lightbulb,
+  RotateCcw,
+  Sparkles,
+  Target
+} from 'lucide-react';
 import { AuthContext } from '../context/AuthContext';
 import './ReviewPage.css';
 
 const API_BASE = process.env.REACT_APP_API_URL || '';
+const QUALITY = {
+  brilliant: { label: 'Brilliant', symbol: '!!', tone: 'brilliant' },
+  great: { label: 'Great', symbol: '!', tone: 'great' },
+  best: { label: 'Best', symbol: '★', tone: 'best' },
+  excellent: { label: 'Excellent', symbol: '✓', tone: 'excellent' },
+  good: { label: 'Good', symbol: '✓', tone: 'good' },
+  fine: { label: 'Fine', symbol: '·', tone: 'fine' },
+  inaccuracy: { label: 'Inaccuracy', symbol: '?!', tone: 'inaccuracy' },
+  mistake: { label: 'Mistake', symbol: '?', tone: 'mistake' },
+  blunder: { label: 'Blunder', symbol: '??', tone: 'blunder' },
+  miss: { label: 'Miss', symbol: '×', tone: 'miss' },
+  unrated: { label: 'Unrated', symbol: '—', tone: 'unrated' }
+};
 
-// ── Helpers ────────────────────────────────────────────────────────────────────
-function buildBoard(moves) {
-  // moves = [{ idx, side }, ...]
+function qualityFor(annotation) {
+  if (annotation?.quality && QUALITY[annotation.quality]) {
+    return QUALITY[annotation.quality];
+  }
+  if (annotation?.brilliant) return QUALITY.brilliant;
+  if (annotation?.great) return QUALITY.great;
+  if (annotation?.blunder) return QUALITY.blunder;
+  if (annotation?.mistake) return QUALITY.mistake;
+  if (annotation?.inaccuracy) return QUALITY.inaccuracy;
+  if (annotation?.wasOptimal ?? annotation?.isEnginePick) return QUALITY.best;
+  return QUALITY.good;
+}
+
+function buildBoard(moves = []) {
   const board = Array(81).fill(null);
-  moves.forEach(m => { board[m.idx] = m.side === 0 ? 'X' : 'O'; });
+  moves.forEach(move => {
+    if (Number.isInteger(move.idx) && move.idx >= 0 && move.idx < 81) {
+      board[move.idx] = move.side === 0 ? 'X' : 'O';
+    }
+  });
   return board;
 }
 
-function moveQuality(ann) {
-  if (!ann || ann.error)  return { label: '?',            cls: 'unknown',    symbol: '?' };
-  if (ann.blunder)        return { label: 'BLUNDER',      cls: 'blunder',    symbol: '??' };
-  if (ann.mistake)        return { label: 'MISTAKE',      cls: 'mistake',    symbol: '?' };
-  if (ann.inaccuracy)     return { label: 'INACCURACY',   cls: 'inaccuracy', symbol: '⁉' };
-  if (ann.isEnginePick || ann.wasOptimal) return { label: 'BEST MOVE', cls: 'best', symbol: '✓' };
-  return { label: 'REVIEW MOVE', cls: 'inaccuracy', symbol: '!' };
+function formatMove(index) {
+  if (!Number.isInteger(index) || index < 0 || index > 80) return 'No legal move';
+  const macro = Math.floor(index / 9);
+  const cell = index % 9;
+  const board = `${String.fromCharCode(65 + (macro % 3))}${Math.floor(macro / 3) + 1}`;
+  const cells = [
+    'top-left', 'top-center', 'top-right',
+    'middle-left', 'center', 'middle-right',
+    'bottom-left', 'bottom-center', 'bottom-right'
+  ];
+  return `${board} · ${cells[cell]}`;
 }
 
-function formatScore(score) {
-  if (score == null)   return '—';
-  if (score >  9000)   return 'X winning';
-  if (score < -9000)   return 'O winning';
-  const v = (score / 100).toFixed(2);
-  return score >= 0 ? `+${v}` : `${v}`;
-}
-
-// ── Mini replay board ──────────────────────────────────────────────────────────
-function ReplayBoard({ moves, highlightIdx, bestMoveIdx }) {
+function ReplayBoard({ moves, playedMove, bestMove, showAfter }) {
   const board = buildBoard(moves);
-
   return (
-    <div className="rp-board">
-      {Array.from({ length: 81 }, (_, idx) => {
-        const macro   = Math.floor(idx / 9);
-        const cell    = idx % 9;
+    <div
+      className="review-board"
+      role="img"
+      aria-label={`Ultimate tic-tac-toe position ${showAfter ? 'after' : 'before'} move ${playedMove + 1}`}
+    >
+      {Array.from({ length: 81 }, (_, index) => {
+        const macro = Math.floor(index / 9);
+        const cell = index % 9;
         const macroRow = Math.floor(macro / 3);
         const macroCol = macro % 3;
-        const cellRow  = Math.floor(cell / 3);
-        const cellCol  = cell % 3;
-        const piece    = board[idx];
-        const isLast   = idx === highlightIdx;
-        const isBest   = idx === bestMoveIdx && bestMoveIdx !== highlightIdx;
-
+        const cellRow = Math.floor(cell / 3);
+        const cellCol = cell % 3;
+        const mark = board[index];
+        const isPlayed = index === playedMove;
+        const isBest = index === bestMove && index !== playedMove;
         return (
           <div
-            key={idx}
+            key={index}
             className={[
-              'rp-cell',
-              piece    ? `rp-cell--${piece.toLowerCase()}` : '',
-              isLast   ? 'rp-cell--last' : '',
-              isBest   ? 'rp-cell--best' : '',
-              cellCol === 2 && macroCol < 2 ? 'rp-cell--mbr' : '',
-              cellRow === 2 && macroRow < 2 ? 'rp-cell--mbb' : '',
-            ].join(' ')}
+              'review-board__cell',
+              mark ? `review-board__cell--${mark.toLowerCase()}` : '',
+              isPlayed ? 'review-board__cell--played' : '',
+              isBest ? 'review-board__cell--best' : '',
+              cellCol === 2 && macroCol < 2 ? 'review-board__cell--macro-right' : '',
+              cellRow === 2 && macroRow < 2 ? 'review-board__cell--macro-bottom' : ''
+            ].filter(Boolean).join(' ')}
           >
-            {piece}
+            {mark}
           </div>
         );
       })}
@@ -68,47 +104,34 @@ function ReplayBoard({ moves, highlightIdx, bestMoveIdx }) {
   );
 }
 
-// ── Eval bar ───────────────────────────────────────────────────────────────────
-function EvalBar({ score, mateIn }) {
-  let pct = 0.5;
-  if (mateIn != null) {
-    pct = mateIn > 0 ? 0.97 : 0.03;
-  } else if (score != null) {
-    const clamped = Math.max(-3000, Math.min(3000, score));
-    pct = 1 / (1 + Math.exp(-0.003 * clamped));
-    pct = Math.max(0.03, Math.min(0.97, pct));
-  }
-
+function Stat({ label, value, tone = '' }) {
   return (
-    <div className="rp-evalbar">
-      <div className="rp-evalbar__o"  style={{ height: `${(1 - pct) * 100}%` }} />
-      <div className="rp-evalbar__x"  style={{ height: `${pct * 100}%` }} />
-      <div className="rp-evalbar__label rp-evalbar__label--top">O</div>
-      <div className="rp-evalbar__label rp-evalbar__label--bot">X</div>
+    <div className={`review-stat ${tone ? `review-stat--${tone}` : ''}`}>
+      <span className="review-stat__value">{value}</span>
+      <span className="review-stat__label">{label}</span>
     </div>
   );
 }
 
-// ── Main page ──────────────────────────────────────────────────────────────────
 export default function ReviewPage() {
-  const { gameId }  = useParams();
-  const { token }   = useContext(AuthContext);
-  const navigate    = useNavigate();
-
-  const [game,        setGame]        = useState(null);
+  const { gameId } = useParams();
+  const { token, user } = useContext(AuthContext);
+  const navigate = useNavigate();
+  const [game, setGame] = useState(null);
   const [annotations, setAnnotations] = useState([]);
-  const [summary,     setSummary]     = useState(null);
-  const [status,      setStatus]      = useState('idle');   // idle | loading | done | error
-  const [error,       setError]       = useState(null);
+  const [summary, setSummary] = useState(null);
+  const [status, setStatus] = useState('idle');
+  const [error, setError] = useState('');
   const [gameLoading, setGameLoading] = useState(true);
-  const [gameError,   setGameError]   = useState(null);
-  const [current,     setCurrent]     = useState(0);
+  const [gameError, setGameError] = useState('');
+  const [current, setCurrent] = useState(0);
+  const [showAfter, setShowAfter] = useState(false);
+  const [filter, setFilter] = useState('all');
 
-  // Load the metadata needed to show the review entry state and replay.
   useEffect(() => {
     const controller = new AbortController();
     setGameLoading(true);
-    setGameError(null);
+    setGameError('');
     setGame(null);
     fetch(`${API_BASE}/api/games/${gameId}`, {
       headers: { 'x-auth-token': token },
@@ -119,9 +142,9 @@ export default function ReviewPage() {
         if (!response.ok) throw new Error(data.msg || data.error || 'Unable to load this game.');
         return data;
       })
-      .then(data => setGame(data))
-      .catch(err => {
-        if (err.name !== 'AbortError') setGameError(err.message);
+      .then(setGame)
+      .catch(loadError => {
+        if (loadError.name !== 'AbortError') setGameError(loadError.message);
       })
       .finally(() => {
         if (!controller.signal.aborted) setGameLoading(false);
@@ -129,259 +152,367 @@ export default function ReviewPage() {
     return () => controller.abort();
   }, [gameId, token]);
 
-  // Keyboard nav
   useEffect(() => {
-    const handler = (e) => {
-      if (!annotations.length) return;
-      if (e.target instanceof HTMLElement &&
-          ['INPUT', 'TEXTAREA', 'SELECT'].includes(e.target.tagName)) return;
-      if (e.key === 'ArrowLeft')
-        setCurrent(c => Math.max(0, c - 1));
-      if (e.key === 'ArrowRight')
-        setCurrent(c => Math.min(annotations.length - 1, c + 1));
+    const handleKeyDown = event => {
+      if (event.target instanceof HTMLElement &&
+          ['INPUT', 'TEXTAREA', 'SELECT'].includes(event.target.tagName)) return;
+      if (event.key === 'ArrowLeft') setCurrent(index => Math.max(0, index - 1));
+      if (event.key === 'ArrowRight') setCurrent(index => Math.min(annotations.length - 1, index + 1));
     };
-    window.addEventListener('keydown', handler);
-    return () => window.removeEventListener('keydown', handler);
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
   }, [annotations.length]);
 
-  // Trigger review on button click
-  function requestReview() {
+  async function requestReview() {
     setStatus('loading');
-    setError(null);
-    fetch(`${API_BASE}/api/games/${gameId}/review`, {
-      headers: { 'x-auth-token': token }
-    })
-      .then(async response => {
-        const data = await response.json();
-        if (!response.ok) throw new Error(data.msg || data.error || `Server error ${response.status}`);
-        return data;
-      })
-      .then(data => {
-        const normalizedAnnotations = (data.annotations || []).map((annotation, index) => {
-          const idx = annotation.idx ?? annotation.playedMove ?? game?.moves?.[index]?.idx;
-          const bestMove = annotation.bestMove ?? annotation.optimalMove;
-          return {
-            ...annotation,
-            idx,
-            bestMove,
-            isEnginePick: annotation.isEnginePick ?? annotation.wasOptimal ?? bestMove === idx,
-            score: annotation.score ?? annotation.positionalScore
-          };
-        });
-        setAnnotations(normalizedAnnotations);
-        setSummary(data.reviewSummary || null);
-        setCurrent(0);
-        setStatus('done');
-      })
-      .catch(err => {
-        setError(err.message);
-        setStatus('error');
+    setError('');
+    try {
+      const response = await fetch(`${API_BASE}/api/games/${gameId}/review`, {
+        headers: { 'x-auth-token': token }
       });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.msg || data.error || `Server error ${response.status}`);
+      const normalized = (data.annotations || []).map((annotation, index) => ({
+        ...annotation,
+        idx: annotation.idx ?? annotation.playedMove ?? game?.moves?.[index]?.idx,
+        side: annotation.side ?? game?.moves?.[index]?.side ?? index % 2,
+        bestMove: annotation.bestMove ?? annotation.optimalMove,
+        quality: annotation.quality ?? (
+          annotation.blunder ? 'blunder' :
+            annotation.mistake ? 'mistake' :
+              annotation.inaccuracy ? 'inaccuracy' :
+                (annotation.wasOptimal ?? annotation.isEnginePick) ? 'best' : 'good'
+        )
+      }));
+      setAnnotations(normalized);
+      setSummary(data.reviewSummary || null);
+      setCurrent(0);
+      setShowAfter(false);
+      setStatus('done');
+    } catch (reviewError) {
+      setError(reviewError.message);
+      setStatus('error');
+    }
   }
 
-  const ann       = annotations[current] || null;
-  const quality   = moveQuality(ann);
-  const movesUpTo = game?.moves?.slice(0, current + 1) || [];
+  const qualityCounts = useMemo(() => {
+    const counts = Object.fromEntries(Object.keys(QUALITY).map(code => [code, 0]));
+    annotations.forEach(annotation => {
+      const code = qualityFor(annotation).tone;
+      counts[code] = (counts[code] || 0) + 1;
+    });
+    return counts;
+  }, [annotations]);
+  const viewerIndex = game?.players?.findIndex(player =>
+    String(player._id ?? player.id) === String(user?._id ?? user?.id)
+  ) ?? -1;
+  const viewerSide = viewerIndex === 1 ? 'O' : 'X';
+  const viewerSummary = summary?.sideSummaries?.[viewerSide];
+  const viewerQualityCounts = viewerSummary?.qualityCounts || qualityCounts;
 
-  // ── IDLE — show "Request Review" screen ────────────────────────────────────
-  if (status === 'idle') return (
-    <div className="review-page">
-      <div className="review-page__topbar">
-        <button className="review-page__back" onClick={() => navigate(-1)}>← BACK</button>
-        <span className="review-page__title">GAME REVIEW</span>
+  const visibleMoves = useMemo(() => annotations
+    .map((annotation, index) => ({ annotation, index }))
+    .filter(({ annotation }) => {
+      const code = qualityFor(annotation).tone;
+      if (filter === 'critical') return ['miss', 'blunder', 'mistake'].includes(code);
+      if (filter === 'highlights') return ['brilliant', 'great', 'best'].includes(code);
+      return true;
+    }), [annotations, filter]);
+
+  const annotation = annotations[current] || null;
+  const quality = qualityFor(annotation);
+  const movesBefore = game?.moves?.slice(0, current) || [];
+  const boardMoves = showAfter
+    ? game?.moves?.slice(0, current + 1) || []
+    : movesBefore;
+  const criticalMoments = annotations
+    .map((move, index) => ({ move, index, quality: qualityFor(move) }))
+    .filter(item => viewerIndex < 0 || (item.move.side === 1 ? 1 : 0) === viewerIndex)
+    .filter(item => ['miss', 'blunder', 'mistake', 'inaccuracy'].includes(item.quality.tone))
+    .slice(0, 3);
+
+  if (gameLoading) {
+    return (
+      <div className="review-page">
+        <div className="review-state-card">
+          <span className="review-eyebrow">SOX GAME REVIEW</span>
+          <div className="review-loader" />
+          <h1>Loading your game</h1>
+          <p>Getting the move record ready for analysis.</p>
+        </div>
       </div>
-      <div className="review-page__gate">
-        <div className="review-page__gate-box">
-          <div className="review-page__gate-label">SOX ENGINE</div>
-          <h2 className="review-page__gate-heading">Analyze This Game</h2>
-          <p className="review-page__gate-sub">
-            The engine evaluates each position, highlighting its preferred moves
-            and opportunities worth revisiting.
-            {game?.moves?.length
-              ? ` ${game.moves.length} moves to analyze.`
-              : ''}
-          </p>
-          {gameLoading && <p className="review-page__gate-sub">Loading game details…</p>}
-          {gameError && <p className="review-page__gate-warn" role="alert">{gameError}</p>}
-          {game?.moves?.length === 0 && (
-            <p className="review-page__gate-warn">
-              No moves were recorded for this game.<br />
-              Update your client to track moves before analysis is available.
-            </p>
+    );
+  }
+
+  if (gameError || !game) {
+    return (
+      <div className="review-page">
+        <button className="review-back" onClick={() => navigate(-1)}><ArrowLeft size={16} /> Back</button>
+        <div className="review-state-card review-state-card--error" role="alert">
+          <AlertCircle size={25} />
+          <h1>Couldn’t load this game</h1>
+          <p>{gameError || 'The game is unavailable.'}</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (status !== 'done') {
+    return (
+      <div className="review-page">
+        <header className="review-topbar">
+          <button className="review-back" onClick={() => navigate(-1)}><ArrowLeft size={16} /> Back</button>
+          <span className="review-brand-mark">SOX <span>REVIEW</span></span>
+        </header>
+        <main className="review-state-card">
+          <span className="review-eyebrow"><Sparkles size={14} /> GAME ANALYSIS</span>
+          {status === 'loading' ? (
+            <>
+              <div className="review-loader" />
+              <h1>Reviewing every move</h1>
+              <p>Checking {game.moves?.length || 0} positions for strong ideas, missed chances, and turning points.</p>
+            </>
+          ) : status === 'error' ? (
+            <>
+              <AlertCircle size={28} className="review-state-card__error-icon" />
+              <h1>Analysis couldn’t finish</h1>
+              <p role="alert">{error}</p>
+              <button className="review-primary-btn" onClick={requestReview}><RotateCcw size={16} /> Try again</button>
+            </>
+          ) : (
+            <>
+              <div className="review-state-card__icon"><Target size={25} /></div>
+              <h1>See the story behind your game</h1>
+              <p>
+                Review every move, spot the turning points, and see a stronger continuation
+                when there was one.
+              </p>
+              <div className="review-game-meta">
+                <span>{game.players?.[0]?.username || 'X'} <b className="review-mark-x">X</b></span>
+                <span className="review-game-meta__vs">VS</span>
+                <span><b className="review-mark-o">O</b> {game.players?.[1]?.username || 'O'}</span>
+                <span className="review-game-meta__moves">{game.moves?.length || 0} moves</span>
+              </div>
+              {gameError && <p className="review-inline-error" role="alert">{gameError}</p>}
+              {(!game.moves || game.moves.length === 0) && (
+                <p className="review-inline-error">No recorded moves are available for this game.</p>
+              )}
+              <button
+                className="review-primary-btn"
+                onClick={requestReview}
+                disabled={!game.moves?.length}
+              >
+                <Sparkles size={16} /> Analyze game
+              </button>
+              <span className="review-state-card__note">Move grades are strategic estimates from the SOX game engine.</span>
+            </>
           )}
-          <button
-            className="review-page__gate-btn"
-            onClick={requestReview}
-            disabled={gameLoading || !game || !game.moves?.length}
-          >
-            Analyze game
-          </button>
-        </div>
+        </main>
       </div>
-    </div>
-  );
+    );
+  }
 
-  // ── LOADING ────────────────────────────────────────────────────────────────
-  if (status === 'loading') return (
-    <div className="review-page">
-      <div className="review-page__topbar">
-        <span className="review-page__title">GAME REVIEW</span>
-      </div>
-      <div className="review-page__gate">
-        <div className="review-page__gate-box">
-          <div className="review-page__loading-bar">
-            <div className="review-page__loading-fill" />
-          </div>
-          <p className="review-page__loading-txt">ENGINE ANALYZING…</p>
-          <p className="review-page__loading-sub">
-            Evaluating {game?.moves?.length || '?'} positions via SOX Engine on Render
-          </p>
-        </div>
-      </div>
-    </div>
-  );
+  const summaryStats = [
+    { label: 'Your accuracy', value: `${viewerSummary?.accuracy ?? summary?.accuracy ?? 0}%`, tone: 'accuracy' },
+    { label: 'Your moves', value: viewerSummary?.movesReviewed ?? annotations.length },
+    { label: 'Brilliant', value: viewerQualityCounts.brilliant || 0, tone: 'brilliant' },
+    { label: 'Great + best', value: (viewerQualityCounts.great || 0) + (viewerQualityCounts.best || 0), tone: 'best' },
+    { label: 'Mistakes', value: (viewerQualityCounts.mistake || 0) + (viewerQualityCounts.blunder || 0) + (viewerQualityCounts.miss || 0), tone: 'mistake' }
+  ];
+  const moveNo = annotation?.moveNumber ?? current + 1;
+  const side = annotation?.side === 1 ? 'O' : 'X';
+  const winnerId = game.winner?._id ?? game.winner?.id ?? game.winner;
+  const gameOutcome = game.status === 'DRAW'
+    ? 'Draw'
+    : winnerId
+      ? String(winnerId) === String(user?._id ?? user?.id) ? 'Victory' : 'Defeat'
+      : 'Game complete';
 
-  // ── ERROR ──────────────────────────────────────────────────────────────────
-  if (status === 'error') return (
-    <div className="review-page">
-      <div className="review-page__topbar">
-        <button className="review-page__back" onClick={() => navigate(-1)}>← BACK</button>
-        <span className="review-page__title">GAME REVIEW</span>
-      </div>
-      <div className="review-page__gate">
-        <div className="review-page__gate-box review-page__gate-box--error">
-          <p className="review-page__error-label">ENGINE ERROR</p>
-          <code>{error}</code>
-          <button className="review-page__gate-btn" onClick={requestReview}>
-            RETRY
-          </button>
-        </div>
-      </div>
-    </div>
-  );
-
-  // ── DONE — full review UI ──────────────────────────────────────────────────
   return (
     <div className="review-page">
-
-      {/* Top bar */}
-      <div className="review-page__topbar">
-        <button className="review-page__back" onClick={() => navigate(-1)}>← BACK</button>
-        <span className="review-page__title">GAME REVIEW</span>
-        {game && (
-          <span className="review-page__players">
-            <span className="review-page__px">{game.players?.[0]?.username || 'X'}</span>
-            <span className="review-page__pvs"> vs </span>
-            <span className="review-page__po">{game.players?.[1]?.username || 'O'}</span>
-          </span>
-        )}
-        <button
-          className="review-page__puzzle-btn"
-          onClick={() => navigate(`/puzzles/${gameId}`)}
-        >
-          VIEW PUZZLES →
+      <header className="review-topbar">
+        <button className="review-back" onClick={() => navigate(-1)}><ArrowLeft size={16} /> Back</button>
+        <span className="review-brand-mark">SOX <span>REVIEW</span></span>
+        <div className="review-topbar__match">
+          <span>{game.players?.[0]?.username || 'Player X'}</span>
+          <span className="review-topbar__vs">vs</span>
+          <span>{game.players?.[1]?.username || 'Player O'}</span>
+        </div>
+        <button className="review-puzzles-btn" onClick={() => navigate(`/puzzles/${gameId}`)}>
+          Review puzzles <ChevronRight size={15} />
         </button>
-      </div>
+      </header>
 
-      {/* Summary bar */}
-      {summary && (
-        <div className="review-page__summary">
-          {[
-            { label: 'ENGINE MATCH', val: summary.accuracy != null ? `${summary.accuracy}%` : '—', cls: '' },
-            { label: 'MOVES REVIEWED', val: annotations.length, cls: '' },
-            { label: 'BEST MOVES', val: annotations.filter(move => move.wasOptimal ?? move.isEnginePick).length, cls: 'best' },
-            { label: 'ALTERNATIVES', val: summary.tacticalMissesCount ?? annotations.filter(move => !(move.wasOptimal ?? move.isEnginePick)).length, cls: 'inaccuracy' },
-          ].map(({ label, val, cls }) => (
-            <div key={label} className={`review-page__stat ${cls ? `review-page__stat--${cls}` : ''}`}>
-              <span className="review-page__stat-num">{val}</span>
-              <span className="review-page__stat-lbl">{label}</span>
+      <main className="review-content">
+        <section className="review-heading">
+          <div>
+            <span className="review-eyebrow">POST-GAME ANALYSIS</span>
+            <h1>Every move tells a story.</h1>
+            <p>See what worked, where the game shifted, and what you could try next time.</p>
+          </div>
+          <div className="review-heading__result">
+            <span className={`review-result-dot review-result-dot--${game.status?.toLowerCase() || 'completed'}`} />
+            <span>{gameOutcome}</span>
+          </div>
+        </section>
+
+        <section className="review-stats" aria-label="Game review summary">
+          {summaryStats.map(stat => <Stat key={stat.label} {...stat} />)}
+        </section>
+
+        <section className="review-workspace">
+          <div className="review-board-card">
+            <div className="review-board-card__head">
+              <div>
+                <span className="review-section-label">POSITION</span>
+                <h2>{showAfter ? 'After' : 'Before'} move {moveNo}</h2>
+              </div>
+              <button
+                className="review-position-toggle"
+                onClick={() => setShowAfter(value => !value)}
+                aria-label={showAfter ? 'Show position before move' : 'Show position after move'}
+              >
+                {showAfter ? 'Before move' : 'After move'}
+              </button>
             </div>
-          ))}
-        </div>
-      )}
-
-      {/* Main area */}
-      <div className="review-page__main">
-
-        {/* Eval bar */}
-        <EvalBar score={ann?.score} mateIn={ann?.mateIn} />
-
-        {/* Board */}
-        <div className="review-page__board-wrap">
-          <ReplayBoard
-            moves={movesUpTo}
-            highlightIdx={ann?.idx}
-            bestMoveIdx={ann?.isEnginePick ? null : ann?.bestMove}
-          />
-        </div>
-
-        {/* Annotation panel */}
-        <div className="review-page__panel">
-
-          <div className={`review-page__quality review-page__quality--${quality.cls}`}>
-            <span className="review-page__quality-symbol">{quality.symbol}</span>
-            <span className="review-page__quality-label">{quality.label}</span>
+            <ReplayBoard
+              moves={boardMoves}
+              playedMove={annotation?.idx ?? -1}
+              bestMove={annotation?.bestMove ?? -1}
+              showAfter={showAfter}
+            />
+            <div className="review-board-legend">
+              <span><i className="review-legend-dot review-legend-dot--played" /> Played move</span>
+              <span><i className="review-legend-dot review-legend-dot--best" /> Suggested move</span>
+            </div>
+            <div className="review-board-controls">
+              <button onClick={() => setCurrent(0)} disabled={current === 0} aria-label="First move"><ChevronsLeft size={18} /></button>
+              <button onClick={() => setCurrent(index => Math.max(0, index - 1))} disabled={current === 0} aria-label="Previous move"><ChevronLeft size={19} /></button>
+              <span>Move <b>{moveNo}</b> of {annotations.length}</span>
+              <button onClick={() => setCurrent(index => Math.min(annotations.length - 1, index + 1))} disabled={current >= annotations.length - 1} aria-label="Next move"><ChevronRight size={19} /></button>
+              <button onClick={() => setCurrent(annotations.length - 1)} disabled={current >= annotations.length - 1} aria-label="Last move"><ChevronsRight size={18} /></button>
+            </div>
+            <p className="review-keyboard-hint">Use ← → to step through the game</p>
           </div>
 
-          <div className="review-page__score">
-            <span className="review-page__score-lbl">EVAL</span>
-            <span className="review-page__score-val">{formatScore(ann?.score)}</span>
-          </div>
-
-          {ann && !ann.isEnginePick && ann.bestMove != null && (
-            <div className="review-page__hint">
-              <span className="review-page__hint-lbl">ENGINE PREFERRED</span>
-              <span className="review-page__hint-val">Square {ann.bestMove}</span>
+          <aside className="review-insight-card" aria-live="polite">
+            <div className="review-insight-card__top">
+              <span className="review-section-label">MOVE {moveNo} <span>·</span> {side} TO PLAY</span>
+              <span className={`review-grade review-grade--${quality.tone}`}>
+                <b>{quality.symbol}</b>{quality.label}
+              </span>
             </div>
-          )}
+            <h2>{formatMove(annotation?.idx)}</h2>
+            <p className="review-insight-card__explanation">
+              {annotation?.explanation || 'This move was reviewed against the available legal continuations.'}
+            </p>
 
-          <div className="review-page__delta">
-            {ann?.delta != null && (
-              <>
-                <span className="review-page__delta-lbl">DELTA</span>
-                <span className={`review-page__delta-val ${ann.delta < 0 ? 'review-page__delta-val--neg' : ''}`}>
-                  {ann.delta > 0 ? '+' : ''}{(ann.delta / 100).toFixed(2)}
-                </span>
-              </>
+            {annotation?.quality !== 'best' && annotation?.bestMove != null && (
+              <div className="review-recommendation">
+                <span className="review-recommendation__icon"><Lightbulb size={17} /></span>
+                <div>
+                  <span className="review-section-label">A STRONGER IDEA</span>
+                  <strong>{formatMove(annotation.bestMove)}</strong>
+                  <p>{annotation.recommendation}</p>
+                </div>
+              </div>
+            )}
+
+            <div className="review-insight-facts">
+              <div><span>Move quality</span><strong>{quality.label}</strong></div>
+              <div><span>Strategic theme</span><strong>{annotation?.theme || 'Positioning'}</strong></div>
+              {annotation?.regret != null && (
+                <div><span>Engine gap</span><strong>{annotation.regret === 0 ? 'Top choice' : `${annotation.regret} pts`}</strong></div>
+              )}
+            </div>
+
+            {criticalMoments.length > 0 && (
+              <div className="review-turning-points">
+                <span className="review-section-label"><Target size={13} /> MOMENTS TO REVISIT</span>
+                {criticalMoments.map(item => (
+                  <button
+                    key={item.index}
+                    className="review-turning-point"
+                    onClick={() => setCurrent(item.index)}
+                  >
+                    <span className={`review-turning-point__dot review-turning-point__dot--${item.quality.tone}`} />
+                    <span>Move {item.index + 1} · {item.quality.label}</span>
+                    <ChevronRight size={14} />
+                  </button>
+                ))}
+              </div>
+            )}
+          </aside>
+        </section>
+
+        <section className="review-moves-card">
+          <div className="review-moves-card__head">
+            <div>
+              <span className="review-section-label">FULL MOVE-BY-MOVE REVIEW</span>
+              <h2>Game timeline <span>{annotations.length} plies</span></h2>
+            </div>
+            <div className="review-filters" role="group" aria-label="Filter reviewed moves">
+              {[
+                ['all', 'All moves'],
+                ['critical', 'Needs attention'],
+                ['highlights', 'Top moves']
+              ].map(([value, label]) => (
+                <button
+                  key={value}
+                  className={filter === value ? 'is-active' : ''}
+                  onClick={() => setFilter(value)}
+                  aria-pressed={filter === value}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
+          </div>
+          <div className="review-move-list">
+            {visibleMoves.length ? visibleMoves.map(({ annotation: move, index }) => {
+              const moveQuality = qualityFor(move);
+              const moveSide = move.side === 1 ? 'O' : 'X';
+              return (
+                <button
+                  key={`${move.moveNumber}-${index}`}
+                  className={`review-move-row ${current === index ? 'is-active' : ''}`}
+                  onClick={() => {
+                    setCurrent(index);
+                    setShowAfter(false);
+                  }}
+                  aria-current={current === index ? 'true' : undefined}
+                >
+                  <span className="review-move-row__number">{Math.floor(index / 2) + 1}{moveSide === 'O' ? '…' : '.'}</span>
+                  <span className={`review-move-row__side review-move-row__side--${moveSide.toLowerCase()}`}>{moveSide}</span>
+                  <span className="review-move-row__notation">{formatMove(move.idx)}</span>
+                  <span className={`review-move-row__grade review-grade--${moveQuality.tone}`}>
+                    <b>{moveQuality.symbol}</b>{moveQuality.label}
+                  </span>
+                  <span className="review-move-row__note">{move.theme || 'Positioning'}</span>
+                  <ChevronRight className="review-move-row__arrow" size={15} />
+                </button>
+              );
+            }) : (
+              <div className="review-empty-filter">
+                <Sparkles size={18} />
+                <span>{filter === 'critical' ? 'No major errors in this game.' : 'No top-rated moves in this game yet.'}</span>
+              </div>
             )}
           </div>
-
-          {/* Navigation */}
-          <div className="review-page__nav">
-            <button onClick={() => setCurrent(0)} disabled={current === 0}               className="review-page__nav-btn" aria-label="First move">⏮</button>
-            <button onClick={() => setCurrent(c => Math.max(0, c - 1))} disabled={current === 0} className="review-page__nav-btn" aria-label="Previous move">◀</button>
-            <span className="review-page__nav-counter">{current + 1} / {annotations.length}</span>
-            <button onClick={() => setCurrent(c => Math.min(annotations.length-1, c+1))} disabled={current >= annotations.length - 1} className="review-page__nav-btn" aria-label="Next move">▶</button>
-            <button onClick={() => setCurrent(annotations.length - 1)} disabled={current >= annotations.length - 1} className="review-page__nav-btn" aria-label="Last move">⏭</button>
+          <div className="review-grade-key">
+            <span>Move grades</span>
+            {Object.entries(QUALITY).filter(([code]) => code !== 'unrated').map(([code, value]) => (
+              <span key={code} className={`review-grade-key__item review-grade-key__item--${code}`}>
+                <b>{value.symbol}</b>{value.label}
+              </span>
+            ))}
           </div>
-          <p className="review-page__nav-tip">← → arrow keys</p>
-        </div>
-      </div>
+        </section>
 
-      {/* Move list */}
-      <div className="review-page__movelist">
-        {annotations.map((a, i) => {
-          const q = moveQuality(a);
-          const side = i % 2 === 0 ? 'X' : 'O';
-          return (
-            <button
-              key={i}
-              onClick={() => setCurrent(i)}
-              className={[
-                'review-page__move',
-                `review-page__move--${q.cls}`,
-                i === current ? 'review-page__move--active' : '',
-              ].join(' ')}
-            >
-              <span className="review-page__move-num">{i + 1}</span>
-              <span className={`review-page__move-side review-page__move-side--${side.toLowerCase()}`}>{side}</span>
-              <span className="review-page__move-sq">sq{a.idx}</span>
-              <span className="review-page__move-sym">{q.symbol}</span>
-            </button>
-          );
-        })}
-      </div>
-
+        <p className="review-disclaimer">
+          SOX review grades are strategic estimates for Ultimate Tic-Tac-Toe, not chess engine evaluations.
+        </p>
+      </main>
     </div>
   );
 }

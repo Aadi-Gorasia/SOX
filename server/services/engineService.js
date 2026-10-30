@@ -92,13 +92,17 @@ function microThreats(board, player) {
   return total;
 }
 
-function scoreMove(state, move, difficultyRating) {
+function scoreMove(state, move) {
   const player = state.turn;
   const opponent = other(player);
   const macro = Math.floor(move / 9);
   const cell = move % 9;
   const before = state.boards[macro];
   const next = applyMove(state, move);
+  const previousForks = countMacroForks(state, player);
+  const nextForks = countMacroForks(next, player);
+  const capturesSector = next.winners[macro] === player && state.winners[macro] !== player;
+  const createsMacroFork = nextForks > previousForks;
   const remainingOpponentThreats = microThreats(next.boards[macro], opponent);
   const blockedThreats = microThreats(before, opponent) - remainingOpponentThreats;
   let score = 0;
@@ -108,9 +112,13 @@ function scoreMove(state, move, difficultyRating) {
     score += 10000;
     theme = 'Macro checkmate';
   }
-  if (next.winners[macro] === player && state.winners[macro] !== player) {
+  if (capturesSector) {
     score += 950;
     theme = 'Capture a sector';
+  }
+  if (createsMacroFork) {
+    score += 1300;
+    theme = 'Create a macro fork';
   }
   if (blockedThreats > 0) {
     score += 240 * blockedThreats;
@@ -127,18 +135,27 @@ function scoreMove(state, move, difficultyRating) {
     if (ownThreats) theme = 'Forced vector';
   }
 
-  // At lower ratings obvious board geometry remains decisive. At higher ratings
-  // forcing vectors and threats carry more weight, making positions meaningfully harder.
-  const advancedWeight = clamp((difficultyRating - 900) / 1300, 0, 1);
-  score += Math.round((Math.sin(move * 19 + state.boards.flat().filter(Boolean).length) + 1) * (1 - advancedWeight) * 28);
-  return { score, theme };
+  return {
+    score,
+    theme,
+    winsGame: next.gameWinner === player,
+    capturesSector,
+    createsMacroFork
+  };
+}
+
+function countMacroForks(state, player) {
+  return WIN_LINES.filter(line =>
+    line.filter(index => state.winners[index] === player).length === 2 &&
+    line.filter(index => state.winners[index] === null).length === 1
+  ).length;
 }
 
 async function getBestMove(positionSequence = [], difficultyRating = 1500) {
   const state = deriveState(positionSequence);
   if (!state) return { bestMove: -1, score: 0, theme: 'Invalid position' };
   const candidates = legalMoves(state)
-    .map(move => ({ move, ...scoreMove(state, move, difficultyRating) }))
+    .map(move => ({ move, ...scoreMove(state, move) }))
     .sort((a, b) => b.score - a.score || a.move - b.move);
   if (!candidates.length) return { bestMove: -1, score: 0, theme: 'No legal moves' };
   const bestScore = candidates[0].score;
@@ -149,10 +166,14 @@ async function getBestMove(positionSequence = [], difficultyRating = 1500) {
     alternatives: candidates.slice(1, 4).map(candidate => candidate.move),
     moveScores: candidates.map(candidate => ({
       move: candidate.move,
-      score: candidate.score
+      score: candidate.score,
+      theme: candidate.theme,
+      winsGame: candidate.winsGame,
+      capturesSector: candidate.capturesSector,
+      createsMacroFork: candidate.createsMacroFork
     })),
     acceptableMoves: candidates
-      .filter(candidate => candidate.score === bestScore)
+      .filter(candidate => bestScore - candidate.score <= 15)
       .map(candidate => candidate.move),
     margin: candidates.length > 1 ? bestScore - candidates[1].score : bestScore
   };
@@ -169,7 +190,7 @@ function difficultyForRating(rating) {
 function weightedRandomMove(state, rating) {
   const moves = legalMoves(state);
   if (!moves.length) return null;
-  const ranked = moves.map(move => ({ move, ...scoreMove(state, move, rating) })).sort((a, b) => b.score - a.score);
+  const ranked = moves.map(move => ({ move, ...scoreMove(state, move) })).sort((a, b) => b.score - a.score);
   // Natural-looking games: lower skill makes more varied moves; advanced games
   // still include inaccuracies to create tactical opportunities.
   const spread = rating < 1200 ? Math.min(8, ranked.length) : rating < 1700 ? Math.min(5, ranked.length) : Math.min(3, ranked.length);
@@ -235,34 +256,149 @@ async function annotateGame(moves = [], evaluationElo = 3500) {
   for (let i = 0; i < moves.length; i += 1) {
     const movePlayed = typeof moves[i] === 'number' ? moves[i] : moves[i].idx;
     const evaluation = await getBestMove(runningSequence, evaluationElo);
-    const playedScore = evaluation.moveScores?.find(candidate =>
+    const played = evaluation.moveScores?.find(candidate =>
       candidate.move === movePlayed
-    )?.score;
-    const regret = playedScore === undefined
-      ? 0
-      : Math.max(0, evaluation.score - playedScore);
+    );
+    const best = evaluation.moveScores?.find(candidate =>
+      candidate.move === evaluation.bestMove
+    );
+    const regret = played
+      ? Math.max(0, evaluation.score - played.score)
+      : null;
     const wasOptimal = evaluation.acceptableMoves?.includes(movePlayed) || false;
+    const nextState = deriveState(runningSequence);
+    const nextMoveState = nextState && applyMove(nextState, movePlayed);
+    const missedImmediateWin = Boolean(best?.winsGame && !played?.winsGame);
+    const quality = classifyMove({
+      played,
+      best,
+      regret,
+      wasOptimal,
+      missedImmediateWin
+    });
+    const recommendation = formatMove(evaluation.bestMove);
+    const explanation = explainMove({
+      quality,
+      theme: evaluation.theme,
+      recommendation,
+      regret,
+      missedImmediateWin,
+      played
+    });
     annotations.push({
       moveNumber: i + 1,
       idx: movePlayed,
+      side: typeof moves[i] === 'number'
+        ? i % 2
+        : moves[i].side ?? i % 2,
       bestMove: evaluation.bestMove,
       playedMove: movePlayed,
       optimalMove: evaluation.bestMove,
       positionStateBefore: [...runningSequence],
       wasOptimal,
-      positionalScore: playedScore ?? 0,
-      score: playedScore ?? 0,
+      quality: quality.code,
+      qualityLabel: quality.label,
+      explanation,
+      recommendation: missedImmediateWin
+        ? `${recommendation} would have won the macro game.`
+        : recommendation === 'No legal move'
+          ? 'No legal alternative was available.'
+          : `Try ${recommendation} instead. ${evaluation.theme}.`,
+      theme: evaluation.theme,
+      positionalScore: played?.score ?? null,
+      score: played?.score ?? null,
       scoreBefore: evaluation.score,
-      delta: wasOptimal ? 0 : -regret,
-      blunder: !wasOptimal && regret > 200,
-      mistake: !wasOptimal && regret > 100 && regret <= 200,
-      inaccuracy: !wasOptimal && regret > 50 && regret <= 100,
+      delta: regret === null ? null : -regret,
+      regret,
+      brilliant: quality.code === 'brilliant',
+      great: quality.code === 'great',
+      blunder: quality.code === 'blunder',
+      mistake: quality.code === 'mistake',
+      inaccuracy: quality.code === 'inaccuracy',
       isEnginePick: wasOptimal,
-      mateIn: null
+      mateIn: null,
+      moveWinsGame: Boolean(played?.winsGame),
+      moveCapturesSector: Boolean(played?.capturesSector),
+      createsMacroFork: Boolean(played?.createsMacroFork),
+      nextPositionValid: Boolean(nextMoveState)
     });
     runningSequence.push(movePlayed);
   }
   return annotations;
+}
+
+const MOVE_QUALITY = {
+  brilliant: { label: 'Brilliant', points: 100 },
+  great: { label: 'Great', points: 98 },
+  best: { label: 'Best', points: 96 },
+  excellent: { label: 'Excellent', points: 91 },
+  good: { label: 'Good', points: 84 },
+  fine: { label: 'Fine', points: 74 },
+  inaccuracy: { label: 'Inaccuracy', points: 58 },
+  mistake: { label: 'Mistake', points: 32 },
+  blunder: { label: 'Blunder', points: 10 },
+  miss: { label: 'Miss', points: 0 },
+  unrated: { label: 'Unrated', points: null }
+};
+
+function classifyMove({ played, best, regret, wasOptimal, missedImmediateWin }) {
+  if (!played) return { code: 'unrated', ...MOVE_QUALITY.unrated };
+  if (missedImmediateWin) return { code: 'miss', ...MOVE_QUALITY.miss };
+  if (played.createsMacroFork && regret <= 130) {
+    return { code: 'brilliant', ...MOVE_QUALITY.brilliant };
+  }
+  if (played.winsGame || (played.capturesSector && regret <= 130)) {
+    return { code: 'great', ...MOVE_QUALITY.great };
+  }
+  if (wasOptimal || (best && regret === 0)) return { code: 'best', ...MOVE_QUALITY.best };
+  if (regret <= 25) return { code: 'excellent', ...MOVE_QUALITY.excellent };
+  if (regret <= 70) return { code: 'good', ...MOVE_QUALITY.good };
+  if (regret <= 130) return { code: 'fine', ...MOVE_QUALITY.fine };
+  if (regret <= 250) return { code: 'inaccuracy', ...MOVE_QUALITY.inaccuracy };
+  if (regret <= 500) return { code: 'mistake', ...MOVE_QUALITY.mistake };
+  return { code: 'blunder', ...MOVE_QUALITY.blunder };
+}
+
+function formatMove(move) {
+  if (!Number.isInteger(move) || move < 0 || move > 80) return 'No legal move';
+  const macro = Math.floor(move / 9);
+  const cell = move % 9;
+  const macroName = `${String.fromCharCode(65 + (macro % 3))}${Math.floor(macro / 3) + 1}`;
+  const cellName = [
+    'top-left', 'top-center', 'top-right',
+    'middle-left', 'center', 'middle-right',
+    'bottom-left', 'bottom-center', 'bottom-right'
+  ][cell];
+  return `${macroName} · ${cellName}`;
+}
+
+function explainMove({ quality, theme, recommendation, regret, missedImmediateWin, played }) {
+  if (quality.code === 'unrated') return 'This move could not be evaluated from the recorded position.';
+  if (missedImmediateWin) {
+    return `There was a winning continuation. ${recommendation} would have completed the macro line.`;
+  }
+  if (quality.code === 'brilliant') {
+    return 'A strong tactical idea: this move creates two macro-board winning threats at once.';
+  }
+  if (quality.code === 'great') {
+    return played.winsGame
+      ? 'This move completes a winning macro line and ends the game.'
+      : 'This move captures a sector and strengthens your route to a macro-board win.';
+  }
+  if (quality.code === 'best') return `This is the engine’s top-scoring move. ${theme}.`;
+  if (quality.code === 'excellent' || quality.code === 'good') {
+    return `A strong choice, close to the top continuation (${regret} evaluation points behind).`;
+  }
+  if (quality.code === 'fine') {
+    return `Playable, but it gives up a small amount of initiative. ${recommendation} keeps more pressure.`;
+  }
+  if (quality.code === 'inaccuracy') {
+    return `This softens your position. ${recommendation} was the more active continuation.`;
+  }
+  if (quality.code === 'mistake') {
+    return `A missed opportunity that gives away useful momentum. ${recommendation} was stronger.`;
+  }
+  return `A major drop in the position. ${recommendation} was the best way to protect your macro-board chances.`;
 }
 
 function buildReviewSummary(annotations = []) {
@@ -276,12 +412,65 @@ function buildReviewSummary(annotations = []) {
     };
   }
 
-  const optimalCount = annotations.filter(annotation =>
-    annotation.wasOptimal ?? annotation.isEnginePick
-  ).length;
+  const qualityCounts = Object.fromEntries(
+    Object.keys(MOVE_QUALITY).map(code => [code, 0])
+  );
+  annotations.forEach(annotation => {
+    const code = annotation.quality ??
+      ((annotation.wasOptimal ?? annotation.isEnginePick) ? 'best' :
+        annotation.blunder ? 'blunder' :
+          annotation.mistake ? 'mistake' :
+            annotation.inaccuracy ? 'inaccuracy' : 'good');
+    if (Object.hasOwn(qualityCounts, code)) qualityCounts[code] += 1;
+  });
+  const qualityCodeFor = annotation => annotation.quality ??
+    ((annotation.wasOptimal ?? annotation.isEnginePick) ? 'best' :
+      annotation.blunder ? 'blunder' :
+        annotation.mistake ? 'mistake' :
+          annotation.inaccuracy ? 'inaccuracy' : 'good');
+  const summarize = entries => {
+    const qualityCounts = Object.fromEntries(
+          Object.keys(MOVE_QUALITY).map(code => [code, 0])
+    );
+    entries.forEach(annotation => {
+          const code = qualityCodeFor(annotation);
+          if (Object.hasOwn(qualityCounts, code)) qualityCounts[code] += 1;
+    });
+    const rated = entries.filter(annotation =>
+          MOVE_QUALITY[qualityCodeFor(annotation)]?.points != null
+    );
+    const accuracy = rated.length
+          ? Math.round(rated.reduce((sum, annotation) =>
+            sum + (MOVE_QUALITY[qualityCodeFor(annotation)]?.points ?? 0), 0
+          ) / rated.length)
+          : 0;
+    return { accuracy, qualityCounts, movesReviewed: entries.length };
+  };
+  const sideSummaries = {
+    X: summarize(annotations.filter((annotation, index) =>
+          (annotation.side ?? index % 2) === 0
+    )),
+    O: summarize(annotations.filter((annotation, index) =>
+          (annotation.side ?? index % 2) === 1
+    ))
+  };
+  const rated = annotations.filter(annotation =>
+    MOVE_QUALITY[qualityCodeFor(annotation)]?.points != null
+  );
+  const accuracy = rated.length
+    ? Math.round(rated.reduce((sum, annotation) => {
+      return sum + (MOVE_QUALITY[qualityCodeFor(annotation)]?.points ?? 0);
+    }, 0) / rated.length)
+    : 0;
+  const optimalCount = qualityCounts.best + qualityCounts.great + qualityCounts.brilliant;
   return {
-    accuracy: Math.round((optimalCount / annotations.length) * 100),
+    accuracy,
     tacticalMissesCount: annotations.length - optimalCount,
+    qualityCounts,
+    movesReviewed: annotations.length,
+    sideSummaries,
+    brilliantMoves: annotations.filter(annotation => annotation.quality === 'brilliant').map(annotation => annotation.moveNumber),
+    greatMoves: annotations.filter(annotation => annotation.quality === 'great').map(annotation => annotation.moveNumber),
     blunders: annotations.filter(annotation => annotation.blunder).map(annotation => annotation.moveNumber),
     mistakes: annotations.filter(annotation => annotation.mistake).map(annotation => annotation.moveNumber),
     inaccuracies: annotations.filter(annotation => annotation.inaccuracy).map(annotation => annotation.moveNumber),
@@ -309,6 +498,7 @@ module.exports = {
   checkPuzzleAnswer,
   annotateGame,
   buildReviewSummary,
+  classifyMove,
   generatePuzzlesFromAnnotations,
   generateAdaptivePuzzle,
   difficultyForRating

@@ -176,9 +176,13 @@ router.get('/:id([0-9a-fA-F]{24})/review', authMiddleware, async (req, res) => {
     const isPlayer = game.players.some(p => p.toString() === req.user.id);
     if (!isPlayer) return res.status(403).json({ msg: 'Access Denied: Player mismatch error' });
 
-    const hasCompleteAnnotations = game.annotations.length > 0 &&
+    const hasCompleteAnnotations = game.annotations.length === game.moves.length &&
+      game.annotations.length > 0 &&
       game.annotations.every(annotation =>
-        Array.isArray(annotation.positionStateBefore)
+        Array.isArray(annotation.positionStateBefore) &&
+        typeof annotation.quality === 'string' &&
+        typeof annotation.explanation === 'string' &&
+        typeof annotation.recommendation === 'string'
       );
     if (game.reviewedAt && hasCompleteAnnotations) {
       return res.json({

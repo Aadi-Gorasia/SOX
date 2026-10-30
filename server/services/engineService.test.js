@@ -6,6 +6,7 @@ const {
   getBestMove,
   annotateGame,
   buildReviewSummary,
+  classifyMove,
   generatePuzzlesFromAnnotations
 } = require('./engineService');
 const Game = require('../models/Game');
@@ -52,6 +53,99 @@ test('review annotations and summary fields survive game schema serialization', 
   assert.equal(
     persistedGame.reviewSummary.compiledAtTimestamp,
     reviewSummary.compiledAtTimestamp
+  );
+  assert.ok(persistedGame.annotations.every(annotation =>
+    typeof annotation.quality === 'string' &&
+    typeof annotation.explanation === 'string' &&
+    typeof annotation.recommendation === 'string'
+  ));
+  assert.equal(reviewSummary.sideSummaries.X.movesReviewed, 3);
+  assert.equal(reviewSummary.sideSummaries.O.movesReviewed, 2);
+});
+
+test('move review distinguishes tactical wins, top choices, and missed wins', () => {
+  const best = { score: 100, winsGame: true };
+
+  assert.equal(classifyMove({
+    played: { score: 100, createsMacroFork: true },
+    best,
+    regret: 0,
+    wasOptimal: true
+  }).code, 'brilliant');
+  assert.equal(classifyMove({
+    played: { score: 100, capturesSector: true },
+    best,
+    regret: 0,
+    wasOptimal: true
+  }).code, 'great');
+  assert.equal(classifyMove({
+    played: { score: -200, capturesSector: true },
+    best: { score: 100 },
+    regret: 300,
+    wasOptimal: false
+  }).code, 'mistake');
+  assert.equal(classifyMove({
+    played: { score: 100 },
+    best: { score: 100 },
+    regret: 0,
+    wasOptimal: true
+  }).code, 'best');
+  assert.equal(classifyMove({
+    played: { score: 90 },
+    best,
+    regret: 10,
+    wasOptimal: false,
+    missedImmediateWin: true
+  }).code, 'miss');
+  assert.equal(classifyMove({
+    played: { score: -600 },
+    best: { score: 100 },
+    regret: 700,
+    wasOptimal: false
+  }).code, 'blunder');
+});
+
+test('ordinary move grades progress from excellent through blunder', () => {
+  const expectedGrades = [
+    [0, 'best'],
+    [20, 'excellent'],
+    [60, 'good'],
+    [120, 'fine'],
+    [220, 'inaccuracy'],
+    [400, 'mistake'],
+    [600, 'blunder']
+  ];
+
+  expectedGrades.forEach(([regret, expected]) => {
+    assert.equal(classifyMove({
+      played: { score: 1000 - regret },
+      best: { score: 1000 },
+      regret,
+      wasOptimal: regret === 0
+    }).code, expected);
+  });
+});
+
+test('review analysis assigns guidance to every move in a complete legal sequence', async () => {
+  const moves = [];
+  for (let ply = 0; ply < 40; ply += 1) {
+    const evaluation = await getBestMove(moves);
+    if (evaluation.bestMove < 0) break;
+    moves.push(evaluation.bestMove);
+  }
+
+  const annotations = await annotateGame(moves);
+  const summary = buildReviewSummary(annotations);
+  assert.ok(moves.length >= 20);
+  assert.equal(annotations.length, moves.length);
+  assert.ok(annotations.every(annotation =>
+    annotation.quality !== 'unrated' &&
+    annotation.explanation &&
+    annotation.recommendation
+  ));
+  assert.equal(
+    summary.sideSummaries.X.movesReviewed + summary.sideSummaries.O.movesReviewed,
+    moves.length
   );
 });
 

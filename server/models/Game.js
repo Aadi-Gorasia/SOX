@@ -11,20 +11,32 @@ const MoveSchema = new mongoose.Schema({
 
 const AnnotationSchema = new mongoose.Schema({
   moveNumber:  { type: Number },
+  side:        { type: Number, min: 0, max: 1 },
   idx:         { type: Number },  // move played
   bestMove:    { type: Number },  // engine's preferred move
   playedMove:  { type: Number },
   optimalMove: { type: Number },
   positionStateBefore: { type: [Number], default: undefined },
   wasOptimal:  { type: Boolean },
+  quality:     { type: String },
+  qualityLabel:{ type: String },
+  explanation: { type: String },
+  recommendation: { type: String },
+  theme:       { type: String },
   positionalScore: { type: Number },
   score:       { type: Number },  // centipawns after move, X-relative
   scoreBefore: { type: Number },  // centipawns before move
   delta:       { type: Number },  // score change (negative = worse for mover)
+  regret:      { type: Number },
+  brilliant:   { type: Boolean },
+  great:       { type: Boolean },
   blunder:     { type: Boolean }, // |delta| > 200
   mistake:     { type: Boolean }, // |delta| > 100
   inaccuracy:  { type: Boolean }, // |delta| > 50
   isEnginePick:{ type: Boolean }, // move matched engine's best
+  moveWinsGame: { type: Boolean },
+  moveCapturesSector: { type: Boolean },
+  createsMacroFork: { type: Boolean },
   mateIn:      { type: Number },  // null or N if forced mate detected
 }, { _id: false });
 
@@ -47,6 +59,11 @@ const GameSchema = new mongoose.Schema({
     accuracy:    { type: Number, default: null },  // 0-100 overall accuracy
     tacticalMissesCount: { type: Number, default: 0 },
     compiledAtTimestamp: { type: String, default: null },
+    qualityCounts: { type: mongoose.Schema.Types.Mixed, default: {} },
+    movesReviewed: { type: Number, default: 0 },
+    sideSummaries: { type: mongoose.Schema.Types.Mixed, default: {} },
+    brilliantMoves: { type: [Number], default: [] },
+    greatMoves: { type: [Number], default: [] },
   },
 
 }, { timestamps: true });
