@@ -190,7 +190,9 @@ router.get('/:id([0-9a-fA-F]{24})/review', authMiddleware, async (req, res) => {
         Array.isArray(annotation.positionStateBefore) &&
         typeof annotation.quality === 'string' &&
         typeof annotation.explanation === 'string' &&
-        typeof annotation.recommendation === 'string'
+        typeof annotation.recommendation === 'string' &&
+        Number.isFinite(annotation.positionEvaluation) &&
+        Number.isFinite(annotation.positionEvaluationAfter)
       );
     if (game.reviewedAt && hasCompleteAnnotations) {
       return res.json({

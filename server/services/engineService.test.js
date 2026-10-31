@@ -4,6 +4,7 @@ const {
   checkPuzzleAnswer,
   difficultyForRating,
   getBestMove,
+  evaluatePosition,
   annotateGame,
   buildReviewSummary,
   classifyMove,
@@ -61,6 +62,8 @@ test('review annotations and summary fields survive game schema serialization', 
   ));
   assert.equal(reviewSummary.sideSummaries.X.movesReviewed, 3);
   assert.equal(reviewSummary.sideSummaries.O.movesReviewed, 2);
+  assert.ok(Number.isFinite(persistedGame.annotations[0].positionEvaluation));
+  assert.ok(Number.isFinite(persistedGame.annotations[0].positionEvaluationAfter));
 });
 
 test('move review distinguishes tactical wins, top choices, and missed wins', () => {
@@ -131,7 +134,8 @@ test('review analysis assigns guidance to every move in a complete legal sequenc
   for (let ply = 0; ply < 40; ply += 1) {
     const evaluation = await getBestMove(moves);
     if (evaluation.bestMove < 0) break;
-    moves.push(evaluation.bestMove);
+    const legalCandidates = evaluation.moveScores;
+    moves.push(legalCandidates[(ply * 7) % legalCandidates.length].move);
   }
 
   const annotations = await annotateGame(moves);
@@ -141,8 +145,22 @@ test('review analysis assigns guidance to every move in a complete legal sequenc
   assert.ok(annotations.every(annotation =>
     annotation.quality !== 'unrated' &&
     annotation.explanation &&
-    annotation.recommendation
+    annotation.recommendation &&
+    Number.isFinite(annotation.positionEvaluation) &&
+    Number.isFinite(annotation.positionEvaluationAfter)
   ));
+  for (const [index, annotation] of annotations.entries()) {
+    const evaluated = await getBestMove(moves.slice(0, index));
+    assert.ok(
+      evaluated.moveScores.some(candidate => candidate.move === annotation.bestMove),
+      `suggested move ${annotation.bestMove} at ply ${index + 1} must be legal`
+    );
+    assert.equal(annotation.positionEvaluation, evaluatePosition(moves.slice(0, index)));
+    assert.equal(
+      annotation.positionEvaluationAfter,
+      evaluatePosition(moves.slice(0, index + 1))
+    );
+  }
   assert.equal(
     summary.sideSummaries.X.movesReviewed + summary.sideSummaries.O.movesReviewed,
     moves.length

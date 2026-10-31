@@ -151,6 +151,38 @@ function countMacroForks(state, player) {
   ).length;
 }
 
+function evaluatePosition(positionSequence = []) {
+  const state = deriveState(positionSequence);
+  if (!state) return null;
+  if (state.gameWinner === 'X') return 10000;
+  if (state.gameWinner === 'O') return -10000;
+
+  let score = state.winners.reduce((total, winner) => {
+    if (winner === 'X') return total + 500;
+    if (winner === 'O') return total - 500;
+    return total;
+  }, 0);
+
+  for (const line of WIN_LINES) {
+    const lineWinners = line.map(index => state.winners[index]);
+    const xCount = lineWinners.filter(winner => winner === 'X').length;
+    const oCount = lineWinners.filter(winner => winner === 'O').length;
+    const openCount = lineWinners.filter(winner => winner === null).length;
+    if (oCount === 0 && openCount > 0) score += xCount * xCount * 75;
+    if (xCount === 0 && openCount > 0) score -= oCount * oCount * 75;
+  }
+
+  state.boards.forEach((board, index) => {
+    if (state.winners[index]) return;
+    score += (microThreats(board, 'X') - microThreats(board, 'O')) * 24;
+    const center = board[4];
+    if (center === 'X') score += 5;
+    if (center === 'O') score -= 5;
+  });
+
+  return score;
+}
+
 async function getBestMove(positionSequence = [], difficultyRating = 1500) {
   const state = deriveState(positionSequence);
   if (!state) return { bestMove: -1, score: 0, theme: 'Invalid position' };
@@ -285,6 +317,10 @@ async function annotateGame(moves = [], evaluationElo = 3500) {
       missedImmediateWin,
       played
     });
+    const positionEvaluation = evaluatePosition(runningSequence);
+    const positionEvaluationAfter = nextMoveState
+      ? evaluatePosition([...runningSequence, movePlayed])
+      : positionEvaluation;
     annotations.push({
       moveNumber: i + 1,
       idx: movePlayed,
@@ -305,6 +341,8 @@ async function annotateGame(moves = [], evaluationElo = 3500) {
           ? 'No legal alternative was available.'
           : `Try ${recommendation} instead. ${evaluation.theme}.`,
       theme: evaluation.theme,
+      positionEvaluation,
+      positionEvaluationAfter,
       positionalScore: played?.score ?? null,
       score: played?.score ?? null,
       scoreBefore: evaluation.score,
@@ -495,6 +533,7 @@ function generatePuzzlesFromAnnotations(moves = [], annotations = []) {
 
 module.exports = {
   getBestMove,
+  evaluatePosition,
   checkPuzzleAnswer,
   annotateGame,
   buildReviewSummary,

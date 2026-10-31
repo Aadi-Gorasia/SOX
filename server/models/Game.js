@@ -23,6 +23,8 @@ const AnnotationSchema = new mongoose.Schema({
   explanation: { type: String },
   recommendation: { type: String },
   theme:       { type: String },
+  positionEvaluation: { type: Number },
+  positionEvaluationAfter: { type: Number },
   positionalScore: { type: Number },
   score:       { type: Number },  // centipawns after move, X-relative
   scoreBefore: { type: Number },  // centipawns before move

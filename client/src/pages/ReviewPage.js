@@ -74,32 +74,56 @@ function ReplayBoard({ moves, playedMove, bestMove, showAfter }) {
       role="img"
       aria-label={`Ultimate tic-tac-toe position ${showAfter ? 'after' : 'before'} move ${playedMove + 1}`}
     >
-      {Array.from({ length: 81 }, (_, index) => {
-        const macro = Math.floor(index / 9);
-        const cell = index % 9;
-        const macroRow = Math.floor(macro / 3);
-        const macroCol = macro % 3;
-        const cellRow = Math.floor(cell / 3);
-        const cellCol = cell % 3;
-        const mark = board[index];
-        const isPlayed = index === playedMove;
-        const isBest = index === bestMove && index !== playedMove;
-        return (
-          <div
-            key={index}
-            className={[
-              'review-board__cell',
-              mark ? `review-board__cell--${mark.toLowerCase()}` : '',
-              isPlayed ? 'review-board__cell--played' : '',
-              isBest ? 'review-board__cell--best' : '',
-              cellCol === 2 && macroCol < 2 ? 'review-board__cell--macro-right' : '',
-              cellRow === 2 && macroRow < 2 ? 'review-board__cell--macro-bottom' : ''
-            ].filter(Boolean).join(' ')}
-          >
-            {mark}
-          </div>
-        );
-      })}
+      {Array.from({ length: 9 }, (_, macro) => (
+        <div className="review-board__macro" key={macro}>
+          {Array.from({ length: 9 }, (_, cell) => {
+            const index = macro * 9 + cell;
+            const mark = board[index];
+            const isPlayed = index === playedMove;
+            const isBest = index === bestMove && index !== playedMove;
+            return (
+              <div
+                key={cell}
+                className={[
+                  'review-board__cell',
+                  mark ? `review-board__cell--${mark.toLowerCase()}` : '',
+                  isPlayed ? 'review-board__cell--played' : '',
+                  isBest ? 'review-board__cell--best' : ''
+                ].filter(Boolean).join(' ')}
+              >
+                {mark}
+              </div>
+            );
+          })}
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function formatEvaluation(score = 0) {
+  if (score > 50) return `X +${(score / 100).toFixed(2)}`;
+  if (score < -50) return `O +${(Math.abs(score) / 100).toFixed(2)}`;
+  return 'Balanced';
+}
+
+function EvaluationBar({ score = 0 }) {
+  const xShare = 0.5 + 0.47 * (score / (Math.abs(score) + 1200));
+  const oHeight = `${(1 - xShare) * 100}%`;
+  const xHeight = `${xShare * 100}%`;
+  return (
+    <div
+      className="review-eval-rail"
+      role="img"
+      aria-label={`Strategic evaluation: ${formatEvaluation(score)}`}
+      title={`Strategic evaluation: ${formatEvaluation(score)}`}
+    >
+      <span className="review-eval-rail__side review-eval-rail__side--o">O</span>
+      <div className="review-eval-rail__track">
+        <div className="review-eval-rail__o" style={{ height: oHeight }} />
+        <div className="review-eval-rail__x" style={{ height: xHeight }} />
+      </div>
+      <span className="review-eval-rail__side review-eval-rail__side--x">X</span>
     </div>
   );
 }
@@ -225,6 +249,9 @@ export default function ReviewPage() {
   const boardMoves = showAfter
     ? game?.moves?.slice(0, current + 1) || []
     : movesBefore;
+  const positionEvaluation = showAfter
+    ? annotation?.positionEvaluationAfter ?? annotation?.positionEvaluation ?? 0
+    : annotation?.positionEvaluation ?? 0;
   const criticalMoments = annotations
     .map((move, index) => ({ move, index, quality: qualityFor(move) }))
     .filter(item => viewerIndex < 0 || (item.move.side === 1 ? 1 : 0) === viewerIndex)
@@ -367,6 +394,10 @@ export default function ReviewPage() {
                 <span className="review-section-label">POSITION</span>
                 <h2>{showAfter ? 'After' : 'Before'} move {moveNo}</h2>
               </div>
+              <div className="review-position-eval">
+                <span>POSITION EVAL</span>
+                <strong>{formatEvaluation(positionEvaluation)}</strong>
+              </div>
               <button
                 className="review-position-toggle"
                 onClick={() => setShowAfter(value => !value)}
@@ -375,15 +406,20 @@ export default function ReviewPage() {
                 {showAfter ? 'Before move' : 'After move'}
               </button>
             </div>
-            <ReplayBoard
-              moves={boardMoves}
-              playedMove={annotation?.idx ?? -1}
-              bestMove={annotation?.bestMove ?? -1}
-              showAfter={showAfter}
-            />
+            <div className="review-board-stage">
+              <EvaluationBar score={positionEvaluation} />
+              <ReplayBoard
+                moves={boardMoves}
+                playedMove={annotation?.idx ?? -1}
+                bestMove={showAfter ? -1 : annotation?.bestMove ?? -1}
+                showAfter={showAfter}
+              />
+            </div>
             <div className="review-board-legend">
               <span><i className="review-legend-dot review-legend-dot--played" /> Played move</span>
-              <span><i className="review-legend-dot review-legend-dot--best" /> Suggested move</span>
+              {!showAfter && (
+                <span><i className="review-legend-dot review-legend-dot--best" /> Suggested move</span>
+              )}
             </div>
             <div className="review-board-controls">
               <button onClick={() => setCurrent(0)} disabled={current === 0} aria-label="First move"><ChevronsLeft size={18} /></button>
