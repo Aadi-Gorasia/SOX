@@ -16,7 +16,7 @@ import "./GamePage.css"; // (Assuming this is the CSS I provided in the previous
 
 const BattleChat = ({ messages, systemMessage, onSend, myUsername }) => {
   const [input, setInput] = useState("");
-  const endRef = useRef(null);
+  const messagesRef = useRef(null);
 
   const handleSubmit = (e) => {
     e.preventDefault();
@@ -27,13 +27,15 @@ const BattleChat = ({ messages, systemMessage, onSend, myUsername }) => {
   };
 
   useEffect(() => { 
-    endRef.current?.scrollIntoView({ behavior: "smooth" }); 
+    if (messagesRef.current) {
+      messagesRef.current.scrollTop = messagesRef.current.scrollHeight;
+    }
   }, [messages, systemMessage]);
 
   return (
     <div className="tech-panel chat-module">
       <div className="panel-label">Match Comms</div>
-      <div className="chat-messages">
+      <div className="chat-messages" ref={messagesRef}>
         {systemMessage && (
           <div className="chat-line system">
             [SYS] {systemMessage}
@@ -44,7 +46,6 @@ const BattleChat = ({ messages, systemMessage, onSend, myUsername }) => {
             <span className="chat-user">{m.user}:</span> {m.text}
           </div>
         ))}
-        <div ref={endRef} />
       </div>
       <form className="chat-input-area" onSubmit={handleSubmit}>
         <input 
