@@ -1,0 +1,945 @@
+@media (max-width: 900px) {
+  .hp-hero {
+    min-height: 0;
+    flex-direction: column;
+    gap: 40px;
+  }
+
+  .hp-hero-content,
+  .hp-hero-visual {
+    width: 100%;
+  }
+
+  .hp-desc {
+    margin-right: auto;
+    margin-left: auto;
+  }
+
+  .hp-hero-btns {
+    justify-content: center;
+  }
+
+  .game-layout-wrapper {
+    display: block;
+    width: 100%;
+    height: auto;
+    min-height: 100vh;
+    overflow: visible;
+  }
+
+  .game-layout-wrapper > .main-nav {
+    display: none;
+  }
+
+  .game-layout-main {
+    height: auto;
+    min-height: 100vh;
+    overflow: visible;
+  }
+
+  .game-root {
+    position: relative;
+    inset: auto;
+    width: 100%;
+    height: auto;
+    min-height: 100vh;
+    overflow-x: hidden;
+    overflow-y: visible;
+  }
+
+  .game-container {
+    width: 100%;
+    height: auto;
+    min-height: 100vh;
+    padding: 0 16px;
+  }
+
+  .game-header {
+    gap: 10px;
+    padding: 12px 0;
+  }
+
+  .exit-btn {
+    flex-shrink: 0;
+    padding: 8px 10px;
+    font-size: 10px;
+  }
+
+  .header-status {
+    gap: 8px;
+    font-size: 9px;
+  }
+
+  .game-layout {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: auto;
+    gap: 14px;
+    padding: 12px 0 28px;
+  }
+
+  .hud-stack {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-rows: auto auto;
+    gap: 8px;
+    height: auto;
+  }
+
+  .hud-stack > .hud-player:first-child {
+    grid-column: 1;
+    grid-row: 1;
+  }
+
+  .hud-stack > .hud-player:last-child {
+    grid-column: 2;
+    grid-row: 1;
+  }
+
+  .hud-status-node {
+    grid-column: 1 / -1;
+    grid-row: 2;
+    min-height: 62px;
+    margin: 0;
+    padding: 10px;
+  }
+
+  .hud-player.active {
+    transform: none;
+  }
+
+  .hud-player-header {
+    padding: 10px 12px;
+  }
+
+  .hud-name {
+    overflow: hidden;
+    max-width: 100%;
+    font-size: 14px;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .hud-elo {
+    font-size: 9px;
+  }
+
+  .hud-symbol-indicator {
+    font-size: 22px;
+  }
+
+  .hud-timer-zone {
+    padding: 13px 10px;
+  }
+
+  .hud-clock {
+    font-size: clamp(22px, 6vw, 32px);
+  }
+
+  .simulation-status {
+    font-size: 20px;
+  }
+
+  .battle-area {
+    height: auto;
+    min-height: 0;
+    padding: 8px;
+    overflow: visible;
+  }
+
+  .board-frame {
+    height: auto;
+  }
+
+  .scaled-board-wrapper {
+    width: min(100%, 74vh);
+    height: auto;
+    max-width: 640px;
+    max-height: none;
+    aspect-ratio: 1;
+  }
+
+  .super-board-container {
+    height: 100%;
+    padding: 8px;
+  }
+
+  .status-bar {
+    margin-bottom: 12px;
+    padding-left: 9px;
+    font-size: 9px;
+    line-height: 1.5;
+    letter-spacing: .06em;
+  }
+
+  .super-board {
+    width: 100%;
+    max-width: none;
+    gap: clamp(4px, 1vw, 8px);
+  }
+
+  .board-container.is-active-target {
+    transform: none;
+    animation: none;
+  }
+
+  .cell-mark {
+    font-size: clamp(18px, 6vw, 34px);
+  }
+
+  .winner-mark {
+    font-size: clamp(32px, 12vw, 64px);
+  }
+
+  .archive-alert {
+    top: 8px;
+    left: 50%;
+    width: max-content;
+    max-width: calc(100% - 24px);
+    padding: 8px 10px;
+    font-size: 8px;
+    line-height: 1.4;
+    text-align: center;
+    transform: translateX(-50%);
+  }
+
+  .intel-stack {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 12px;
+    min-height: 0;
+  }
+
+  .history-panel,
+  .chat-module {
+    min-height: 250px;
+  }
+
+  .history-container {
+    min-height: 250px;
+  }
+
+  .history-header {
+    padding: 12px 14px;
+  }
+
+  .move-node {
+    min-height: 44px;
+    padding: 9px 10px;
+  }
+
+  .engagement-controls .tactical-btn {
+    min-height: 44px;
+    padding: 10px 6px;
+    font-size: 9px;
+  }
+
+  .chat-messages {
+    min-height: 150px;
+  }
+
+  .chat-input {
+    min-height: 44px;
+    font-size: 16px;
+  }
+}
+
+@media (max-width: 860px) {
+  .dash-body {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .dash-main {
+    grid-row: 1;
+  }
+
+  .dash-sidebar {
+    display: block;
+    grid-row: 2;
+  }
+
+  .dash-right {
+    display: block;
+    grid-row: 3;
+  }
+}
+
+@media (max-width: 640px) {
+  .glass-nav-container {
+    top: max(8px, env(safe-area-inset-top));
+    width: calc(100% - 16px);
+  }
+
+  .glass-nav-inner {
+    min-height: 48px;
+    padding: 6px 8px 6px 12px;
+  }
+
+  .nav-logo a {
+    font-size: 14px;
+  }
+
+  .nav-logo a::after {
+    display: none;
+  }
+
+  .nav-links-group {
+    gap: 2px;
+  }
+
+  .nav-links-group a,
+  .nav-btn-logout {
+    min-height: 36px;
+    padding: 8px 7px;
+    font-size: 8px;
+    letter-spacing: .04em;
+    white-space: nowrap;
+  }
+
+  .nav-links-group a:first-child {
+    display: inline-flex;
+  }
+
+  .nav-links-group a.active::after {
+    right: 7px;
+    left: 7px;
+  }
+
+  .nav-cta-btn {
+    padding-right: 8px !important;
+    padding-left: 8px !important;
+  }
+
+  .dash-wrap {
+    padding: 0 16px;
+  }
+
+  .dash-header {
+    min-height: 60px;
+    margin-bottom: 16px;
+    padding: 10px 0;
+  }
+
+  .header-right {
+    gap: 10px;
+  }
+
+  .header-user {
+    max-width: 42vw;
+    overflow: hidden;
+    font-size: 13px;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .latency-badge {
+    gap: 5px;
+    padding: 6px 8px;
+    font-size: 10px;
+  }
+
+  .dash-body {
+    gap: 14px;
+    padding-bottom: 28px;
+  }
+
+  .dash-sidebar,
+  .dash-right {
+    min-width: 0;
+  }
+
+  .arena-section {
+    padding: 18px 14px;
+  }
+
+  .arena-title-row {
+    gap: 14px;
+    margin-bottom: 18px;
+  }
+
+  .arena-title {
+    font-size: clamp(30px, 9vw, 36px);
+  }
+
+  .arena-sub {
+    font-size: 13px;
+    line-height: 1.5;
+  }
+
+  .quickstart-btn {
+    min-height: 44px;
+    padding: 11px 14px;
+  }
+
+  .tc-grid {
+    gap: 8px;
+  }
+
+  .tc-card {
+    min-height: 108px;
+    padding: 13px 10px;
+  }
+
+  .tc-val {
+    font-size: 24px;
+  }
+
+  .alt-modes {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .alt-mode-btn {
+    min-height: 42px;
+    padding: 9px 5px;
+    font-size: 11px;
+  }
+
+  .history-section {
+    padding: 16px 14px;
+  }
+
+  .config-section {
+    padding: 22px 16px;
+  }
+
+  .symbol-btn {
+    min-height: 108px;
+    padding: 14px 8px;
+  }
+
+  .preset-btn {
+    min-height: 66px;
+  }
+
+  .deploy-card {
+    padding: 24px 18px;
+  }
+
+  .deploy-title {
+    font-size: clamp(26px, 8vw, 36px);
+  }
+
+  .btn-deploy {
+    min-height: 48px;
+    width: 100%;
+    padding: 12px 16px;
+  }
+
+  .history-row {
+    grid-template-columns: 52px minmax(0, 1fr) 48px 58px;
+    gap: 5px;
+    padding: 11px 0 11px 8px;
+    margin-left: -8px;
+  }
+
+  .result-tag {
+    font-size: 9px;
+  }
+
+  .history-opp {
+    overflow: hidden;
+    font-size: 11px;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .history-tc {
+    display: none;
+  }
+
+  .history-elo {
+    font-size: 10px;
+  }
+
+  .history-replay {
+    min-height: 38px;
+    padding: 8px 5px;
+    font-size: 9px;
+  }
+
+  .sidebar-card {
+    padding: 16px;
+  }
+
+  .search-overlay,
+  .end-modal-backdrop {
+    padding: 14px;
+  }
+
+  .search-modal {
+    width: min(100%, 420px);
+    height: auto;
+    min-height: min(360px, calc(100dvh - 28px));
+    max-height: calc(100dvh - 28px);
+    padding: 28px 18px;
+    overflow-y: auto;
+  }
+
+  .search-tc {
+    font-size: clamp(34px, 12vw, 48px);
+  }
+
+  .link-box {
+    min-width: 0;
+  }
+
+  .link-box input {
+    min-width: 0;
+    padding: 10px 6px;
+    font-size: 10px;
+  }
+
+  .link-box button {
+    min-height: 42px;
+    padding: 0 12px;
+    font-size: 11px;
+  }
+
+  .end-report-frame {
+    max-height: calc(100dvh - 28px);
+    padding: 28px 18px;
+    overflow-y: auto;
+  }
+
+  .end-outcome-title {
+    font-size: clamp(34px, 11vw, 46px);
+  }
+
+  .end-reason-tag {
+    margin-bottom: 22px;
+    font-size: 10px;
+  }
+
+  .end-stats-comparison {
+    gap: 8px;
+    margin-bottom: 22px;
+    padding: 14px 8px;
+  }
+
+  .end-player-name {
+    overflow-wrap: anywhere;
+    font-size: 14px;
+  }
+
+  .end-vs-divider {
+    padding: 0 4px;
+  }
+
+  .profile-body {
+    gap: 14px;
+    padding-bottom: 28px;
+  }
+
+  .profile-hero-card,
+  .graph-card {
+    padding: 20px 16px;
+  }
+
+  .profile-hero-name {
+    font-size: clamp(22px, 7vw, 28px);
+    overflow-wrap: anywhere;
+  }
+
+  .graph-container {
+    height: 180px;
+  }
+
+  .settings-tonal-container {
+    width: calc(100% - 24px);
+    gap: 12px;
+    padding-bottom: 28px;
+  }
+
+  .settings-sidebar,
+  .settings-main-flow {
+    padding: 20px 16px;
+  }
+
+  .settings-main-flow {
+    gap: 24px;
+  }
+
+  .settings-section {
+    padding-bottom: 24px;
+  }
+
+  .tonal-btn {
+    min-height: 44px;
+  }
+
+  .theme-card {
+    min-height: 150px;
+  }
+
+  .theme-preview {
+    height: 88px;
+  }
+
+  .hp-section {
+    padding: 64px 6%;
+  }
+
+  .hp-nav {
+    padding: 14px 6%;
+  }
+
+  .hp-hero {
+    min-height: 0;
+    flex-direction: column;
+    gap: 28px;
+    padding-top: 52px;
+    padding-bottom: 48px;
+  }
+
+  .hp-hero-content,
+  .hp-hero-visual {
+    width: 100%;
+  }
+
+  .hp-title {
+    font-size: clamp(42px, 14vw, 72px);
+    letter-spacing: -2px;
+  }
+
+  .hp-desc {
+    max-width: 100%;
+    margin-bottom: 22px;
+    font-size: 1rem;
+  }
+
+  .hp-hero-btns {
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+
+  .hp-btn-crimson,
+  .hp-btn-outline {
+    min-height: 48px;
+    padding: 14px 18px;
+  }
+
+  .hp-hero-visual {
+    padding: 18px;
+  }
+
+  .hp-rules-grid {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 12px;
+  }
+
+  .hp-rule-card {
+    padding: 22px;
+  }
+
+  .hp-depth-grid {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 24px;
+  }
+
+  .hp-radar-ui img {
+    display: block;
+    width: 100%;
+    height: auto;
+    max-height: 380px;
+    object-fit: contain;
+  }
+
+  .hp-specs-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .hp-spec-item {
+    min-width: 0;
+    padding: 20px 8px;
+  }
+
+  .hp-spec-label {
+    font-size: 8px;
+    letter-spacing: 1px;
+  }
+
+  .hp-spec-val {
+    overflow-wrap: anywhere;
+    font-size: clamp(18px, 6vw, 28px);
+  }
+
+  .hp-table-row {
+    grid-template-columns: 42px minmax(0, 1fr) 92px;
+    gap: 8px;
+    padding: 14px 12px;
+  }
+
+  .hp-table-name {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .hp-table-elo {
+    font-size: 1rem;
+  }
+
+  .hp-cta-title {
+    font-size: clamp(28px, 9vw, 42px);
+  }
+
+  .hp-btn-massive {
+    max-width: 100%;
+    padding: 16px 18px;
+    overflow-wrap: anywhere;
+    font-size: 1rem;
+  }
+
+  .hp-footer {
+    padding: 42px 6% 22px;
+  }
+
+  .hp-footer-top {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 28px;
+    margin-bottom: 32px;
+  }
+
+  .hp-footer-links {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 20px;
+  }
+
+  .hp-footer-bottom,
+  .hp-system-load {
+    flex-wrap: wrap;
+    gap: 12px;
+  }
+
+  .hp-footer-bottom {
+    align-items: flex-start;
+    line-height: 1.6;
+  }
+
+  .tourney-wrap {
+    width: calc(100% - 28px);
+  }
+
+  .tourney-hero {
+    padding: 42px 4px 34px;
+  }
+
+  .tourney-title {
+    font-size: clamp(32px, 10vw, 48px);
+  }
+
+  .tourney-action-btn {
+    min-height: 46px;
+    padding: 0 14px;
+    font-size: 9px;
+  }
+
+  .bracket-heading {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .bracket-container {
+    scroll-snap-type: x proximity;
+    overscroll-behavior-x: contain;
+  }
+
+  .bracket-round {
+    scroll-snap-align: start;
+  }
+
+  .review-page {
+    overflow: visible;
+  }
+
+  .review-board-card__head {
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .review-position-eval {
+    padding-right: 0;
+  }
+
+  .review-position-toggle,
+  .review-board-controls button {
+    min-height: 40px;
+  }
+
+  .review-board-controls button {
+    width: 36px;
+  }
+
+  .review-keyboard-hint {
+    display: none;
+  }
+
+  .pz-clean-layout {
+    min-height: 100vh;
+  }
+
+  .pz-header {
+    gap: 8px;
+  }
+
+  .pz-back-btn {
+    min-height: 40px;
+    font-size: 8px;
+  }
+
+  .pz-header-title {
+    font-size: 12px;
+    text-align: center;
+  }
+
+  .pz-rating-badge {
+    padding: 6px;
+    font-size: 8px;
+    white-space: nowrap;
+  }
+
+  .pz-main-content {
+    width: calc(100% - 24px);
+    padding: 16px 0 28px;
+  }
+
+  .pz-panel {
+    padding: 18px 14px;
+  }
+
+  .pz-panel h2 {
+    font-size: 21px;
+  }
+
+  .pz-btn-primary {
+    min-height: 46px;
+  }
+
+  .games-history-wrap {
+    width: calc(100% - 24px);
+  }
+
+  .games-history-page {
+    padding-top: 72px;
+  }
+
+  .games-history-user {
+    max-width: 38vw;
+    overflow: hidden;
+    font-size: 10px;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .games-history-card__head {
+    gap: 8px;
+  }
+
+  .games-history-row {
+    grid-template-columns: 44px minmax(0, 1fr) 76px;
+    gap: 8px;
+    padding: 11px 8px;
+  }
+
+  .games-history-details {
+    font-size: 8px;
+    text-align: right;
+  }
+
+  .games-history-review {
+    grid-column: 2 / -1;
+    justify-self: start;
+    min-height: 38px;
+  }
+
+  .auth-root {
+    min-height: 100vh;
+    min-height: 100svh;
+    padding: 78px 0 16px;
+    overflow-x: hidden;
+    overflow-y: auto;
+  }
+
+  .auth-wrap {
+    width: 100%;
+    max-width: 440px;
+    padding: 28px 20px;
+  }
+
+  .auth-header {
+    margin-bottom: 24px;
+  }
+
+  .auth-title {
+    font-size: clamp(26px, 8vw, 32px);
+  }
+
+  .auth-input-group input,
+  .tonal-form input,
+  .chat-input {
+    min-height: 44px;
+    font-size: 16px;
+  }
+}
+
+@media (max-width: 380px) {
+  .game-container {
+    padding-right: 8px;
+    padding-left: 8px;
+  }
+
+  .battle-area {
+    padding: 4px;
+  }
+
+  .super-board-container {
+    padding: 4px;
+  }
+
+  .game-header {
+    gap: 6px;
+  }
+
+  .header-status {
+    gap: 5px;
+    font-size: 8px;
+  }
+
+  .glass-nav-inner {
+    padding-right: 6px;
+    padding-left: 9px;
+  }
+
+  .nav-links-group a,
+  .nav-btn-logout {
+    padding-right: 5px;
+    padding-left: 5px;
+    font-size: 7px;
+  }
+
+  .dash-wrap {
+    padding-right: 12px;
+    padding-left: 12px;
+  }
+
+  .arena-section,
+  .history-section {
+    padding-right: 11px;
+    padding-left: 11px;
+  }
+
+  .history-row {
+    grid-template-columns: 46px minmax(0, 1fr) 42px 54px;
+    gap: 4px;
+  }
+
+  .games-history-row {
+    grid-template-columns: 40px minmax(0, 1fr) 68px;
+    gap: 6px;
+  }
+
+  .hp-footer-links {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
