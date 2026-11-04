@@ -1,133 +1,120 @@
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import axios from 'axios';
 import { AuthContext } from './AuthContext';
-import { DEFAULT_PREFERENCES, DEFAULT_THEME, THEME_BY_ID } from '../themes/themeCatalog';
+import { DEFAULT_PREFERENCES, DEFAULT_THEME, THEME_BY_ID, THEMES } from '../themes/themeCatalog';
 
 export const ThemeContext = createContext(null);
 
-function readJson(key, fallback) {
+function readPreferences() {
   try {
-    const stored = localStorage.getItem(key);
-    return stored ? { ...fallback, ...JSON.parse(stored) } : fallback;
+    const saved = JSON.parse(localStorage.getItem('site-preferences') || '{}');
+    return { ...DEFAULT_PREFERENCES, ...saved };
   } catch {
-    return fallback;
+    return { ...DEFAULT_PREFERENCES };
   }
 }
 
-function themeVariables(theme, preferences = {}) {
-  const highContrast = Boolean(preferences.highContrast);
-  return {
-    '--bg': theme.tokens.bg,
-    '--void': theme.tokens.bg,
-    '--bg-app': theme.tokens.bg,
-    '--surface': theme.tokens.panel,
-    '--card': theme.tokens.card,
-    '--text': theme.tokens.text,
-    '--text-1': theme.tokens.text,
-    '--text-2': highContrast ? theme.tokens.text : theme.tokens.muted,
-    '--text-3': highContrast ? theme.tokens.text : theme.tokens.muted,
-    '--silver': highContrast ? theme.tokens.text : theme.tokens.muted,
-    '--accent': theme.tokens.accent,
-    '--accent-d': theme.tokens.accent,
-    '--sulfur': theme.tokens.accent,
-    '--crimson': theme.tokens.secondary,
-    '--red': theme.tokens.secondary,
-    '--border': highContrast ? theme.tokens.text : theme.tokens.line,
-    '--border-s': highContrast ? theme.tokens.text : theme.tokens.line,
-    '--color-background': theme.tokens.bg,
-    '--color-surface': theme.tokens.panel,
-    '--color-primary': theme.tokens.accent,
-    '--color-secondary': theme.tokens.secondary,
-    '--color-text-primary': theme.tokens.text,
-    '--color-text-secondary': highContrast ? theme.tokens.text : theme.tokens.muted,
-    '--color-border': highContrast ? theme.tokens.text : theme.tokens.line,
-    '--color-x': theme.tokens.x,
-    '--color-o': theme.tokens.o,
-    '--font-heading': theme.heading,
-    '--font-display': theme.heading,
-    '--font-body': theme.body,
-    '--font-main': theme.body,
-    '--font-mono': theme.mono,
-    '--radius-card': theme.style === 'brutal' || theme.style === 'mac' || theme.style === 'draft' ? '0px' : '4px',
-    '--radius-button': theme.style === 'brutal' || theme.style === 'mac' ? '0px' : '3px',
-    '--shadow-card': theme.style === 'brutal' ? '5px 5px 0 #111' : 'none'
-  };
+function readTheme() {
+  const savedTheme = localStorage.getItem('site-theme');
+  if (THEME_BY_ID[savedTheme]) return savedTheme;
+  return DEFAULT_THEME;
 }
 
-function setThemeOnDocument(theme, themeId, preferences) {
-  if (!theme) return;
+function applyThemeToDocument(theme, preferences) {
   const root = document.documentElement;
-  root.dataset.theme = theme.style === 'custom' ? 'custom' : themeId;
-  root.dataset.themeStyle = theme.style || 'custom';
-  Object.entries(themeVariables(theme, preferences)).forEach(([key, value]) => root.style.setProperty(key, value));
+  const { tokens } = theme;
+  const secondaryText = preferences.highContrast ? tokens.text : tokens.muted;
+  const border = preferences.highContrast ? tokens.text : tokens.line;
+  const variables = {
+    '--bg': tokens.bg,
+    '--void': tokens.bg,
+    '--bg-app': tokens.bg,
+    '--primary': tokens.bg,
+    '--carbon': tokens.card,
+    '--steel': tokens.text,
+    '--titanium': tokens.text,
+    '--silver': secondaryText,
+    '--crimson': tokens.secondary,
+    '--sulfur': tokens.accent,
+    '--accent-soft': `color-mix(in srgb, ${tokens.accent} 14%, transparent)`,
+    '--panel-bg': tokens.panel,
+    '--surface': tokens.panel,
+    '--card': tokens.card,
+    '--text': tokens.text,
+    '--text-1': tokens.text,
+    '--text-2': secondaryText,
+    '--text-3': secondaryText,
+    '--accent': tokens.accent,
+    '--accent-d': tokens.accent,
+    '--red': tokens.secondary,
+    '--border': border,
+    '--border-s': border,
+    '--font-heading': 'Inter, "Segoe UI", Arial, sans-serif',
+    '--font-display': 'Inter, "Segoe UI", Arial, sans-serif',
+    '--font-body': 'Inter, "Segoe UI", Arial, sans-serif',
+    '--font-main': 'Inter, "Segoe UI", Arial, sans-serif',
+    '--font-mono': '"SFMono-Regular", Consolas, monospace',
+    '--mono': '"SFMono-Regular", Consolas, monospace',
+    '--sans': 'Inter, "Segoe UI", Arial, sans-serif',
+    '--display': 'Inter, "Segoe UI", Arial, sans-serif',
+    '--color-background': tokens.bg,
+    '--color-surface': tokens.panel,
+    '--color-primary': tokens.accent,
+    '--color-secondary': tokens.secondary,
+    '--color-text-primary': tokens.text,
+    '--color-text-secondary': secondaryText,
+    '--color-border': border,
+    '--color-x': tokens.x,
+    '--color-o': tokens.o
+  };
+  Object.entries(variables).forEach(([name, value]) => root.style.setProperty(name, value));
+  root.dataset.theme = theme.id;
+  root.dataset.motion = preferences.reducedMotion ? 'reduced' : 'full';
+  root.dataset.density = preferences.density;
+  root.dataset.largerText = preferences.largerText ? 'true' : 'false';
+  root.style.colorScheme = theme.id;
 }
 
 export function ThemeProvider({ children }) {
   const { token, user } = useContext(AuthContext);
-  const [activeThemeId, setActiveThemeId] = useState(() => {
-    const id = localStorage.getItem('site-theme') || DEFAULT_THEME;
-    return THEME_BY_ID[id] || id.startsWith('custom-') ? id : DEFAULT_THEME;
-  });
-  const [previewThemeId, setPreviewThemeId] = useState(null);
-  const [preferences, setPreferences] = useState(() => readJson('site-preferences', DEFAULT_PREFERENCES));
-  const [customThemes, setCustomThemes] = useState(() => {
-    try {
-      return JSON.parse(localStorage.getItem('site-custom-themes') || '[]');
-    } catch {
-      return [];
-    }
-  });
+  const [theme, setTheme] = useState(readTheme);
+  const [preferences, setPreferences] = useState(readPreferences);
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState('');
-
-  const allThemes = useMemo(() => [
-    ...Object.values(THEME_BY_ID),
-    ...customThemes
-  ], [customThemes]);
-  const activeTheme = allThemes.find(theme => theme.id === activeThemeId) || THEME_BY_ID[DEFAULT_THEME];
-  const displayedThemeId = previewThemeId || activeThemeId;
-  const displayedTheme = allThemes.find(theme => theme.id === displayedThemeId) || activeTheme;
-
-  useEffect(() => {
-    setThemeOnDocument(displayedTheme, displayedThemeId === 'custom' ? 'custom' : displayedThemeId, preferences);
-    document.documentElement.dataset.motion = preferences.reducedMotion ? 'reduced' : 'full';
-    document.documentElement.dataset.contrast = preferences.highContrast ? 'high' : 'normal';
-    document.documentElement.dataset.density = preferences.density;
-    document.documentElement.dataset.largerText = preferences.largerText ? 'true' : 'false';
-    document.documentElement.dataset.backgroundAnimation = preferences.backgroundAnimations ? 'enabled' : 'disabled';
-    document.documentElement.dataset.victoryAnimation = preferences.victoryAnimation ? 'enabled' : 'disabled';
-  }, [displayedTheme, displayedThemeId, preferences]);
-
-  useEffect(() => {
-    if (!token) return;
-    const savedTheme = user?.themePreference;
-    if (user?.preferences && typeof user.preferences === 'object') {
-      const next = { ...DEFAULT_PREFERENCES, ...user.preferences };
-      const savedCustomThemes = Array.isArray(next.customThemes) ? next.customThemes : [];
-      setCustomThemes(savedCustomThemes);
-      if (THEME_BY_ID[savedTheme] || savedCustomThemes.some(theme => theme.id === savedTheme)) {
-        setActiveThemeId(savedTheme);
-        localStorage.setItem('site-theme', savedTheme);
-      }
-      setPreferences(next);
-      localStorage.setItem('site-preferences', JSON.stringify(next));
-      localStorage.setItem('site-custom-themes', JSON.stringify(savedCustomThemes));
-    } else if (THEME_BY_ID[savedTheme]) {
-      setActiveThemeId(savedTheme);
-      localStorage.setItem('site-theme', savedTheme);
-    }
-  }, [token, user?.preferences, user?.themePreference]);
-
   const saveQueue = useRef(Promise.resolve());
   const pendingSaves = useRef(0);
-  const persistAccountSettings = useCallback(async (themePreference, nextPreferences) => {
-    if (!token) return;
+  const migrationAttempts = useRef(new Set());
+  const currentTheme = THEME_BY_ID[theme] || THEME_BY_ID[DEFAULT_THEME];
+
+  useEffect(() => {
+    applyThemeToDocument(currentTheme, preferences);
+  }, [currentTheme, preferences]);
+
+  useEffect(() => {
+    if (!token || !user) return;
+    const savedTheme = THEME_BY_ID[user.themePreference] ? user.themePreference : DEFAULT_THEME;
+    const savedPreferences = {
+      ...DEFAULT_PREFERENCES,
+      ...Object.fromEntries(
+        Object.keys(DEFAULT_PREFERENCES)
+          .filter(key => key in (user.preferences || {}))
+          .map(key => [key, user.preferences[key]])
+      )
+    };
+    setTheme(savedTheme);
+    setPreferences(savedPreferences);
+    localStorage.setItem('site-theme', savedTheme);
+    localStorage.setItem('site-preferences', JSON.stringify(savedPreferences));
+  }, [token, user]);
+
+  const persistAccountSettings = useCallback((nextTheme, nextPreferences) => {
+    if (!token) return Promise.resolve();
+    pendingSaves.current += 1;
     const save = saveQueue.current.catch(() => {}).then(async () => {
       setSaving(true);
-      setSaveError('');
       try {
         await axios.put('/api/users/preferences', {
-          themePreference,
+          themePreference: nextTheme,
           preferences: nextPreferences
         }, { headers: { 'x-auth-token': token } });
       } catch (error) {
@@ -139,58 +126,46 @@ export function ThemeProvider({ children }) {
         if (pendingSaves.current === 0) setSaving(false);
       }
     });
-    pendingSaves.current += 1;
     saveQueue.current = save;
     return save;
   }, [token]);
 
-  const beginPreview = useCallback(id => {
-    if (!allThemes.some(theme => theme.id === id)) return;
-    setSaveError('');
-    setPreviewThemeId(id);
-  }, [allThemes]);
-
-  const cancelPreview = useCallback(() => setPreviewThemeId(null), []);
+  useEffect(() => {
+    if (!token || !user || THEME_BY_ID[user.themePreference]) return;
+    const userId = user._id || user.id || user.username;
+    const migrationKey = `${token}:${userId}`;
+    if (migrationAttempts.current.has(migrationKey)) return;
+    migrationAttempts.current.add(migrationKey);
+    const savedPreferences = {
+      ...DEFAULT_PREFERENCES,
+      ...Object.fromEntries(
+        Object.keys(DEFAULT_PREFERENCES)
+          .filter(key => key in (user.preferences || {}))
+          .map(key => [key, user.preferences[key]])
+      )
+    };
+    persistAccountSettings(DEFAULT_THEME, savedPreferences).catch(() => {});
+  }, [persistAccountSettings, token, user]);
 
   const applyTheme = useCallback(async id => {
-    const selected = allThemes.find(theme => theme.id === id);
-    if (!selected) throw new Error('That theme is not available.');
-    const nextId = selected.id;
-    const previousId = activeThemeId;
-    setActiveThemeId(nextId);
-    setPreviewThemeId(null);
-    localStorage.setItem('site-theme', nextId);
-    try {
-      await persistAccountSettings(nextId, preferences);
-    } catch (error) {
-      setActiveThemeId(previousId);
-      localStorage.setItem('site-theme', previousId);
-      throw error;
-    }
-  }, [activeThemeId, allThemes, persistAccountSettings, preferences]);
+    if (!THEME_BY_ID[id]) throw new Error('Choose one of the available themes.');
+    setSaveError('');
+    setTheme(id);
+    localStorage.setItem('site-theme', id);
+    await persistAccountSettings(id, preferences);
+  }, [persistAccountSettings, preferences]);
 
   const updatePreference = useCallback((key, value) => {
+    if (!Object.prototype.hasOwnProperty.call(DEFAULT_PREFERENCES, key)) return;
     const next = { ...preferences, [key]: value };
     setPreferences(next);
     localStorage.setItem('site-preferences', JSON.stringify(next));
-    persistAccountSettings(activeThemeId, next).catch(error => {
-      setSaveError(error.message);
-    });
-  }, [activeThemeId, persistAccountSettings, preferences]);
-
-  const saveCustomThemes = useCallback((nextThemes, previewId, themeOverride) => {
-    const next = { ...preferences, customThemes: nextThemes };
-    setCustomThemes(nextThemes);
-    setPreferences(next);
-    if (previewId) setPreviewThemeId(previewId);
-    localStorage.setItem('site-custom-themes', JSON.stringify(nextThemes));
-    localStorage.setItem('site-preferences', JSON.stringify(next));
-    persistAccountSettings(themeOverride || activeThemeId, next).catch(error => setSaveError(error.message));
-  }, [activeThemeId, persistAccountSettings, preferences]);
+    setSaveError('');
+    persistAccountSettings(theme, next).catch(() => {});
+  }, [persistAccountSettings, preferences, theme]);
 
   const resetAppearance = useCallback(async () => {
-    const previousTheme = activeThemeId;
-    const next = {
+    const nextPreferences = {
       ...preferences,
       density: DEFAULT_PREFERENCES.density,
       reducedMotion: DEFAULT_PREFERENCES.reducedMotion,
@@ -198,81 +173,26 @@ export function ThemeProvider({ children }) {
       largerText: DEFAULT_PREFERENCES.largerText,
       backgroundAnimations: DEFAULT_PREFERENCES.backgroundAnimations
     };
-    setPreferences(next);
-    localStorage.setItem('site-preferences', JSON.stringify(next));
-    setActiveThemeId(DEFAULT_THEME);
-    setPreviewThemeId(null);
+    setPreferences(nextPreferences);
+    setTheme(DEFAULT_THEME);
     localStorage.setItem('site-theme', DEFAULT_THEME);
-    try {
-      await persistAccountSettings(DEFAULT_THEME, next);
-    } catch (error) {
-      setPreferences(preferences);
-      setActiveThemeId(previousTheme);
-      localStorage.setItem('site-preferences', JSON.stringify(preferences));
-      localStorage.setItem('site-theme', previousTheme);
-      throw error;
-    }
-  }, [activeThemeId, persistAccountSettings, preferences]);
+    localStorage.setItem('site-preferences', JSON.stringify(nextPreferences));
+    setSaveError('');
+    await persistAccountSettings(DEFAULT_THEME, nextPreferences);
+  }, [persistAccountSettings, preferences]);
 
+  const clearSaveError = useCallback(() => setSaveError(''), []);
   const value = useMemo(() => ({
-    theme: activeThemeId,
-    activeTheme,
-    previewTheme: previewThemeId,
-    previewing: Boolean(previewThemeId),
-    themes: allThemes,
-    customThemes,
+    theme,
+    themes: THEMES,
     preferences,
     saving,
     saveError,
-    clearSaveError: () => setSaveError(''),
-    beginPreview,
-    cancelPreview,
+    clearSaveError,
     applyTheme,
     updatePreference,
-    setCustomThemes: saveCustomThemes,
-    resetAppearance,
-  }), [
-    activeTheme,
-    activeThemeId,
-    allThemes,
-    applyTheme,
-    beginPreview,
-    cancelPreview,
-    customThemes,
-    preferences,
-    previewThemeId,
-    resetAppearance,
-    saveCustomThemes,
-    saveError,
-    saving,
-    updatePreference
-  ]);
+    resetAppearance
+  }), [applyTheme, clearSaveError, preferences, resetAppearance, saveError, saving, theme, updatePreference]);
 
-  useEffect(() => {
-    localStorage.setItem('site-custom-themes', JSON.stringify(customThemes));
-  }, [customThemes]);
-
-  return (
-    <ThemeContext.Provider value={value}>
-      {children}
-      {previewThemeId && (
-        <div className="theme-preview-banner" role="status">
-          <span>Previewing {displayedTheme.name}</span>
-          {saveError && <span className="theme-preview-banner__error">{saveError}</span>}
-          <button type="button" onClick={cancelPreview}>Cancel preview</button>
-          <button type="button" onClick={async () => {
-            try {
-              await applyTheme(previewThemeId);
-            } catch (error) {
-              setSaveError(error.message);
-            }
-          }} disabled={saving}>
-            {saving ? 'Saving…' : 'Apply theme'}
-          </button>
-        </div>
-      )}
-    </ThemeContext.Provider>
-  );
+  return <ThemeContext.Provider value={value}>{children}</ThemeContext.Provider>;
 }
-
-export { themeVariables };

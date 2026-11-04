@@ -1,13 +1,13 @@
 /* Shared application foundation */
-:root { --void: #080808; --carbon: #161616; --steel: #fff; --silver: #a0a0a0; --crimson: #ff3e3e; --sulfur: #d4ff00; }
+:root { --void: #f4f5f1; --carbon: #f8f9f6; --steel: #202722; --silver: #66716a; --crimson: #bd5d4d; --sulfur: #287653; }
 *, *::before, *::after { box-sizing: border-box; }
 html, body, #root { min-height: 100%; }
-body { margin: 0; background: var(--void); color: var(--steel); font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
+body { margin: 0; background: var(--void); color: var(--steel); font-family: var(--sans, 'Inter'), -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
 button, input, select, textarea { font: inherit; }
 button { cursor: pointer; }
 button:disabled { cursor: not-allowed; }
 :focus-visible { outline: 2px solid var(--sulfur); outline-offset: 3px; }
-.app-background { position: fixed; inset: 0; z-index: -2; background: radial-gradient(circle at 85% -15%, rgba(255, 62, 62, .09), transparent 30rem), var(--void); }
+.app-background { position: fixed; inset: 0; z-index: -2; background: radial-gradient(circle at 85% -15%, color-mix(in srgb, var(--sulfur) 9%, transparent), transparent 30rem), var(--void); }
 .App { position: relative; min-height: 100vh; }
 .spinner-container { min-height: 100vh; display: grid; place-items: center; }
 .spinner { width: 40px; height: 40px; border: 3px solid rgba(255,255,255,.15); border-top-color: var(--crimson); border-radius: 50%; animation: spin .8s linear infinite; }
@@ -17,20 +17,19 @@ button:disabled { cursor: not-allowed; }
 .text-steel, .text-titanium { color: var(--steel) !important; }
 .text-silver { color: var(--silver) !important; }
 
-/* The arena screens share one palette even when their component styles load separately. */
 .auth-root, .dash-root, .tourney-root, .game-root, .profile-body, .play-body {
-  --bg: #080808;
-  --surface: #101010;
-  --card: #161616;
-  --border: rgba(255,255,255,.11);
-  --border-s: rgba(255,255,255,.22);
-  --text-1: #fff;
-  --text-2: #b2b2b2;
-  --text-3: #777;
-  --accent: #d4ff00;
-  --accent-d: #b6d900;
-  --red: #ff3e3e;
-  --mono: 'IBM Plex Mono', monospace;
-  --sans: 'DM Sans', sans-serif;
-  --display: 'Archivo', sans-serif;
+  --bg: var(--color-background);
+  --surface: var(--color-surface);
+  --card: var(--carbon);
+  --border: var(--color-border);
+  --border-s: color-mix(in srgb, var(--color-border) 72%, var(--color-text-primary));
+  --text-1: var(--color-text-primary);
+  --text-2: var(--color-text-secondary);
+  --text-3: var(--color-text-secondary);
+  --accent: var(--color-primary);
+  --accent-d: var(--color-primary);
+  --red: var(--color-secondary);
+  --mono: var(--font-mono);
+  --sans: var(--font-body);
+  --display: var(--font-heading);
 }

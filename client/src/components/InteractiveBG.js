@@ -3,12 +3,15 @@ import { ThemeContext } from '../context/ThemeContext';
 
 const InteractiveBG = () => {
   const canvasRef = useRef(null);
-  const { preferences } = useContext(ThemeContext);
+  const { preferences, theme } = useContext(ThemeContext);
 
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas || !preferences.backgroundAnimations || preferences.reducedMotion) return undefined;
     const ctx = canvas.getContext('2d');
+    const styles = window.getComputedStyle(document.documentElement);
+    const dotColor = styles.getPropertyValue('--color-border').trim();
+    const accentColor = styles.getPropertyValue('--color-primary').trim();
     let mouse = { x: -1000, y: -1000 };
     let frameId;
 
@@ -28,35 +31,36 @@ const InteractiveBG = () => {
 
     const draw = () => {
       ctx.clearRect(0, 0, canvas.width, canvas.height);
-      
-      const spacing = 24; // Distance between bulbs
-      const radius = 1.5; // Size of bulb
-      
+
+      const spacing = 28;
+      const radius = 1.2;
+
       for (let x = spacing / 2; x < canvas.width; x += spacing) {
         for (let y = spacing / 2; y < canvas.height; y += spacing) {
           const dx = mouse.x - x;
           const dy = mouse.y - y;
           const dist = Math.sqrt(dx * dx + dy * dy);
-          const maxDist = 120; // Radius of light
-          
+          const maxDist = 120;
+
           ctx.beginPath();
           ctx.arc(x, y, radius, 0, Math.PI * 2);
 
           if (dist < maxDist) {
-            // Bright White (Titanium) when close
             const proximity = 1 - dist / maxDist;
-            ctx.fillStyle = `rgba(255, 255, 255, ${0.1 + proximity * 0.9})`;
-            ctx.shadowBlur = proximity * 12;
-            ctx.shadowColor = "white";
+            ctx.globalAlpha = 0.08 + proximity * 0.45;
+            ctx.fillStyle = accentColor;
+            ctx.shadowBlur = proximity * 8;
+            ctx.shadowColor = accentColor;
           } else {
-            // Muted Steel by default
-            ctx.fillStyle = "#282828";
+            ctx.globalAlpha = 0.2;
+            ctx.fillStyle = dotColor;
             ctx.shadowBlur = 0;
           }
-          
+
           ctx.fill();
         }
       }
+      ctx.globalAlpha = 1;
       frameId = requestAnimationFrame(draw);
     };
 
@@ -66,7 +70,7 @@ const InteractiveBG = () => {
       window.removeEventListener('mousemove', trackMouse);
       cancelAnimationFrame(frameId);
     };
-  }, [preferences.backgroundAnimations, preferences.reducedMotion]);
+  }, [preferences.backgroundAnimations, preferences.reducedMotion, theme]);
 
   return (
     <canvas 
