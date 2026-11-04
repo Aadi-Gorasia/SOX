@@ -1,87 +1,18 @@
 /**
- * Lightweight Ultimate Tic-Tac-Toe tactical engine used by hints, reviews, and
- * training. It always derives legal moves from the same rules used by the board.
+ * Ultimate Tic-Tac-Toe search engine used by hints, reviews, and training.
+ * Positions are derived through the shared engine rules.
  */
-const WIN_LINES = [
-  [0, 1, 2], [3, 4, 5], [6, 7, 8],
-  [0, 3, 6], [1, 4, 7], [2, 5, 8],
-  [0, 4, 8], [2, 4, 6]
-];
-
 const clamp = (value, min, max) => Math.max(min, Math.min(max, value));
-const other = player => (player === 'X' ? 'O' : 'X');
-
-function boardWinner(cells) {
-  for (const [a, b, c] of WIN_LINES) {
-    if (cells[a] && cells[a] === cells[b] && cells[a] === cells[c]) return cells[a];
-  }
-  return cells.every(Boolean) ? 'D' : null;
-}
-
-function globalWinner(winners) {
-  for (const [a, b, c] of WIN_LINES) {
-    if (winners[a] && winners[a] !== 'D' && winners[a] === winners[b] && winners[a] === winners[c]) return winners[a];
-  }
-  return null;
-}
-
-function emptyState() {
-  return {
-    boards: Array.from({ length: 9 }, () => Array(9).fill(null)),
-    winners: Array(9).fill(null),
-    activeBoard: null,
-    turn: 'X',
-    gameWinner: null
-  };
-}
-
-function cloneState(state) {
-  return {
-    boards: state.boards.map(board => [...board]),
-    winners: [...state.winners],
-    activeBoard: state.activeBoard,
-    turn: state.turn,
-    gameWinner: state.gameWinner
-  };
-}
-
-function legalMoves(state) {
-  if (state.gameWinner) return [];
-  const eligibleBoards = state.activeBoard === null
-    ? state.winners.map((winner, index) => (winner ? null : index)).filter(index => index !== null)
-    : [state.activeBoard];
-  return eligibleBoards.flatMap(macro => state.boards[macro]
-    .map((mark, cell) => (mark || state.winners[macro] ? null : macro * 9 + cell))
-    .filter(move => move !== null));
-}
-
-function applyMove(state, move) {
-  const macro = Math.floor(move / 9);
-  const cell = move % 9;
-  if (!Number.isInteger(move) || macro < 0 || macro > 8 || cell < 0 || cell > 8 || !legalMoves(state).includes(move)) {
-    return null;
-  }
-
-  const next = cloneState(state);
-  const player = next.turn;
-  next.boards[macro][cell] = player;
-  next.winners[macro] = boardWinner(next.boards[macro]);
-  next.gameWinner = globalWinner(next.winners);
-  const targetBoard = cell;
-  next.activeBoard = next.winners[targetBoard] ? null : targetBoard;
-  next.turn = other(player);
-  return next;
-}
-
-function deriveState(positionSequence = []) {
-  const state = emptyState();
-  for (const move of positionSequence) {
-    const next = applyMove(state, move);
-    if (!next) return null;
-    Object.assign(state, next);
-  }
-  return state;
-}
+const { WIN_LINES } = require('../engine/constants');
+const {
+  other,
+  emptyState,
+  legalMoves,
+  applyMove,
+  deriveState,
+  evaluateState,
+  searchPosition
+} = require('../engine');
 
 function microThreats(board, player) {
   let total = 0;
@@ -154,48 +85,34 @@ function countMacroForks(state, player) {
 function evaluatePosition(positionSequence = []) {
   const state = deriveState(positionSequence);
   if (!state) return null;
-  if (state.gameWinner === 'X') return 10000;
-  if (state.gameWinner === 'O') return -10000;
-
-  let score = state.winners.reduce((total, winner) => {
-    if (winner === 'X') return total + 500;
-    if (winner === 'O') return total - 500;
-    return total;
-  }, 0);
-
-  for (const line of WIN_LINES) {
-    const lineWinners = line.map(index => state.winners[index]);
-    const xCount = lineWinners.filter(winner => winner === 'X').length;
-    const oCount = lineWinners.filter(winner => winner === 'O').length;
-    const openCount = lineWinners.filter(winner => winner === null).length;
-    if (oCount === 0 && openCount > 0) score += xCount * xCount * 75;
-    if (xCount === 0 && openCount > 0) score -= oCount * oCount * 75;
-  }
-
-  state.boards.forEach((board, index) => {
-    if (state.winners[index]) return;
-    score += (microThreats(board, 'X') - microThreats(board, 'O')) * 24;
-    const center = board[4];
-    if (center === 'X') score += 5;
-    if (center === 'O') score -= 5;
-  });
-
-  return score;
+  return evaluateState(state);
 }
 
-async function getBestMove(positionSequence = [], difficultyRating = 1500) {
+async function getBestMove(positionSequence = [], difficultyRating = 1500, options = {}) {
   const state = deriveState(positionSequence);
   if (!state) return { bestMove: -1, score: 0, theme: 'Invalid position' };
-  const candidates = legalMoves(state)
-    .map(move => ({ move, ...scoreMove(state, move) }))
-    .sort((a, b) => b.score - a.score || a.move - b.move);
-  if (!candidates.length) return { bestMove: -1, score: 0, theme: 'No legal moves' };
-  const bestScore = candidates[0].score;
+  const nodeLimit = options.nodeLimit ?? (
+    difficultyRating < 900 ? 1000
+      : difficultyRating < 1500 ? 4000
+        : difficultyRating < 2200 ? 9000 : 16000
+  );
+  const search = searchPosition(state, {
+    maxDepth: options.maxDepth ?? 8,
+    nodeLimit
+  });
+  if (!search.moveScores.length) return { bestMove: -1, score: 0, theme: 'No legal moves' };
+  const candidates = search.moveScores.map(result => ({
+    ...scoreMove(state, result.move),
+    move: result.move,
+    score: result.score
+  }));
+  const bestCandidate = candidates.find(candidate => candidate.move === search.bestMove) || candidates[0];
+  const bestScore = bestCandidate.score;
   return {
-    bestMove: candidates[0].move,
+    bestMove: bestCandidate.move,
     score: bestScore,
-    theme: candidates[0].theme,
-    alternatives: candidates.slice(1, 4).map(candidate => candidate.move),
+    theme: bestCandidate.theme,
+    alternatives: candidates.filter(candidate => candidate.move !== bestCandidate.move).slice(0, 3).map(candidate => candidate.move),
     moveScores: candidates.map(candidate => ({
       move: candidate.move,
       score: candidate.score,
@@ -205,9 +122,13 @@ async function getBestMove(positionSequence = [], difficultyRating = 1500) {
       createsMacroFork: candidate.createsMacroFork
     })),
     acceptableMoves: candidates
-      .filter(candidate => bestScore - candidate.score <= 15)
+      .filter(candidate => bestScore - candidate.score <= 5)
       .map(candidate => candidate.move),
-    margin: candidates.length > 1 ? bestScore - candidates[1].score : bestScore
+    margin: candidates.length > 1
+      ? bestScore - Math.max(...candidates.filter(candidate => candidate.move !== bestCandidate.move).map(candidate => candidate.score))
+      : bestScore,
+    searchDepth: search.depth,
+    nodesSearched: search.nodes
   };
 }
 
@@ -266,7 +187,7 @@ async function generateAdaptivePuzzle(rating = 1200) {
 }
 
 async function checkPuzzleAnswer(position = [], answer = -1, rating = 1500) {
-  if (!Array.isArray(position) || position.length > 80 ||
+  if (!Array.isArray(position) || position.length > 81 ||
       position.some(move => !Number.isInteger(move) || move < 0 || move > 80) ||
       !Number.isInteger(answer) || answer < 0 || answer > 80) {
     return { correct: false, bestMove: -1, score: 0 };
@@ -287,7 +208,7 @@ async function annotateGame(moves = [], evaluationElo = 3500) {
   const runningSequence = [];
   for (let i = 0; i < moves.length; i += 1) {
     const movePlayed = typeof moves[i] === 'number' ? moves[i] : moves[i].idx;
-    const evaluation = await getBestMove(runningSequence, evaluationElo);
+    const evaluation = await getBestMove(runningSequence, evaluationElo, { nodeLimit: 700 });
     const played = evaluation.moveScores?.find(candidate =>
       candidate.move === movePlayed
     );

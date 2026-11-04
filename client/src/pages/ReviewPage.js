@@ -111,19 +111,21 @@ function EvaluationBar({ score = 0 }) {
   const xShare = 0.5 + 0.47 * (score / (Math.abs(score) + 1200));
   const oHeight = `${(1 - xShare) * 100}%`;
   const xHeight = `${xShare * 100}%`;
+  const advantage = Math.abs(score) <= 50 ? 'balanced' : score > 0 ? 'x' : 'o';
   return (
     <div
-      className="review-eval-rail"
+      className={`review-eval-rail review-eval-rail--${advantage}`}
       role="img"
       aria-label={`Strategic evaluation: ${formatEvaluation(score)}`}
       title={`Strategic evaluation: ${formatEvaluation(score)}`}
     >
-      <span className="review-eval-rail__side review-eval-rail__side--o">O</span>
+      <span className="review-eval-rail__value">{formatEvaluation(score)}</span>
+      <span className="review-eval-rail__side review-eval-rail__side--o">O leads</span>
       <div className="review-eval-rail__track">
         <div className="review-eval-rail__o" style={{ height: oHeight }} />
         <div className="review-eval-rail__x" style={{ height: xHeight }} />
       </div>
-      <span className="review-eval-rail__side review-eval-rail__side--x">X</span>
+      <span className="review-eval-rail__side review-eval-rail__side--x">X leads</span>
     </div>
   );
 }
