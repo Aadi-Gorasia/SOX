@@ -12,7 +12,14 @@ export default function OAuthCallbackPage() {
   useEffect(() => {
     const token = new URLSearchParams(location.hash.slice(1)).get('token');
     if (token && completeOAuthLogin(token)) {
-      navigate('/dashboard', { replace: true });
+      let landingPage = 'dashboard';
+      try {
+        landingPage = JSON.parse(localStorage.getItem('site-preferences') || '{}').landingPage || landingPage;
+      } catch {
+        landingPage = 'dashboard';
+      }
+      const destinations = { dashboard: '/dashboard', play: '/play', history: '/games/history' };
+      navigate(destinations[landingPage] || '/dashboard', { replace: true });
       return;
     }
     const message = new URLSearchParams(location.search).get('oauth_error');

@@ -1,6 +1,7 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useContext } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useSocket } from '../context/SocketContext';
+import { ThemeContext } from '../context/ThemeContext';
 import InteractiveBG from '../components/InteractiveBG';
 import './DashboardPage.css'; // Inherit global dashboard wrap classes
 import './PlayPage.css';
@@ -8,6 +9,7 @@ import './PlayPage.css';
 const PlayPage = () => {
     const socket = useSocket();
     const navigate = useNavigate();
+    const { preferences } = useContext(ThemeContext);
     const [latency, setLatency] = useState(0);
     
     // UI CORE STATE
@@ -231,7 +233,7 @@ const PlayPage = () => {
                                     <h3 className="deploy-title">Ranked Match</h3>
                                     <p className="deploy-desc">Find an opponent in the global matchmaking pool. Your rating will be affected.</p>
                                     <button className="btn-deploy btn-deploy--primary" onClick={triggerMatchmaking}>
-                                        Play Ranked
+                                        Play Ranked{preferences.defaultGameMode === 'online' ? ' · Default' : ''}
                                     </button>
                                 </div>
                             </div>
@@ -243,7 +245,7 @@ const PlayPage = () => {
                                     <h3 className="deploy-title">Play a Friend</h3>
                                     <p className="deploy-desc">Generate a secure link to play an unranked match against someone you know.</p>
                                     <button className="btn-deploy btn-deploy--secondary" onClick={triggerPrivate}>
-                                        Create Invite Link
+                                        Create Invite Link{preferences.defaultGameMode === 'private' ? ' · Default' : ''}
                                     </button>
                                 </div>
                             </div>

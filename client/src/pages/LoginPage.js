@@ -8,7 +8,7 @@ const API_BASE = process.env.REACT_APP_API_URL || '';
 
 const LoginPage = () => {
   const navigate = useNavigate();
-  const { login, isAuthenticated } = useContext(AuthContext);
+  const { login, isAuthenticated, user } = useContext(AuthContext);
   const [formData, setFormData] = useState({ email: '', password: '' });
 
   const onSubmit = async (e) => {
@@ -22,8 +22,18 @@ const LoginPage = () => {
   };
 
   useEffect(() => {
-    if (isAuthenticated) navigate('/dashboard');
-  }, [isAuthenticated, navigate]);
+    if (!isAuthenticated) return;
+    let landingPage = user?.preferences?.landingPage;
+    if (!landingPage) {
+      try {
+        landingPage = JSON.parse(localStorage.getItem('site-preferences') || '{}').landingPage;
+      } catch {
+        landingPage = 'dashboard';
+      }
+    }
+    const destinations = { dashboard: '/dashboard', play: '/play', history: '/games/history' };
+    navigate(destinations[landingPage] || '/dashboard', { replace: true });
+  }, [isAuthenticated, navigate, user]);
 
   return (
     <div className="auth-root">

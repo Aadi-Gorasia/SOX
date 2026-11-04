@@ -1,23 +1,28 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useContext, useEffect, useRef } from 'react';
+import { ThemeContext } from '../context/ThemeContext';
 
 const InteractiveBG = () => {
   const canvasRef = useRef(null);
+  const { preferences } = useContext(ThemeContext);
 
   useEffect(() => {
     const canvas = canvasRef.current;
+    if (!canvas || !preferences.backgroundAnimations || preferences.reducedMotion) return undefined;
     const ctx = canvas.getContext('2d');
     let mouse = { x: -1000, y: -1000 };
+    let frameId;
 
     const resize = () => {
       canvas.width = window.innerWidth;
       canvas.height = window.innerHeight;
     };
+    const trackMouse = event => {
+      mouse.x = event.clientX;
+      mouse.y = event.clientY;
+    };
 
     window.addEventListener('resize', resize);
-    window.addEventListener('mousemove', (e) => {
-      mouse.x = e.clientX;
-      mouse.y = e.clientY;
-    });
+    window.addEventListener('mousemove', trackMouse);
 
     resize();
 
@@ -52,12 +57,16 @@ const InteractiveBG = () => {
           ctx.fill();
         }
       }
-      requestAnimationFrame(draw);
+      frameId = requestAnimationFrame(draw);
     };
 
     draw();
-    return () => window.removeEventListener('resize', resize);
-  }, []);
+    return () => {
+      window.removeEventListener('resize', resize);
+      window.removeEventListener('mousemove', trackMouse);
+      cancelAnimationFrame(frameId);
+    };
+  }, [preferences.backgroundAnimations, preferences.reducedMotion]);
 
   return (
     <canvas 
@@ -67,7 +76,8 @@ const InteractiveBG = () => {
         top: 0, 
         left: 0, 
         zIndex: 0, 
-        background: '#080808' 
+        background: 'transparent',
+        display: preferences.backgroundAnimations && !preferences.reducedMotion ? 'block' : 'none'
       }} 
     />
   );

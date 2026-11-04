@@ -27,6 +27,7 @@ const Navbar = () => {
             <>
               <Link to="/play" className={isActive('/play') ? 'active' : ''}>PLAY</Link>
               <Link to={`/profile/${user.username}`} className={isActive(`/profile/${user.username}`) ? 'active' : ''}>PROFILE</Link>
+              <Link to="/settings" className={isActive('/settings') ? 'active' : ''}>SETTINGS</Link>
               <button onClick={handleLogout} className="nav-btn-logout">LOGOUT</button>
             </>
           ) : (

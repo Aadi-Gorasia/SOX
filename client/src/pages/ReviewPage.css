@@ -1118,6 +1118,12 @@
     width: 24px;
   }
 
+  .review-page--complete .review-eval-rail {
+    height: min(100%, 68vh, 650px, calc(100dvh - 340px));
+    min-height: 160px;
+    justify-self: center;
+  }
+
   .review-page--complete .review-eval-rail__value {
     font-size: 10px;
   }
@@ -1458,6 +1464,10 @@
   .review-page--complete .review-board-stage {
     grid-template-columns: 38px minmax(0, 1fr);
     gap: 7px;
+  }
+  .review-page--complete .review-eval-rail {
+    height: min(100%, 68vh, 650px);
+    min-height: 140px;
   }
   .review-page--complete .review-board { width: 100%; }
   .review-side-panel { min-height: 430px; }

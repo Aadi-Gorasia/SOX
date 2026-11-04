@@ -1,8 +1,9 @@
 // client/src/components/SuperBoard.js
-import React from "react";
+import React, { useContext } from "react";
 import { motion } from "framer-motion";
 import Board from "./Board";
 import { useSocket } from "../context/SocketContext";
+import { ThemeContext } from "../context/ThemeContext";
 import "./SuperBoard.css";
 
 function calculateGlobalWinner(boardWinners) {
@@ -25,7 +26,7 @@ function calculateGlobalWinner(boardWinners) {
   return null;
 }
 
-const VictoryLine = ({ lineIndex, winner }) => {
+const VictoryLine = ({ lineIndex, winner, animate }) => {
   const linePaths = [
     "M 0 16.66 L 100 16.66", "M 0 50 L 100 50", "M 0 83.33 L 100 83.33", // Rows
     "M 16.66 0 L 16.66 100", "M 50 0 L 50 100", "M 83.33 0 L 83.33 100", // Columns
@@ -38,18 +39,23 @@ const VictoryLine = ({ lineIndex, winner }) => {
       viewBox="0 0 100 100" 
       preserveAspectRatio="none"
     >
-      <motion.path
-        d={linePaths[lineIndex]}
-        initial={{ pathLength: 0, opacity: 0 }}
-        animate={{ pathLength: 1, opacity: 1 }}
-        transition={{ duration: 0.8, ease: "circOut" }}
-      />
+      {animate ? (
+        <motion.path
+          d={linePaths[lineIndex]}
+          initial={{ pathLength: 0, opacity: 0 }}
+          animate={{ pathLength: 1, opacity: 1 }}
+          transition={{ duration: 0.8, ease: "circOut" }}
+        />
+      ) : (
+        <path d={linePaths[lineIndex]} />
+      )}
     </svg>
   );
 };
 
 const SuperBoard = ({ allBoards, activeBoard, boardWinners, gameWinner, isMyTurn, gameId, onPlay }) => {
   const socket = useSocket();
+  const { preferences } = useContext(ThemeContext);
 
   const handlePlay = (boardIndex, cellIndex) => {
     if (!isMyTurn || gameWinner) return;
@@ -102,7 +108,11 @@ const SuperBoard = ({ allBoards, activeBoard, boardWinners, gameWinner, isMyTurn
 
       <div className="super-board">
         {globalWinInfo && gameWinner !== "D" && (
-          <VictoryLine lineIndex={globalWinInfo.lineIndex} winner={gameWinner} />
+          <VictoryLine
+            lineIndex={globalWinInfo.lineIndex}
+            winner={gameWinner}
+            animate={preferences.victoryAnimation && !preferences.reducedMotion}
+          />
         )}
         {Array(9).fill(null).map((_, i) => renderSector(i))}
       </div>
