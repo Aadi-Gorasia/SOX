@@ -261,7 +261,7 @@ export default function ReviewPage() {
     const savedSummary = summary?.sideSummaries?.[playerSide];
     return {
       side: playerSide,
-      name: game.players?.[sideIndex]?.username || `Player ${playerSide}`,
+      name: game?.players?.[sideIndex]?.username || `Player ${playerSide}`,
       accuracy: savedSummary?.accuracy ?? calculatedAccuracy,
       movesReviewed: savedSummary?.movesReviewed ?? sideAnnotations.length,
       qualityCounts: savedSummary?.qualityCounts || qualityCounts
