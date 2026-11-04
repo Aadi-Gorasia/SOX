@@ -17,18 +17,24 @@ import './ReviewPage.css';
 
 const API_BASE = process.env.REACT_APP_API_URL || '';
 const QUALITY = {
-  brilliant: { label: 'Brilliant', symbol: '!!', tone: 'brilliant' },
-  great: { label: 'Great', symbol: '!', tone: 'great' },
-  best: { label: 'Best', symbol: '★', tone: 'best' },
-  excellent: { label: 'Excellent', symbol: '✓', tone: 'excellent' },
-  good: { label: 'Good', symbol: '✓', tone: 'good' },
-  fine: { label: 'Fine', symbol: '·', tone: 'fine' },
-  inaccuracy: { label: 'Inaccuracy', symbol: '?!', tone: 'inaccuracy' },
-  mistake: { label: 'Mistake', symbol: '?', tone: 'mistake' },
-  blunder: { label: 'Blunder', symbol: '??', tone: 'blunder' },
-  miss: { label: 'Miss', symbol: '×', tone: 'miss' },
-  unrated: { label: 'Unrated', symbol: '—', tone: 'unrated' }
+  brilliant: { label: 'Brilliant', symbol: '!!', tone: 'brilliant', points: 100 },
+  great: { label: 'Great', symbol: '!', tone: 'great', points: 98 },
+  best: { label: 'Best', symbol: '★', tone: 'best', points: 96 },
+  excellent: { label: 'Excellent', symbol: '✓', tone: 'excellent', points: 91 },
+  good: { label: 'Good', symbol: '✓', tone: 'good', points: 84 },
+  fine: { label: 'Fine', symbol: '·', tone: 'fine', points: 74 },
+  inaccuracy: { label: 'Inaccuracy', symbol: '?!', tone: 'inaccuracy', points: 58 },
+  mistake: { label: 'Mistake', symbol: '?', tone: 'mistake', points: 32 },
+  blunder: { label: 'Blunder', symbol: '??', tone: 'blunder', points: 10 },
+  miss: { label: 'Miss', symbol: '×', tone: 'miss', points: 0 },
+  unrated: { label: 'Unrated', symbol: '—', tone: 'unrated', points: null }
 };
+
+const MINI_BOARD_LINES = [
+  [0, 1, 2], [3, 4, 5], [6, 7, 8],
+  [0, 3, 6], [1, 4, 7], [2, 5, 8],
+  [0, 4, 8], [2, 4, 6]
+];
 
 function qualityFor(annotation) {
   if (annotation?.quality && QUALITY[annotation.quality]) {
@@ -53,6 +59,14 @@ function buildBoard(moves = []) {
   return board;
 }
 
+function findBoardWinner(board, macro) {
+  const cells = board.slice(macro * 9, macro * 9 + 9);
+  for (const [a, b, c] of MINI_BOARD_LINES) {
+    if (cells[a] && cells[a] === cells[b] && cells[a] === cells[c]) return cells[a];
+  }
+  return null;
+}
+
 function formatMove(index) {
   if (!Number.isInteger(index) || index < 0 || index > 80) return 'No legal move';
   const macro = Math.floor(index / 9);
@@ -75,7 +89,12 @@ function ReplayBoard({ moves, playedMove, bestMove, showAfter }) {
       aria-label={`Ultimate tic-tac-toe position ${showAfter ? 'after' : 'before'} move ${playedMove + 1}`}
     >
       {Array.from({ length: 9 }, (_, macro) => (
-        <div className="review-board__macro" key={macro}>
+        <div
+          className={`review-board__macro ${findBoardWinner(board, macro)
+            ? `review-board__macro--won-${findBoardWinner(board, macro).toLowerCase()}`
+            : ''}`}
+          key={macro}
+        >
           {Array.from({ length: 9 }, (_, cell) => {
             const index = macro * 9 + cell;
             const mark = board[index];
@@ -95,6 +114,11 @@ function ReplayBoard({ moves, playedMove, bestMove, showAfter }) {
               </div>
             );
           })}
+          {findBoardWinner(board, macro) && (
+            <div className="review-board__winner" aria-label={`${findBoardWinner(board, macro)} won this board`}>
+              {findBoardWinner(board, macro)}
+            </div>
+          )}
         </div>
       ))}
     </div>
@@ -130,15 +154,6 @@ function EvaluationBar({ score = 0 }) {
   );
 }
 
-function Stat({ label, value, tone = '' }) {
-  return (
-    <div className={`review-stat ${tone ? `review-stat--${tone}` : ''}`}>
-      <span className="review-stat__value">{value}</span>
-      <span className="review-stat__label">{label}</span>
-    </div>
-  );
-}
-
 export default function ReviewPage() {
   const { gameId } = useParams();
   const { token, user } = useContext(AuthContext);
@@ -153,6 +168,7 @@ export default function ReviewPage() {
   const [current, setCurrent] = useState(0);
   const [showAfter, setShowAfter] = useState(false);
   const [filter, setFilter] = useState('all');
+  const [activeTab, setActiveTab] = useState('timeline');
 
   useEffect(() => {
     const controller = new AbortController();
@@ -221,20 +237,36 @@ export default function ReviewPage() {
     }
   }
 
-  const qualityCounts = useMemo(() => {
-    const counts = Object.fromEntries(Object.keys(QUALITY).map(code => [code, 0]));
-    annotations.forEach(annotation => {
-      const code = qualityFor(annotation).tone;
-      counts[code] = (counts[code] || 0) + 1;
-    });
-    return counts;
-  }, [annotations]);
   const viewerIndex = game?.players?.findIndex(player =>
     String(player._id ?? player.id) === String(user?._id ?? user?.id)
   ) ?? -1;
-  const viewerSide = viewerIndex === 1 ? 'O' : 'X';
-  const viewerSummary = summary?.sideSummaries?.[viewerSide];
-  const viewerQualityCounts = viewerSummary?.qualityCounts || qualityCounts;
+  const playerSummaries = useMemo(() => ['X', 'O'].map(playerSide => {
+    const sideIndex = playerSide === 'X' ? 0 : 1;
+    const sideAnnotations = annotations.filter((item, index) =>
+      (item.side ?? index % 2) === sideIndex
+    );
+    const qualityCounts = Object.fromEntries(
+      Object.keys(QUALITY).map(code => [code, 0])
+    );
+    sideAnnotations.forEach(item => {
+      const tone = qualityFor(item).tone;
+      qualityCounts[tone] += 1;
+    });
+    const rated = sideAnnotations
+      .map(item => qualityFor(item).points)
+      .filter(points => points !== null);
+    const calculatedAccuracy = rated.length
+      ? Math.round(rated.reduce((total, points) => total + points, 0) / rated.length)
+      : 0;
+    const savedSummary = summary?.sideSummaries?.[playerSide];
+    return {
+      side: playerSide,
+      name: game.players?.[sideIndex]?.username || `Player ${playerSide}`,
+      accuracy: savedSummary?.accuracy ?? calculatedAccuracy,
+      movesReviewed: savedSummary?.movesReviewed ?? sideAnnotations.length,
+      qualityCounts: savedSummary?.qualityCounts || qualityCounts
+    };
+  }), [annotations, game, summary]);
 
   const visibleMoves = useMemo(() => annotations
     .map((annotation, index) => ({ annotation, index }))
@@ -341,13 +373,6 @@ export default function ReviewPage() {
     );
   }
 
-  const summaryStats = [
-    { label: 'Your accuracy', value: `${viewerSummary?.accuracy ?? summary?.accuracy ?? 0}%`, tone: 'accuracy' },
-    { label: 'Your moves', value: viewerSummary?.movesReviewed ?? annotations.length },
-    { label: 'Brilliant', value: viewerQualityCounts.brilliant || 0, tone: 'brilliant' },
-    { label: 'Great + best', value: (viewerQualityCounts.great || 0) + (viewerQualityCounts.best || 0), tone: 'best' },
-    { label: 'Mistakes', value: (viewerQualityCounts.mistake || 0) + (viewerQualityCounts.blunder || 0) + (viewerQualityCounts.miss || 0), tone: 'mistake' }
-  ];
   const moveNo = annotation?.moveNumber ?? current + 1;
   const side = annotation?.side === 1 ? 'O' : 'X';
   const winnerId = game.winner?._id ?? game.winner?.id ?? game.winner;
@@ -358,7 +383,7 @@ export default function ReviewPage() {
       : 'Game complete';
 
   return (
-    <div className="review-page">
+    <div className="review-page review-page--complete">
       <header className="review-topbar">
         <button className="review-back" onClick={() => navigate(-1)}><ArrowLeft size={16} /> Back</button>
         <span className="review-brand-mark">SOX <span>REVIEW</span></span>
@@ -373,20 +398,15 @@ export default function ReviewPage() {
       </header>
 
       <main className="review-content">
-        <section className="review-heading">
+        <section className="review-heading review-heading--compact">
           <div>
             <span className="review-eyebrow">POST-GAME ANALYSIS</span>
-            <h1>Every move tells a story.</h1>
-            <p>See what worked, where the game shifted, and what you could try next time.</p>
+            <h1>{game.players?.[0]?.username || 'Player X'} <span>vs</span> {game.players?.[1]?.username || 'Player O'}</h1>
           </div>
           <div className="review-heading__result">
             <span className={`review-result-dot review-result-dot--${game.status?.toLowerCase() || 'completed'}`} />
             <span>{gameOutcome}</span>
           </div>
-        </section>
-
-        <section className="review-stats" aria-label="Game review summary">
-          {summaryStats.map(stat => <Stat key={stat.label} {...stat} />)}
         </section>
 
         <section className="review-workspace">
@@ -433,118 +453,185 @@ export default function ReviewPage() {
             <p className="review-keyboard-hint">Use ← → to step through the game</p>
           </div>
 
-          <aside className="review-insight-card" aria-live="polite">
-            <div className="review-insight-card__top">
-              <span className="review-section-label">MOVE {moveNo} <span>·</span> {side} TO PLAY</span>
-              <span className={`review-grade review-grade--${quality.tone}`}>
-                <b>{quality.symbol}</b>{quality.label}
-              </span>
-            </div>
-            <h2>{formatMove(annotation?.idx)}</h2>
-            <p className="review-insight-card__explanation">
-              {annotation?.explanation || 'This move was reviewed against the available legal continuations.'}
-            </p>
-
-            {annotation?.quality !== 'best' && annotation?.bestMove != null && (
-              <div className="review-recommendation">
-                <span className="review-recommendation__icon"><Lightbulb size={17} /></span>
-                <div>
-                  <span className="review-section-label">A STRONGER IDEA</span>
-                  <strong>{formatMove(annotation.bestMove)}</strong>
-                  <p>{annotation.recommendation}</p>
-                </div>
-              </div>
-            )}
-
-            <div className="review-insight-facts">
-              <div><span>Move quality</span><strong>{quality.label}</strong></div>
-              <div><span>Strategic theme</span><strong>{annotation?.theme || 'Positioning'}</strong></div>
-              {annotation?.regret != null && (
-                <div><span>Engine gap</span><strong>{annotation.regret === 0 ? 'Top choice' : `${annotation.regret} pts`}</strong></div>
-              )}
-            </div>
-
-            {criticalMoments.length > 0 && (
-              <div className="review-turning-points">
-                <span className="review-section-label"><Target size={13} /> MOMENTS TO REVISIT</span>
-                {criticalMoments.map(item => (
-                  <button
-                    key={item.index}
-                    className="review-turning-point"
-                    onClick={() => setCurrent(item.index)}
-                  >
-                    <span className={`review-turning-point__dot review-turning-point__dot--${item.quality.tone}`} />
-                    <span>Move {item.index + 1} · {item.quality.label}</span>
-                    <ChevronRight size={14} />
-                  </button>
-                ))}
-              </div>
-            )}
-          </aside>
-        </section>
-
-        <section className="review-moves-card">
-          <div className="review-moves-card__head">
-            <div>
-              <span className="review-section-label">FULL MOVE-BY-MOVE REVIEW</span>
-              <h2>Game timeline <span>{annotations.length} plies</span></h2>
-            </div>
-            <div className="review-filters" role="group" aria-label="Filter reviewed moves">
+          <aside className="review-side-panel">
+            <div className="review-tabs" role="tablist" aria-label="Game review details">
               {[
-                ['all', 'All moves'],
-                ['critical', 'Needs attention'],
-                ['highlights', 'Top moves']
-              ].map(([value, label]) => (
+                ['timeline', 'Timeline'],
+                ['accuracy', 'Accuracy'],
+                ['analysis', 'Move analysis']
+              ].map(([tab, label]) => (
                 <button
-                  key={value}
-                  className={filter === value ? 'is-active' : ''}
-                  onClick={() => setFilter(value)}
-                  aria-pressed={filter === value}
+                  key={tab}
+                  id={`review-tab-${tab}`}
+                  className={`review-tab ${activeTab === tab ? 'is-active' : ''}`}
+                  role="tab"
+                  aria-selected={activeTab === tab}
+                  aria-controls="review-tab-panel"
+                  onClick={() => setActiveTab(tab)}
                 >
                   {label}
                 </button>
               ))}
             </div>
-          </div>
-          <div className="review-move-list">
-            {visibleMoves.length ? visibleMoves.map(({ annotation: move, index }) => {
-              const moveQuality = qualityFor(move);
-              const moveSide = move.side === 1 ? 'O' : 'X';
-              return (
-                <button
-                  key={`${move.moveNumber}-${index}`}
-                  className={`review-move-row ${current === index ? 'is-active' : ''}`}
-                  onClick={() => {
-                    setCurrent(index);
-                    setShowAfter(false);
-                  }}
-                  aria-current={current === index ? 'true' : undefined}
-                >
-                  <span className="review-move-row__number">{Math.floor(index / 2) + 1}{moveSide === 'O' ? '…' : '.'}</span>
-                  <span className={`review-move-row__side review-move-row__side--${moveSide.toLowerCase()}`}>{moveSide}</span>
-                  <span className="review-move-row__notation">{formatMove(move.idx)}</span>
-                  <span className={`review-move-row__grade review-grade--${moveQuality.tone}`}>
-                    <b>{moveQuality.symbol}</b>{moveQuality.label}
-                  </span>
-                  <span className="review-move-row__note">{move.theme || 'Positioning'}</span>
-                  <ChevronRight className="review-move-row__arrow" size={15} />
-                </button>
-              );
-            }) : (
-              <div className="review-empty-filter">
-                <Sparkles size={18} />
-                <span>{filter === 'critical' ? 'No major errors in this game.' : 'No top-rated moves in this game yet.'}</span>
-              </div>
-            )}
-          </div>
-          <div className="review-grade-key">
-            <span>Move grades</span>
-            {Object.entries(QUALITY).filter(([code]) => code !== 'unrated').map(([code, value]) => (
-              <span key={code} className={`review-grade-key__item review-grade-key__item--${code}`}>
-                <b>{value.symbol}</b>{value.label}
-              </span>
-            ))}
-          </div>
+
+            <div
+              className="review-tab-panel"
+              id="review-tab-panel"
+              role="tabpanel"
+              aria-labelledby={`review-tab-${activeTab}`}
+            >
+              {activeTab === 'timeline' && (
+                <section className="review-timeline">
+                  <div className="review-timeline__head">
+                    <div>
+                      <span className="review-section-label">FULL MOVE-BY-MOVE REVIEW</span>
+                      <h2>Game timeline <span>{annotations.length} plies</span></h2>
+                    </div>
+                    <div className="review-filters" role="group" aria-label="Filter reviewed moves">
+                      {[
+                        ['all', 'All'],
+                        ['critical', 'Needs attention'],
+                        ['highlights', 'Top moves']
+                      ].map(([value, label]) => (
+                        <button
+                          key={value}
+                          className={filter === value ? 'is-active' : ''}
+                          onClick={() => setFilter(value)}
+                          aria-pressed={filter === value}
+                        >
+                          {label}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                  <div className="review-move-list">
+                    {visibleMoves.length ? visibleMoves.map(({ annotation: move, index }) => {
+                      const moveQuality = qualityFor(move);
+                      const moveSide = move.side === 1 ? 'O' : 'X';
+                      return (
+                        <button
+                          key={`${move.moveNumber}-${index}`}
+                          className={`review-move-row ${current === index ? 'is-active' : ''}`}
+                          onClick={() => {
+                            setCurrent(index);
+                            setShowAfter(false);
+                          }}
+                          aria-current={current === index ? 'true' : undefined}
+                        >
+                          <span className="review-move-row__number">{Math.floor(index / 2) + 1}{moveSide === 'O' ? '…' : '.'}</span>
+                          <span className={`review-move-row__side review-move-row__side--${moveSide.toLowerCase()}`}>{moveSide}</span>
+                          <span className="review-move-row__notation">{formatMove(move.idx)}</span>
+                          <span className={`review-move-row__grade review-grade--${moveQuality.tone}`}>
+                            <b>{moveQuality.symbol}</b>{moveQuality.label}
+                          </span>
+                          <span className="review-move-row__note">{move.theme || 'Positioning'}</span>
+                          <ChevronRight className="review-move-row__arrow" size={15} />
+                        </button>
+                      );
+                    }) : (
+                      <div className="review-empty-filter">
+                        <Sparkles size={18} />
+                        <span>{filter === 'critical' ? 'No major errors in this game.' : 'No top-rated moves in this game yet.'}</span>
+                      </div>
+                    )}
+                  </div>
+                  <div className="review-grade-key">
+                    <span>Move grades</span>
+                    {Object.entries(QUALITY).filter(([code]) => code !== 'unrated').map(([code, value]) => (
+                      <span key={code} className={`review-grade-key__item review-grade-key__item--${code}`}>
+                        <b>{value.symbol}</b>{value.label}
+                      </span>
+                    ))}
+                  </div>
+                </section>
+              )}
+
+              {activeTab === 'accuracy' && (
+                <section className="review-accuracy">
+                  <div className="review-timeline__head">
+                    <div>
+                      <span className="review-section-label">PLAYER PERFORMANCE</span>
+                      <h2>Accuracy by side</h2>
+                    </div>
+                  </div>
+                  {playerSummaries.map(player => (
+                    <article className={`review-player-accuracy review-player-accuracy--${player.side.toLowerCase()}`} key={player.side}>
+                      <div className="review-player-accuracy__head">
+                        <span className={`review-player-accuracy__mark review-player-accuracy__mark--${player.side.toLowerCase()}`}>{player.side}</span>
+                        <div>
+                          <strong>{player.name}</strong>
+                          <span>{player.movesReviewed} moves reviewed</span>
+                        </div>
+                        <b>{player.accuracy}%</b>
+                      </div>
+                      <div className="review-accuracy-meter" aria-label={`${player.name}: ${player.accuracy}% accuracy`}>
+                        <span style={{ width: `${player.accuracy}%` }} />
+                      </div>
+                      <div className="review-player-accuracy__grades">
+                        {['brilliant', 'great', 'best', 'excellent', 'good', 'fine', 'inaccuracy', 'mistake', 'blunder', 'miss'].map(code => (
+                          <span key={code} className={`review-player-accuracy__grade review-player-accuracy__grade--${code}`}>
+                            <b>{QUALITY[code].symbol}</b>{player.qualityCounts[code] || 0}
+                          </span>
+                        ))}
+                      </div>
+                    </article>
+                  ))}
+                  <p className="review-accuracy-note">Accuracy is based on move quality grades from the SOX strategic engine.</p>
+                </section>
+              )}
+
+              {activeTab === 'analysis' && (
+                <section className="review-insight-card" aria-live="polite">
+                  <div className="review-insight-card__top">
+                    <span className="review-section-label">MOVE {moveNo} <span>·</span> {side} TO PLAY</span>
+                    <span className={`review-grade review-grade--${quality.tone}`}>
+                      <b>{quality.symbol}</b>{quality.label}
+                    </span>
+                  </div>
+                  <h2>{formatMove(annotation?.idx)}</h2>
+                  <p className="review-insight-card__explanation">
+                    {annotation?.explanation || 'This move was reviewed against the available legal continuations.'}
+                  </p>
+
+                  {annotation?.quality !== 'best' && annotation?.bestMove != null && (
+                    <div className="review-recommendation">
+                      <span className="review-recommendation__icon"><Lightbulb size={17} /></span>
+                      <div>
+                        <span className="review-section-label">A STRONGER IDEA</span>
+                        <strong>{formatMove(annotation.bestMove)}</strong>
+                        <p>{annotation.recommendation}</p>
+                      </div>
+                    </div>
+                  )}
+
+                  <div className="review-insight-facts">
+                    <div><span>Move quality</span><strong>{quality.label}</strong></div>
+                    <div><span>Strategic theme</span><strong>{annotation?.theme || 'Positioning'}</strong></div>
+                    {annotation?.regret != null && (
+                      <div><span>Engine gap</span><strong>{annotation.regret === 0 ? 'Top choice' : `${annotation.regret} pts`}</strong></div>
+                    )}
+                  </div>
+
+                  {criticalMoments.length > 0 && (
+                    <div className="review-turning-points">
+                      <span className="review-section-label"><Target size={13} /> MOMENTS TO REVISIT</span>
+                      {criticalMoments.map(item => (
+                        <button
+                          key={item.index}
+                          className="review-turning-point"
+                          onClick={() => setCurrent(item.index)}
+                        >
+                          <span className={`review-turning-point__dot review-turning-point__dot--${item.quality.tone}`} />
+                          <span>Move {item.index + 1} · {item.quality.label}</span>
+                          <ChevronRight size={14} />
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </section>
+              )}
+            </div>
+          </aside>
         </section>
 
         <p className="review-disclaimer">
