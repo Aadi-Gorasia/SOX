@@ -13,7 +13,7 @@
 
 .hud-player.active {
   border-color: var(--accent);
-  box-shadow: 0 0 30px rgba(200, 251, 87, 0.1);
+  box-shadow: 0 0 30px color-mix(in srgb, var(--accent) 10%, transparent);
   transform: translateY(-4px);
   z-index: 10;
 }
@@ -46,8 +46,8 @@
   font-size: 28px;
   font-weight: 800;
 }
-.hud-symbol-indicator.x { color: var(--accent); }
-.hud-symbol-indicator.o { color: var(--red); }
+.hud-symbol-indicator.x { color: var(--color-x, var(--accent)); }
+.hud-symbol-indicator.o { color: var(--color-o, var(--red)); }
 
 .hud-timer-zone {
   padding: 1.75rem;

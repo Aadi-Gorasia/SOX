@@ -37,6 +37,7 @@ function applyThemeToDocument(theme, preferences) {
     '--crimson': tokens.secondary,
     '--sulfur': tokens.accent,
     '--accent-soft': `color-mix(in srgb, ${tokens.accent} 14%, transparent)`,
+    '--blood': `color-mix(in srgb, ${tokens.secondary} 10%, ${tokens.bg})`,
     '--panel-bg': tokens.panel,
     '--surface': tokens.panel,
     '--card': tokens.card,
@@ -59,13 +60,31 @@ function applyThemeToDocument(theme, preferences) {
     '--display': 'Inter, "Segoe UI", Arial, sans-serif',
     '--color-background': tokens.bg,
     '--color-surface': tokens.panel,
+    '--color-card': tokens.card,
     '--color-primary': tokens.accent,
     '--color-secondary': tokens.secondary,
     '--color-text-primary': tokens.text,
     '--color-text-secondary': secondaryText,
     '--color-border': border,
     '--color-x': tokens.x,
-    '--color-o': tokens.o
+    '--color-o': tokens.o,
+    '--color-success': tokens.success,
+    '--color-warning': tokens.warning,
+    '--color-danger': tokens.danger,
+    '--color-info': tokens.info,
+    '--color-grade-purple': tokens.gradePurple,
+    '--color-grade-green': tokens.gradeGreen,
+    '--color-grade-blue': tokens.gradeBlue,
+    '--color-grade-amber': tokens.gradeAmber,
+    '--color-grade-red': tokens.gradeRed,
+    '--color-grade-neutral': tokens.gradeNeutral,
+    '--shadow-card': theme.id === 'dark'
+      ? '0 12px 30px rgba(0, 0, 0, .22)'
+      : '0 8px 24px rgba(37, 45, 41, .07)',
+    '--success': tokens.success,
+    '--warning': tokens.warning,
+    '--danger': tokens.danger,
+    '--info': tokens.info
   };
   Object.entries(variables).forEach(([name, value]) => root.style.setProperty(name, value));
   root.dataset.theme = theme.id;

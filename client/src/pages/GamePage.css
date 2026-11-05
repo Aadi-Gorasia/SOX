@@ -1,21 +1,19 @@
-@import url('https://fonts.googleapis.com/css2?family=Syne:wght@400;500;700;800&family=DM+Mono:wght@400;500&family=DM+Sans:wght@400;500&display=swap');
-
 /* ─── Tokens & Root ──────────────────────────────────── */
 :root {
-  --bg:       #0a0a0a;
-  --surface:  #111111;
-  --card:     #161616;
-  --border:   rgba(255, 255, 255, 0.07);
-  --border-s: rgba(255, 255, 255, 0.14);
-  --text-1:   #f0f0f0;
-  --text-2:   #999;
-  --text-3:   #555;
-  --accent:   #c8fb57;
-  --accent-d: #9dc43f;
-  --red:      #ff4545;
-  --mono: 'DM Mono', monospace;
-  --sans: 'DM Sans', sans-serif;
-  --display: 'Syne', sans-serif;
+  --bg: var(--color-background);
+  --surface: var(--color-surface);
+  --card: var(--color-card);
+  --border: var(--color-border);
+  --border-s: color-mix(in srgb, var(--color-text-secondary) 42%, var(--color-border));
+  --text-1: var(--color-text-primary);
+  --text-2: var(--color-text-secondary);
+  --text-3: var(--color-text-secondary);
+  --accent: var(--color-primary);
+  --accent-d: var(--color-primary);
+  --red: var(--color-danger);
+  --mono: var(--font-mono);
+  --sans: var(--font-body);
+  --display: var(--font-heading);
 }
 
 .game-root { 
@@ -64,7 +62,7 @@
 .exit-btn:hover { 
   border-color: var(--text-1); 
   color: var(--text-1); 
-  background: rgba(255, 255, 255, 0.03);
+  background: color-mix(in srgb, var(--text-1) 4%, transparent);
 }
 
 .header-status {
@@ -192,7 +190,7 @@
 }
 .archive-alert:hover {
   background: var(--accent);
-  color: #000;
+  color: var(--bg);
 }
 
 /* ─── Right Stack: Intel & Chat ──────────────────────── */
@@ -286,14 +284,14 @@
   transition: 0.15s; 
 }
 .tactical-btn:hover:not(:disabled) { 
-  background: rgba(255, 255, 255, 0.03); 
+  background: color-mix(in srgb, var(--text-1) 4%, transparent); 
   border-color: var(--text-1); 
   color: var(--text-1);
 }
 .tactical-btn.resign:hover:not(:disabled) { 
   color: var(--red); 
   border-color: var(--red); 
-  background: rgba(255, 69, 69, 0.03);
+  background: color-mix(in srgb, var(--red) 5%, transparent);
 }
 .tactical-btn:disabled { opacity: 0.3; cursor: not-allowed; }
 .game-draw-status {

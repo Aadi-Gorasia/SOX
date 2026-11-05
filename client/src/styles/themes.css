@@ -1,13 +1,24 @@
 :root {
-  --color-background: #f4f5f1;
-  --color-surface: #fff;
-  --color-primary: #287653;
-  --color-secondary: #bd5d4d;
-  --color-text-primary: #202722;
-  --color-text-secondary: #66716a;
-  --color-border: #d9dfda;
-  --color-x: #315b83;
-  --color-o: #bd5d4d;
+  --color-background: #f2f0e9;
+  --color-surface: #fffdf8;
+  --color-card: #f8f6ef;
+  --color-primary: #216b56;
+  --color-secondary: #a94f43;
+  --color-text-primary: #252d29;
+  --color-text-secondary: #59665f;
+  --color-border: #d7d9d0;
+  --color-x: #385d82;
+  --color-o: #a94f43;
+  --color-success: #24704d;
+  --color-warning: #80590f;
+  --color-danger: #a33f36;
+  --color-info: #365f85;
+  --color-grade-purple: #7041a6;
+  --color-grade-green: #256843;
+  --color-grade-blue: #315b83;
+  --color-grade-amber: #79520d;
+  --color-grade-red: #a53d36;
+  --color-grade-neutral: #56605a;
   --font-heading: Inter, "Segoe UI", Arial, sans-serif;
   --font-body: Inter, "Segoe UI", Arial, sans-serif;
   --font-mono: "SFMono-Regular", Consolas, monospace;
@@ -34,65 +45,10 @@ body {
   background: transparent;
 }
 
-.dash-root,
-.profile-body,
-.play-body,
-.tourney-root,
-.game-root,
-.pz-clean-layout,
-.review-page,
-.settings-page,
-.games-history-page {
-  color: var(--color-text-primary);
-  background-color: var(--color-background);
-  font-family: var(--font-body);
-}
-
-.glass-nav-inner {
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-card);
-  background: var(--color-surface);
-  color: var(--color-text-primary);
-  box-shadow: var(--shadow-card);
-  backdrop-filter: none;
-}
-
-.nav-logo a,
-.nav-links-group a,
-.nav-btn-logout {
-  color: var(--color-text-primary);
-  font-family: var(--font-body);
-}
-
-.nav-logo a::after { color: var(--color-text-secondary); }
-.nav-links-group a.active::after { background: var(--color-primary); }
-
-.board-container {
-  border-color: var(--color-border);
-  background: var(--color-surface);
-}
-
-.board { background-color: var(--color-border); }
-.cell { background-color: var(--color-surface); }
-
-.cell-x,
-.winner-x { color: var(--color-x); text-shadow: none; }
-
-.cell-o,
-.winner-o { color: var(--color-o); text-shadow: none; }
-
-.winner-overlay { background-color: color-mix(in srgb, var(--color-surface) 88%, transparent); }
-
-.settings-content,
-.settings-theme-card {
-  border-color: var(--color-border);
-  background-color: var(--color-surface);
-  color: var(--color-text-primary);
-}
-
-.settings-page button:focus-visible,
-.settings-page select:focus-visible,
-.settings-page input:focus-visible,
+button:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible,
 .nav-links-group a:focus-visible,
 .nav-btn-logout:focus-visible {
   outline: 2px solid var(--color-primary);

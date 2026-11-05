@@ -25,8 +25,8 @@
   border-color: var(--accent) !important;
   z-index: 50;
   transform: scale(1.03);
-  background-color: rgba(200, 251, 87, 0.02);
-  box-shadow: 0 0 30px rgba(200, 251, 87, 0.1);
+  background-color: color-mix(in srgb, var(--accent) 2%, transparent);
+  box-shadow: 0 0 30px color-mix(in srgb, var(--accent) 10%, transparent);
   animation: target-lock-pulse 2s infinite ease-in-out;
 }
 
@@ -55,7 +55,7 @@
 
 @keyframes target-lock-pulse {
   0%   { opacity: 1; transform: scale(1.03); }
-  50%  { opacity: 0.9; transform: scale(1.05); box-shadow: 0 0 40px rgba(200, 251, 87, 0.2); }
+  50%  { opacity: 0.9; transform: scale(1.05); box-shadow: 0 0 40px color-mix(in srgb, var(--accent) 20%, transparent); }
   100% { opacity: 1; transform: scale(1.03); }
 }
 
@@ -95,7 +95,7 @@
 .winner-overlay {
   position: absolute;
   inset: 0;
-  background-color: rgba(10, 10, 10, 0.85);
+  background-color: color-mix(in srgb, var(--surface) 88%, transparent);
   backdrop-filter: blur(2px);
   display: flex;
   justify-content: center;
@@ -110,10 +110,10 @@
   line-height: 1;
 }
 
-.winner-x { color: var(--accent); text-shadow: 0 0 30px rgba(200, 251, 87, 0.3); }
-.winner-o { color: var(--red); text-shadow: 0 0 30px rgba(255, 69, 69, 0.3); }
+.winner-x { color: var(--color-x, var(--accent)); text-shadow: 0 0 30px color-mix(in srgb, var(--color-x, var(--accent)) 22%, transparent); }
+.winner-o { color: var(--color-o, var(--red)); text-shadow: 0 0 30px color-mix(in srgb, var(--color-o, var(--red)) 22%, transparent); }
 
-.draw-overlay { background-color: rgba(17, 17, 17, 0.9); }
+.draw-overlay { background-color: color-mix(in srgb, var(--surface) 92%, transparent); }
 .draw-overlay::after {
   content: 'DRAW';
   font-family: var(--mono);

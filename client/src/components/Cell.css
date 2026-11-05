@@ -26,21 +26,21 @@
 }
 
 .cell-x {
-  color: var(--accent);
-  text-shadow: 0 0 20px rgba(200, 251, 87, 0.3);
+  color: var(--color-x, var(--accent));
+  text-shadow: 0 0 20px color-mix(in srgb, var(--color-x, var(--accent)) 30%, transparent);
 }
 
 .cell-o {
-  color: var(--red);
-  text-shadow: 0 0 20px rgba(255, 69, 69, 0.3);
+  color: var(--color-o, var(--red));
+  text-shadow: 0 0 20px color-mix(in srgb, var(--color-o, var(--red)) 30%, transparent);
 }
 
 /* Soft Illumination Hover */
 .cell-active:hover {
   background: radial-gradient(
     circle at center,
-    rgba(200, 251, 87, 0.08) 0%,
-    rgba(200, 251, 87, 0.02) 50%,
+    color-mix(in srgb, var(--accent) 8%, transparent) 0%,
+    color-mix(in srgb, var(--accent) 2%, transparent) 50%,
     var(--surface) 100%
   );
 }
@@ -55,7 +55,7 @@
 }
 
 .cell-active:hover::before {
-  border-color: rgba(200, 251, 87, 0.2);
+  border-color: color-mix(in srgb, var(--accent) 20%, transparent);
 }
 
 .cell:active { transform: scale(0.96); }

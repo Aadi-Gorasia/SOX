@@ -1,6 +1,6 @@
 .games-history-page {
-  min-height: calc(100vh - 64px);
-  padding: 0 0 56px;
+  min-height: 100vh;
+  padding: 92px 0 56px;
   color: var(--text-1, #f0f0f0);
   background:
     radial-gradient(ellipse at 50% -18%, rgba(200,251,87,.07), transparent 42%),
@@ -78,7 +78,7 @@
 
 .games-history-card {
   border: 1px solid var(--border, rgba(255,255,255,.07));
-  background: rgba(17,17,17,.94);
+  background: var(--color-surface);
 }
 
 .games-history-card__head {
@@ -118,11 +118,11 @@
   transition: background .15s ease;
 }
 
-.games-history-row:hover { background: rgba(255,255,255,.025); }
+.games-history-row:hover { background: color-mix(in srgb, var(--color-primary) 5%, transparent); }
 .games-history-row:last-child { border-bottom: 0; }
 .games-history-row:has(.games-history-result--win) { border-left-color: var(--accent, #c8fb57); }
-.games-history-row:has(.games-history-result--loss) { border-left-color: #ff6969; }
-.games-history-row:has(.games-history-result--draw) { border-left-color: #666; }
+.games-history-row:has(.games-history-result--loss) { border-left-color: var(--color-danger); }
+.games-history-row:has(.games-history-result--draw) { border-left-color: var(--color-border); }
 
 .games-history-result {
   font-family: var(--mono, monospace);
@@ -133,7 +133,7 @@
 }
 
 .games-history-result--win { color: var(--accent, #c8fb57); }
-.games-history-result--loss { color: #ff7777; }
+.games-history-result--loss { color: var(--color-danger); }
 .games-history-result--draw { color: var(--text-2, #999); }
 
 .games-history-opponent {
@@ -167,7 +167,7 @@
   justify-content: center;
   gap: 5px;
   padding: 8px 10px;
-  border: 1px solid rgba(200,251,87,.3);
+  border: 1px solid color-mix(in srgb, var(--color-primary) 35%, var(--color-border));
   color: var(--accent, #c8fb57);
   font-family: var(--mono, monospace);
   font-size: 9px;
@@ -177,7 +177,7 @@
 
 .games-history-review:hover {
   border-color: var(--accent, #c8fb57);
-  background: rgba(200,251,87,.08);
+  background: color-mix(in srgb, var(--color-primary) 8%, transparent);
 }
 
 .games-history-state {
@@ -209,13 +209,13 @@
   text-decoration: none;
 }
 
-.games-history-state--error { color: #ff8a80; }
-.games-history-state--error button { color: #ff8a80; }
+.games-history-state--error { color: var(--color-danger); }
+.games-history-state--error button { color: var(--color-danger); }
 .games-history-spinner {
   width: 15px;
   height: 15px;
   display: inline-block;
-  border: 2px solid rgba(255,255,255,.2);
+  border: 2px solid var(--color-border);
   border-top-color: var(--accent, #c8fb57);
   border-radius: 50%;
   animation: games-history-spin .8s linear infinite;
@@ -231,7 +231,7 @@
   border-top: 1px solid var(--border, rgba(255,255,255,.07));
 }
 
-.games-history-more > span { color: #ff8a80; font-size: 11px; }
+.games-history-more > span { color: var(--color-danger); font-size: 11px; }
 .games-history-more button {
   min-height: 34px;
   padding: 0 13px;
@@ -240,7 +240,7 @@
   justify-content: center;
   gap: 8px;
   border: 1px solid var(--border-s, rgba(255,255,255,.14));
-  background: #171717;
+  background: var(--color-surface);
   color: var(--text-1, #f0f0f0);
   cursor: pointer;
   font-family: var(--mono, monospace);
@@ -256,6 +256,7 @@
 @keyframes games-history-spin { to { transform: rotate(360deg); } }
 
 @media (max-width: 640px) {
+  .games-history-page { padding-top: 72px; }
   .games-history-wrap { width: calc(100% - 28px); }
   .games-history-header { min-height: 56px; gap: 13px; }
   .games-history-intro { padding: 27px 0 18px; }

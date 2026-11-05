@@ -118,16 +118,16 @@ function ProfileGraph({ data }) {
       <svg viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="none">
         <defs>
           <linearGradient id="grad" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stopColor="#c8fb57" stopOpacity="0.15" />
-            <stop offset="100%" stopColor="#c8fb57" stopOpacity="0" />
+            <stop offset="0%" stopColor="var(--color-primary)" stopOpacity="0.15" />
+            <stop offset="100%" stopColor="var(--color-primary)" stopOpacity="0" />
           </linearGradient>
         </defs>
         <path d={graphData.area} fill="url(#grad)" />
-        <path d={graphData.path} fill="none" stroke="#c8fb57" strokeWidth="2" />
+        <path d={graphData.path} fill="none" stroke="var(--color-primary)" strokeWidth="2" />
         {hoverData && (
           <>
-            <line x1={hoverData.px} y1="0" x2={hoverData.px} y2={H} stroke="rgba(255,255,255,0.15)" strokeDasharray="4 4" />
-            <circle cx={hoverData.px} cy={hoverData.py} r="5" fill="#c8fb57" />
+            <line x1={hoverData.px} y1="0" x2={hoverData.px} y2={H} stroke="var(--color-border)" strokeDasharray="4 4" />
+            <circle cx={hoverData.px} cy={hoverData.py} r="5" fill="var(--color-primary)" />
           </>
         )}
       </svg>

@@ -2,7 +2,7 @@
 .end-modal-backdrop {
   position: fixed;
   inset: 0;
-  background-color: rgba(10, 10, 10, 0.94);
+  background-color: color-mix(in srgb, var(--bg) 94%, transparent);
   z-index: 2000;
   display: flex;
   align-items: center;
@@ -26,8 +26,8 @@
   to   { opacity: 1; transform: scale(1); }
 }
 
-.end-report-frame.win  { border-color: var(--accent); }
-.end-report-frame.loss { border-color: var(--red); }
+.end-report-frame.win  { border-color: var(--color-success); }
+.end-report-frame.loss { border-color: var(--color-danger); }
 .end-report-frame.draw { border-color: var(--text-3); }
 
 .end-grid-bg {
@@ -52,8 +52,8 @@
   letter-spacing: -0.02em;
 }
 
-.win  .end-outcome-title { color: var(--accent); }
-.loss .end-outcome-title { color: var(--red); }
+.win  .end-outcome-title { color: var(--color-success); }
+.loss .end-outcome-title { color: var(--color-danger); }
 .draw .end-outcome-title { color: var(--text-1); }
 
 .end-reason-tag {
@@ -91,8 +91,8 @@
   font-size: 13px;
   color: var(--text-2);
 }
-.delta-pos { color: var(--accent); }
-.delta-neg { color: var(--red); }
+.delta-pos { color: var(--color-success); }
+.delta-neg { color: var(--color-danger); }
 
 .end-actions {
   display: flex;
@@ -115,7 +115,7 @@
   background-color: var(--text-1);
   color: var(--bg);
 }
-.end-btn-primary:hover { background-color: var(--accent); color: #000; }
+.end-btn-primary:hover { background-color: var(--accent); color: var(--bg); }
 
 /* NEW: SOX Engine review button */
 .end-btn-review {
@@ -129,7 +129,7 @@
 }
 .end-btn-review:hover {
   background-color: var(--accent);
-  color: #000;
+  color: var(--bg);
 }
 
 .end-btn-secondary {
