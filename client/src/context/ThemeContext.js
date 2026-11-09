@@ -111,9 +111,9 @@ export function ThemeProvider({ children }) {
 
   useEffect(() => {
     if (!token || !user) return;
-    const savedTheme = THEME_BY_ID[user.themePreference] ? user.themePreference : DEFAULT_THEME;
+    const savedTheme = THEME_BY_ID[user.themePreference] ? user.themePreference : readTheme();
     const savedPreferences = {
-      ...DEFAULT_PREFERENCES,
+      ...readPreferences(),
       ...Object.fromEntries(
         Object.keys(DEFAULT_PREFERENCES)
           .filter(key => key in (user.preferences || {}))
@@ -156,14 +156,14 @@ export function ThemeProvider({ children }) {
     if (migrationAttempts.current.has(migrationKey)) return;
     migrationAttempts.current.add(migrationKey);
     const savedPreferences = {
-      ...DEFAULT_PREFERENCES,
+      ...readPreferences(),
       ...Object.fromEntries(
         Object.keys(DEFAULT_PREFERENCES)
           .filter(key => key in (user.preferences || {}))
           .map(key => [key, user.preferences[key]])
       )
     };
-    persistAccountSettings(DEFAULT_THEME, savedPreferences).catch(() => {});
+    persistAccountSettings(readTheme(), savedPreferences).catch(() => {});
   }, [persistAccountSettings, token, user]);
 
   const applyTheme = useCallback(async id => {
