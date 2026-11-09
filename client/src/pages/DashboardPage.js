@@ -23,16 +23,56 @@ const TIPS = [
   "Don't play reactively — plan which sub-boards you want to own before you need them.",
 ];
 
+const API_BASE = process.env.REACT_APP_API_URL || '';
+
 const DashboardPage = () => {
   const { user } = useContext(AuthContext);
   const socket    = useSocket();
   const navigate  = useNavigate();
 
+  const [dashboardUser, setDashboardUser] = useState(user);
   const [games,       setGames]       = useState([]);
+  const [gamesLoading, setGamesLoading] = useState(true);
+  const [gamesError, setGamesError] = useState('');
+  const [userRefreshError, setUserRefreshError] = useState('');
+  const [health, setHealth] = useState(null);
   const [isSearching, setIsSearching] = useState(false);
   const [searchTc,    setSearchTc]    = useState(null);
   const [searchTimer, setSearchTimer] = useState(0);
   const [latency,     setLatency]     = useState(null);
+  const reviewableGame = games.find(game => game.status !== 'ONGOING' && game.moves?.length > 0);
+
+  useEffect(() => {
+    if (!user) {
+      setDashboardUser(null);
+      return undefined;
+    }
+
+    let active = true;
+    const refreshUser = async () => {
+      try {
+        const response = await axios.get(`${API_BASE}/api/auth`);
+        if (active) {
+          setDashboardUser(response.data);
+          setUserRefreshError('');
+        }
+      } catch (error) {
+        console.error('Dashboard profile refresh failed:', error);
+        if (active) {
+          setDashboardUser(user);
+          setUserRefreshError('Could not refresh account stats. Showing the last loaded values.');
+        }
+      }
+    };
+
+    setDashboardUser(user);
+    refreshUser();
+    window.addEventListener('focus', refreshUser);
+    return () => {
+      active = false;
+      window.removeEventListener('focus', refreshUser);
+    };
+  }, [user]);
 
   useEffect(() => {
     if (!socket) return;
@@ -47,15 +87,48 @@ const DashboardPage = () => {
   }, [socket]);
 
   useEffect(() => {
+    if (!user) return undefined;
+    let active = true;
     const fetchHistory = async () => {
+      setGamesLoading(true);
+      setGamesError('');
       try {
-        const res = await axios.get(`${process.env.REACT_APP_API_URL}/api/games/history`);
-        const rawData = Array.isArray(res.data) ? res.data : (res.data.games || []);
-        setGames(rawData);
-      } catch (err) { console.error('History Fetch Error:', err); }
+        const response = await axios.get(`${API_BASE}/api/games/history?limit=20`);
+        const history = Array.isArray(response.data) ? response.data : (response.data.games || []);
+        if (active) setGames(history);
+      } catch (error) {
+        console.error('Dashboard history fetch failed:', error);
+        if (active) setGamesError('Recent games could not be loaded.');
+      } finally {
+        if (active) setGamesLoading(false);
+      }
     };
-    if (user) fetchHistory();
+    fetchHistory();
+    window.addEventListener('focus', fetchHistory);
+    return () => {
+      active = false;
+      window.removeEventListener('focus', fetchHistory);
+    };
   }, [user]);
+
+  useEffect(() => {
+    let active = true;
+    const refreshHealth = async () => {
+      try {
+        const response = await axios.get(`${API_BASE}/health`);
+        if (active) setHealth(response.data);
+      } catch (error) {
+        console.error('Service health check failed:', error);
+        if (active) setHealth({ status: 'unavailable', database: 'unknown' });
+      }
+    };
+    refreshHealth();
+    const interval = setInterval(refreshHealth, 60000);
+    return () => {
+      active = false;
+      clearInterval(interval);
+    };
+  }, []);
 
   useEffect(() => {
     if (!socket) return;
@@ -92,13 +165,18 @@ const DashboardPage = () => {
     setIsSearching(false);
   };
 
-  const totalGames     = user ? (user.wins + user.losses + user.draws) : 0;
-  const winRate        = totalGames > 0 ? Math.round((user.wins / totalGames) * 100) : 0;
+  const currentUser    = dashboardUser || user;
+  const wins           = Number(currentUser?.wins) || 0;
+  const losses         = Number(currentUser?.losses) || 0;
+  const draws          = Number(currentUser?.draws) || 0;
+  const elo            = Number(currentUser?.elo) || 0;
+  const totalGames     = wins + losses + draws;
+  const winRate        = totalGames > 0 ? Math.round((wins / totalGames) * 100) : 0;
   const todayTip       = TIPS[new Date().getDay() % TIPS.length];
   const latencyDisplay = latency === null ? '—' : `${latency}ms`;
   const latencyClass   = latency === null ? '' : latency > 100 ? 'latency-high' : 'latency-ok';
 
-  if (!user) return (
+  if (!currentUser) return (
     <div className="loading-gate">
       <div className="loading-inner">
         <div className="loading-grid">
@@ -136,6 +214,8 @@ const DashboardPage = () => {
 
       <div className="dash-wrap">
 
+        {userRefreshError && <p className="dashboard-data-notice" role="status">{userRefreshError}</p>}
+
         <header className="dash-header">
 
           <div className="header-right">
@@ -143,7 +223,7 @@ const DashboardPage = () => {
               <span className="latency-dot" />
               {latencyDisplay}
             </div>
-            <div className="header-user">{user.username}</div>
+            <Link to={`/profile/${encodeURIComponent(currentUser.username)}`} className="header-user">{currentUser.username}</Link>
           </div>
         </header>
 
@@ -152,23 +232,23 @@ const DashboardPage = () => {
           {/* Left sidebar */}
           <aside className="dash-sidebar">
             <div className="player-card">
-              <div className="player-avatar">{user.username[0].toUpperCase()}</div>
-              <div className="player-name">{user.username}</div>
-              <div className="player-elo">{user.elo} <span>ELO</span></div>
+              <div className="player-avatar">{currentUser.username?.[0]?.toUpperCase() || '?'}</div>
+              <div className="player-name">{currentUser.username}</div>
+              <div className="player-elo">{elo} <span>ELO</span></div>
 
               <div className="player-stats">
                 <div className="pstat">
-                  <div className="pstat-val pstat-win">{user.wins}</div>
+                  <div className="pstat-val pstat-win">{wins}</div>
                   <div className="pstat-label">Wins</div>
                 </div>
                 <div className="pstat-divider" />
                 <div className="pstat">
-                  <div className="pstat-val pstat-loss">{user.losses}</div>
+                  <div className="pstat-val pstat-loss">{losses}</div>
                   <div className="pstat-label">Losses</div>
                 </div>
                 <div className="pstat-divider" />
                 <div className="pstat">
-                  <div className="pstat-val">{user.draws}</div>
+                  <div className="pstat-val">{draws}</div>
                   <div className="pstat-label">Draws</div>
                 </div>
               </div>
@@ -193,25 +273,29 @@ const DashboardPage = () => {
                   <span className={`sys-val ${latency !== null && latency > 100 ? 'sys-warn' : latency !== null ? 'sys-ok' : ''}`}>{latencyDisplay}</span>
                 </div>
                 <div className="sys-row">
-                  <span className="sys-key">Node</span>
-                  <span className="sys-val">Global 01</span>
+                  <span className="sys-key">API</span>
+                  <span className={`sys-val ${health?.status === 'ok' ? 'sys-ok' : health ? 'sys-warn' : ''}`}>
+                    {health?.status === 'ok' ? 'Online' : health?.status === 'unavailable' ? 'Offline' : 'Checking'}
+                  </span>
                 </div>
                 <div className="sys-row">
-                  <span className="sys-key">Status</span>
-                  <span className="sys-val sys-ok">Live</span>
+                  <span className="sys-key">Database</span>
+                  <span className={`sys-val ${health?.database === 'connected' ? 'sys-ok' : health?.database === 'disconnected' ? 'sys-warn' : ''}`}>
+                    {health?.database || 'Checking'}
+                  </span>
                 </div>
                 <div className="sys-row">
-                  <span className="sys-key">Games loaded</span>
-                  <span className="sys-val">{games.length}</span>
+                  <span className="sys-key">Recent games</span>
+                  <span className="sys-val">{gamesLoading ? '…' : games.length}</span>
                 </div>
               </div>
             </div>
 
-            <div className="sidebar-card upgrade-card">
-              <div className="upgrade-badge">Standard</div>
-              <div className="upgrade-title">Go Elite</div>
-              <div className="upgrade-sub">Advanced analytics, custom boards &amp; priority matchmaking</div>
-              <button className="upgrade-btn">Upgrade</button>
+            <div className="sidebar-card">
+              <div className="sidebar-card-label">Puzzle training</div>
+              <div className="daily-title">{Number(currentUser.puzzleRating) || 1200} rating</div>
+              <p className="tip-text">Practice tactical positions and track your puzzle rating.</p>
+              <Link to="/puzzles" className="daily-btn">Open puzzles</Link>
             </div>
           </aside>
 
@@ -247,9 +331,9 @@ const DashboardPage = () => {
               </div>
 
               <div className="alt-modes">
-                {['vs Friend', 'vs Computer', 'Tournament', 'Practice'].map(mode => (
-                  <button key={mode} className="alt-mode-btn">{mode}</button>
-                ))}
+                <Link to="/play" className="alt-mode-btn">Play a friend</Link>
+                <Link to="/tournament" className="alt-mode-btn">Tournament</Link>
+                <Link to="/puzzles" className="alt-mode-btn">Practice puzzles</Link>
               </div>
             </section>
 
@@ -262,23 +346,35 @@ const DashboardPage = () => {
               </div>
 
               <div className="history-list">
-                {games.length > 0 ? games.slice(0, 8).map((g) => {
+                {gamesError ? (
+                  <div className="history-empty" role="alert">{gamesError}</div>
+                ) : gamesLoading ? (
+                  <div className="history-empty">Loading recent games…</div>
+                ) : games.length > 0 ? games.slice(0, 8).map((g) => {
                   const winnerId    = g.winner?._id ?? g.winner?.id ?? g.winner;
-                  const isWin       = String(winnerId) === String(user._id);
+                  const isWin       = String(winnerId) === String(currentUser._id);
                   const isDraw      = g.status === 'DRAW';
-                  const opponent    = g.players?.find(p => p._id !== user._id);
-                  const result      = isDraw ? 'draw' : isWin ? 'win' : 'loss';
-                  const resultLabel = isDraw ? 'Draw' : isWin ? 'Win' : 'Loss';
-                  const eloChange   = isWin ? '+15' : isDraw ? '±0' : '−15';
+                  const opponent    = g.players?.find(player =>
+                    String(player?._id ?? player?.id) !== String(currentUser._id)
+                  );
+                  const isOngoing   = g.status === 'ONGOING';
+                  const result      = isOngoing ? 'draw' : isDraw ? 'draw' : isWin ? 'win' : 'loss';
+                  const resultLabel = isOngoing ? 'Live' : isDraw ? 'Draw' : isWin ? 'Win' : 'Loss';
                   const timeControl = g.timeControl || '—';
+                  const gameDate = g.endDate || g.createdAt;
+                  const dateLabel = gameDate && !Number.isNaN(new Date(gameDate).getTime())
+                    ? new Date(gameDate).toLocaleDateString()
+                    : 'Date unavailable';
 
                   return (
                     <div key={g._id} className={`history-row history-row--${result}`}>
                       <div className={`result-tag result-tag--${result}`}>{resultLabel}</div>
                       <div className="history-opp">vs {opponent?.username || 'Unknown'}</div>
                       <div className="history-tc">{timeControl}</div>
-                      <div className={`history-elo history-elo--${result}`}>{eloChange}</div>
-                      <Link to={`/review/${g._id}`} className="history-replay">Review</Link>
+                      <div className="history-date">{dateLabel}</div>
+                      {!isOngoing && g.moves?.length > 0
+                        ? <Link to={`/review/${g._id}`} className="history-replay">Review</Link>
+                        : <span className="history-replay history-replay--empty">—</span>}
                     </div>
                   );
                 }) : (
@@ -296,13 +392,12 @@ const DashboardPage = () => {
             </div>
 
             <div className="sidebar-card daily-card">
-              <div className="sidebar-card-label">Daily challenge</div>
-              <div className="daily-title">Forced win in 3</div>
-              <div className="daily-meta">
-                <span className="difficulty-tag">Hard</span>
-                <span className="daily-pts">+50 pts</span>
-              </div>
-              <button className="daily-btn">Start puzzle</button>
+              <div className="sidebar-card-label">Keep improving</div>
+              <div className="daily-title">Review your last game</div>
+              <p className="tip-text">Find turning points and get engine feedback on your moves.</p>
+              {reviewableGame
+                ? <Link to={`/review/${reviewableGame._id}`} className="daily-btn">Review game</Link>
+                : <Link to="/puzzles" className="daily-btn">Practice puzzles</Link>}
             </div>
 
             <div className="sidebar-card">
@@ -317,15 +412,15 @@ const DashboardPage = () => {
               </div>
               <div className="perf-stat">
                 <span className="perf-label">Current ELO</span>
-                <span className="perf-val">{user.elo}</span>
+                <span className="perf-val">{elo}</span>
               </div>
               <div className="perf-stat">
                 <span className="perf-label">Wins</span>
-                <span className="perf-val perf-accent">{user.wins}</span>
+                <span className="perf-val perf-accent">{wins}</span>
               </div>
               <div className="perf-stat">
                 <span className="perf-label">Losses</span>
-                <span className="perf-val perf-loss">{user.losses}</span>
+                <span className="perf-val perf-loss">{losses}</span>
               </div>
             </div>
           </aside>

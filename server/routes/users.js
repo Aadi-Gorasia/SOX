@@ -57,10 +57,16 @@ router.post('/login', async (req, res) => {
 // --- PROFILE ROUTE ---
 router.get('/profile/:username', async (req, res) => {
   try {
-    const usernameRegex = new RegExp(`^${req.params.username}$`, 'i');
-    const user = await User.findOne({ username: usernameRegex }).select('-password -email');
+    const escapedUsername = req.params.username.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    const usernameRegex = new RegExp(`^${escapedUsername}$`, 'i');
+    const user = await User.findOne({ username: usernameRegex })
+      .select('_id username elo wins losses draws date');
     if (!user) { return res.status(404).json({ msg: 'User not found' }); }
-    const games = await Game.find({ players: user._id }).sort({ endDate: -1 }).limit(50).populate('players', 'username').populate('winner', 'username');
+    const games = await Game.find({ players: user._id })
+      .sort({ endDate: -1, createdAt: -1 })
+      .limit(50)
+      .populate('players', 'username')
+      .populate('winner', 'username');
     res.json({ user, games });
   } catch (err) { console.error(err.message); res.status(500).send('Server Error'); }
 });
