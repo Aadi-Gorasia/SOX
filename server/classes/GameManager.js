@@ -449,12 +449,21 @@ game.engineMoves.push({
         const lId = result.winner === 'X' ? p2.id : p1.id;
         eloResult = await updateEloAndStats(wId, lId, false);
       }
+      const ratingChanges = eloResult
+        ? [eloResult.p1, eloResult.p2].map(({ id, oldElo, newElo, change }) => ({
+          player: id,
+          before: oldElo,
+          after: newElo,
+          change
+        }))
+        : [];
       await saveGameResult({
-  playerDetails: game.playerDetails,
-  gameWinner:    game.gameWinner,
-  timeControl:   game.timeControl,
-  moves:         game.engineMoves || [],
-});
+        playerDetails: game.playerDetails,
+        gameWinner: game.gameWinner,
+        timeControl: game.timeControl,
+        moves: game.engineMoves || [],
+        ratingChanges
+      });
     } catch (e) { console.error(e); }
 
     // Prepare Payload

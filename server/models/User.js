@@ -15,7 +15,7 @@ const UserSchema = new mongoose.Schema({
   draws: { type: Number, default: 0 },
   date: { type: Date, default: Date.now },
   lastUsernameChange: { type: Date, default: null }, 
-  themePreference: { type: String, default: 'light' },
+  themePreference: { type: String, default: 'dark' },
   preferences: { type: mongoose.Schema.Types.Mixed, default: {} },
   puzzleRating: { type: Number, default: 1200 } 
 });

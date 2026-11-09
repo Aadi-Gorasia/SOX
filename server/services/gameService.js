@@ -5,7 +5,7 @@ const Game = require('../models/Game');
 // Called by GameManager when a game ends.
 // gameData now accepts an optional `moves` array: [{ idx, side }, ...]
 async function saveGameResult(gameData) {
-  const { playerDetails, gameWinner, timeControl, moves = [] } = gameData;
+  const { playerDetails, gameWinner, timeControl, moves = [], ratingChanges = [] } = gameData;
 
   const getWinnerId = () => {
     if (gameWinner === 'X') return playerDetails[0].id;
@@ -20,6 +20,7 @@ async function saveGameResult(gameData) {
       status:      gameWinner === 'D' ? 'DRAW' : 'COMPLETED',
       timeControl: `${timeControl.base / 60000}+${timeControl.increment / 1000}`,
       moves,       // ← NEW: persist move history for engine review
+      ratingChanges,
       endDate:     new Date(),
     });
 

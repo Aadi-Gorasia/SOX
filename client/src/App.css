@@ -1,21 +1,21 @@
 /* Shared application foundation */
 :root {
-  --void: #f2f0e9;
-  --carbon: #f8f6ef;
-  --steel: #252d29;
-  --silver: #59665f;
-  --crimson: #a94f43;
-  --sulfur: #216b56;
+  --void: #161c19;
+  --carbon: #29332d;
+  --steel: #edf1eb;
+  --silver: #adb9af;
+  --crimson: #f08e7b;
+  --sulfur: #a4d5ad;
   --bg: var(--void);
-  --surface: #fffdf8;
+  --surface: #202823;
   --card: var(--carbon);
-  --border: #d7d9d0;
+  --border: #3d4a42;
   --text-1: var(--steel);
   --text-2: var(--silver);
   --text-3: var(--silver);
   --accent: var(--sulfur);
   --accent-d: var(--sulfur);
-  --red: #a33f36;
+  --red: #f19a8e;
   --mono: var(--font-mono);
   --sans: var(--font-body);
   --display: var(--font-heading);

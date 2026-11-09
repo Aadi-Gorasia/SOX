@@ -27,6 +27,8 @@ async function updateEloAndStats(winnerId, loserId, isDraw = false) {
     const [p1, p2] = await Promise.all([User.findById(winnerId), User.findById(loserId)]);
     if (!p1 || !p2) return null;
 
+    const p1OldElo = p1.elo;
+    const p2OldElo = p2.elo;
     const p1Stakes = getPotentialChanges(p1.elo, p2.elo);
     const p2Stakes = getPotentialChanges(p2.elo, p1.elo);
 
@@ -48,8 +50,8 @@ async function updateEloAndStats(winnerId, loserId, isDraw = false) {
     await Promise.all([p1.save(), p2.save()]);
 
     return {
-      p1: { id: p1._id, newElo: p1.elo, change: p1Change },
-      p2: { id: p2._id, newElo: p2.elo, change: p2Change }
+      p1: { id: p1._id, oldElo: p1OldElo, newElo: p1.elo, change: p1Change },
+      p2: { id: p2._id, oldElo: p2OldElo, newElo: p2.elo, change: p2Change }
     };
   } catch (err) {
     console.error('[ELO] Error:', err);

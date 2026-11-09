@@ -77,17 +77,24 @@ function processTacticalData(user, games) {
   };
 }
 
-function buildResultTimeline(games, userId) {
-  let balance = 0;
+function buildEloTimeline(games, userId) {
   return chronologicalGames(games).flatMap(game => {
     const result = resultFor(game, userId);
-    if (!result) return [];
-    balance += result === 'W' ? 1 : result === 'L' ? -1 : 0;
+    const ratingChange = game.ratingChanges?.find(change =>
+      String(change.player?._id ?? change.player?.id ?? change.player) === String(userId)
+    );
+    if (!result || !ratingChange ||
+        ratingChange.before === null || ratingChange.before === undefined ||
+        ratingChange.after === null || ratingChange.after === undefined ||
+        !Number.isFinite(Number(ratingChange.before)) ||
+        !Number.isFinite(Number(ratingChange.after))) return [];
     const opponent = game.players?.find(player =>
       String(player?._id ?? player?.id) !== String(userId)
     );
     return [{
-      balance,
+      elo: Number(ratingChange.after),
+      before: Number(ratingChange.before),
+      change: Number(ratingChange.change ?? ratingChange.after - ratingChange.before),
       result,
       date: dateFor(game),
       opponent: opponent?.username || 'Unknown'
@@ -116,12 +123,13 @@ function ProfileGraph({ data }) {
 
   const graphData = useMemo(() => {
     if (!data || data.length === 0) return null;
-    const balances = data.map(point => point.balance);
-    const min = Math.min(...balances, 0) - 1, max = Math.max(...balances, 0) + 1;
+    const ratings = data.map(point => point.elo);
+    const min = Math.min(...ratings) - 20;
+    const max = Math.max(...ratings) + 20;
     const range = max - min || 1;
     const points = data.map((point, i) => [
       data.length === 1 ? W / 2 : (i / (data.length - 1)) * W,
-      H - ((point.balance - min) / range) * H
+      H - ((point.elo - min) / range) * H
     ]);
     const path = getSvgPath(points);
     return {
@@ -133,7 +141,7 @@ function ProfileGraph({ data }) {
 
   if (!graphData) return (
     <div className="graph-container graph-container--empty">
-      No completed games yet. Your match record will appear here.
+      Elo history will appear here after your next rated game.
     </div>
   );
 
@@ -168,9 +176,9 @@ function ProfileGraph({ data }) {
       </svg>
       {hoverData && (
         <div className="graph-tooltip" style={{ left: `${(hoverData.px/W)*100}%`, top: `${(hoverData.py/H)*100}%` }}>
-          <div className="tooltip-elo">W-L balance: {hoverData.balance > 0 ? '+' : ''}{hoverData.balance}</div>
+          <div className="tooltip-elo">{hoverData.elo} ELO</div>
           <div className={`tooltip-detail ${hoverData.result === 'W' ? 'tooltip-detail--win' : hoverData.result === 'L' ? 'tooltip-detail--loss' : ''}`}>
-            {hoverData.result === 'W' ? 'Win' : hoverData.result === 'L' ? 'Loss' : 'Draw'} vs {hoverData.opponent}
+            {hoverData.change > 0 ? '+' : ''}{hoverData.change} ELO · {hoverData.result === 'W' ? 'Win' : hoverData.result === 'L' ? 'Loss' : 'Draw'} vs {hoverData.opponent}
           </div>
           {hoverData.date && <div className="tooltip-detail">{hoverData.date.toLocaleDateString()}</div>}
         </div>
@@ -272,7 +280,7 @@ const ProfilePage = () => {
   const { user, games } = data;
   const isOwnProfile = !username || (authUser && authUser.username === username);
   const userId = user._id ?? user.id;
-  const timeline = buildResultTimeline(games, userId);
+  const timeline = buildEloTimeline(games, userId);
   const wins = Number(user.wins) || 0;
   const losses = Number(user.losses) || 0;
   const draws = Number(user.draws) || 0;
@@ -282,7 +290,6 @@ const ProfilePage = () => {
   const joinDate = joinDateValue && !Number.isNaN(new Date(joinDateValue).getTime())
     ? new Date(joinDateValue).toLocaleDateString()
     : 'Unknown';
-  const currentBalance = timeline[timeline.length - 1]?.balance ?? 0;
   const lastResult = analytics?.recentForm?.[0];
 
   return (
@@ -369,13 +376,15 @@ const ProfilePage = () => {
             
             <div className="graph-card">
               <div className="graph-header">
-                <span className="graph-title">Recent match record</span>
-                <span className="graph-status">{games.length} of up to 50 games</span>
+                <span className="graph-title">Recorded Elo history</span>
+                <span className="graph-status">{timeline.length} of up to 50 games</span>
               </div>
               <ProfileGraph data={timeline} />
               <div className="graph-header" style={{ marginTop: '1rem', marginBottom: 0 }}>
-                <span className="graph-title" style={{ color: 'var(--text-3)' }}>CUMULATIVE WINS − LOSSES</span>
-                <span className="graph-title" style={{ color: 'var(--text-1)' }}>CURRENT: {currentBalance > 0 ? '+' : ''}{currentBalance}</span>
+                <span className="graph-title" style={{ color: 'var(--text-3)' }}>
+                  {timeline.length ? `FIRST RECORDED: ${timeline[0].before}` : 'ELO RECORDING STARTS WITH YOUR NEXT GAME'}
+                </span>
+                <span className="graph-title" style={{ color: 'var(--text-1)' }}>CURRENT: {elo}</span>
               </div>
             </div>
 

@@ -9,6 +9,13 @@ const MoveSchema = new mongoose.Schema({
   side: { type: Number, required: true }, // 0=X, 1=O
 }, { _id: false });
 
+const RatingChangeSchema = new mongoose.Schema({
+  player: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
+  before: { type: Number, required: true },
+  after:  { type: Number, required: true },
+  change: { type: Number, required: true },
+}, { _id: false });
+
 const AnnotationSchema = new mongoose.Schema({
   moveNumber:  { type: Number },
   side:        { type: Number, min: 0, max: 1 },
@@ -52,6 +59,7 @@ const GameSchema = new mongoose.Schema({
 
   // ── SOX Engine fields (new) ──────────────────────────────────────────────────
   moves:       { type: [MoveSchema],      default: [] },
+  ratingChanges: { type: [RatingChangeSchema], default: [] },
   annotations: { type: [AnnotationSchema], default: [] },
   reviewedAt:  { type: Date, default: null },
   reviewSummary: {
