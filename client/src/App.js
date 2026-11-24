@@ -29,6 +29,7 @@ import TournamentPage from './pages/TournamentPage';
 
 // --- SOX Engine Pages (NEW) ---
 import ReviewPage from './pages/ReviewPage';
+import LegalPage, { LegalLinks } from './pages/LegalPage';
 import PuzzlePage from './pages/PuzzlePage';
 import GamesHistoryPage from './pages/GamesHistoryPage';
 
@@ -51,6 +52,8 @@ const AppContent = () => {
       {/* Public Routes */}
       <Route element={<MainLayout />}>
         <Route path="/" element={<HomePage />} />
+        <Route path="/cookie-policy" element={<LegalPage type="cookies" />} />
+        <Route path="/terms" element={<LegalPage type="terms" />} />
         <Route path="/register" element={<RegisterPage />} />
         <Route path="/login" element={<LoginPage />} />
         <Route path="/auth/callback" element={<OAuthCallbackPage />} />
@@ -107,6 +110,7 @@ function App() {
             <div className="app-background"></div>
             <div className="App">
               <AppContent />
+              <LegalLinks />
             </div>
           </Router>
         </ThemeProvider>

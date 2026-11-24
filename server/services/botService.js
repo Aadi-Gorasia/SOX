@@ -2,12 +2,12 @@ const { randomInt } = require('node:crypto');
 const { deriveState, legalMoves } = require('../engine');
 const { getBestMove } = require('./engineService');
 const BOTS = [
-  { id:'pip', name:'Pip', rating:500, style:'Learning the ropes. Leaves room to experiment.' },
-  { id:'milo', name:'Milo', rating:900, style:'Finds simple threats. Sometimes loses the bigger picture.' },
-  { id:'iris', name:'Iris', rating:1300, style:'Steady sector play with occasional tactical misses.' },
-  { id:'atlas', name:'Atlas', rating:1700, style:'Looks ahead and makes you work for each sector.' },
-  { id:'nova', name:'Nova', rating:2100, style:'Sharp routing and patient tactical pressure.' },
-  { id:'zenith', name:'Zenith', rating:2600, style:'The strongest SOX search. No deliberate mistakes.' }
+  { id:'pip', name:'Bob', rating:500, style:'Learning the ropes. Leaves room to experiment.' },
+  { id:'milo', name:'Sam', rating:900, style:'Finds simple threats. Sometimes loses the bigger picture.' },
+  { id:'iris', name:'Emma', rating:1300, style:'Steady sector play with occasional tactical misses.' },
+  { id:'atlas', name:'Alex', rating:1700, style:'Looks ahead and makes you work for each sector.' },
+  { id:'nova', name:'Maya', rating:2100, style:'Sharp routing and patient tactical pressure.' },
+  { id:'zenith', name:'Daniel', rating:2600, style:'The strongest SOX search. No deliberate mistakes.' }
 ];
 function settings(rating) {
   if(!Number.isInteger(rating)||rating<400||rating>2600) throw new Error('Choose a rating from 400 to 2600');

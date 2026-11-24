@@ -97,12 +97,12 @@ const SuperBoard = ({ allBoards, activeBoard, boardWinners, gameWinner, isMyTurn
       <div className={`status-bar ${isMyTurn && !gameWinner ? 'status-active' : ''}`}>
         {gameWinner ? (
           <span style={{ color: 'var(--text-1)' }}>
-            {gameWinner === 'D' ? 'Simulation Terminated // Draw Matrix' : `Simulation Resolved // Winner: ${gameWinner}`}
+            {gameWinner === 'D' ? 'Draw' : `Winner: ${gameWinner}`}
           </span>
         ) : isMyTurn ? (
-          <span>Your Move — Intercept Target Vector</span>
+          <span>Your move · Choose a square in a highlighted board</span>
         ) : (
-          <span>Awaiting Opponent Link Stream...</span>
+          <span>Waiting for your opponent…</span>
         )}
       </div>
 

@@ -943,3 +943,42 @@
     grid-template-columns: minmax(0, 1fr);
   }
 }
+
+/* Keep the live match on one screen, including tablet portrait. */
+@media (min-width:701px){
+ .game-root,.game-container,.game-layout-wrapper{height:100dvh}
+ .game-container{padding:0 18px 28px}
+ .game-header{padding:10px 0;flex:none}
+ .game-layout{grid-template-columns:minmax(130px,.65fr) minmax(0,2fr) minmax(210px,1fr);gap:14px;padding:14px 0;grid-template-rows:minmax(0,1fr)}
+ .hud-stack{flex-direction:column;min-height:0;height:100%;gap:12px;overflow:auto}
+ .hud-status-node{flex:1;min-height:70px;margin:0}
+ .hud-player{flex-shrink:0}.hud-player.active{transform:none;box-shadow:none}
+ .hud-player-header{padding:12px}.hud-name{font-size:14px;overflow-wrap:anywhere}.hud-symbol-indicator{font-size:22px}
+ .hud-timer-zone{padding:18px 8px}.hud-clock{font-size:30px}
+ .simulation-status{font-size:20px}.node-label{font-size:9px}
+ .battle-area{height:100%;min-height:0;padding:8px}.battle-area::before{display:none}
+ .board-frame{height:100%;min-height:0}.scaled-board-wrapper{width:100%;height:100%;max-width:none;max-height:none}
+ .super-board-container{width:100%;height:100%;padding:0;min-height:0}
+ .super-board-container .status-bar{font-size:9px;margin-bottom:12px;flex:none;letter-spacing:0}
+ .super-board{width:min(100%,calc(100dvh - 195px));max-width:none;max-height:calc(100dvh - 195px);flex:none;gap:7px}
+ .intel-stack{min-height:0;gap:10px}.intel-stack .tech-panel{min-height:0}
+ .history-header,.panel-label{padding:10px;font-size:10px}.move-node{padding:7px}.history-round-row{grid-template-columns:25px 1fr 1fr}.move-coord{font-size:10px}
+ .chat-messages{padding:10px;min-height:0}.chat-input{font-size:12px;min-height:34px;padding:8px}
+ .tactical-btn{padding:8px;font-size:9px;min-height:36px}.engagement-controls{gap:6px}.game-draw-status{font-size:11px;padding:8px;flex:none}
+}
+@media(min-width:701px) and (max-width:1000px){
+ .game-layout{grid-template-columns:minmax(0,1.4fr) minmax(230px,1fr);grid-template-rows:auto minmax(0,1fr);gap:10px;padding:10px 0}
+ .hud-stack{grid-column:1/-1;display:grid;grid-template-columns:1fr 130px 1fr;gap:10px;overflow:visible}
+ .hud-player{display:grid;grid-template-columns:1fr auto;max-width:none}.hud-player-header{border:0;padding:8px}.hud-timer-zone{padding:8px}.hud-clock{font-size:24px}.hud-symbol-indicator{font-size:18px;margin-left:6px}
+ .hud-status-node{min-height:0}.simulation-status{font-size:16px}.node-label{font-size:8px;margin-bottom:4px}.battle-area{grid-column:1;grid-row:2}.intel-stack{grid-column:2;grid-row:2}.super-board{width:min(100%,calc(100dvh - 240px));max-height:calc(100dvh - 240px)}
+}
+@media(min-width:701px) and (max-width:1000px){
+ .game-layout-wrapper,.game-layout-main{height:100dvh;min-height:0;overflow:hidden}
+ .game-root{min-height:0;overflow:hidden}.game-container{min-height:0}
+ .hud-stack{grid-template-rows:auto}.hud-stack>.hud-player:first-child{grid-column:1;grid-row:1}.hud-stack>.hud-player:last-child{grid-column:3;grid-row:1}.hud-stack>.hud-status-node{grid-column:2;grid-row:1;padding:8px}
+ .scaled-board-wrapper{aspect-ratio:auto}
+}
+@media(min-width:701px){.intel-stack{display:flex;flex-direction:column}.intel-stack .history-container{min-height:0}.engagement-controls{flex:none}.engagement-controls .tactical-btn{height:40px;min-height:40px}}
+.game-root .board-container.is-active-target{animation:none;transform:none;box-shadow:none}
+.game-root .is-active-target::before,.game-root .is-active-target::after,.game-root .is-opponent-target::before,.game-root .is-opponent-target::after{display:none}
+.game-root .board-container.is-active-target{outline:2px solid var(--accent);outline-offset:1px}

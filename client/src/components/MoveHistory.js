@@ -38,7 +38,7 @@ const MoveHistory = ({ moves =[], currentMoveIndex, onSelectMove }) => {
   return (
     <div className="history-container">
       <header className="history-header">
-        <span className="history-title">Transaction Log</span>
+        <span className="history-title">Moves</span>
       </header>
 
       <div className="history-list" ref={listRef}>

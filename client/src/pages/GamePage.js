@@ -8,7 +8,7 @@ import SuperBoard from "../components/SuperBoard";
 import MoveHistory from "../components/MoveHistory";
 import GameEndModal from "../components/GameEndModal";
 import PlayerHUD from "../components/PlayerHUD";
-import InteractiveBG from "../components/InteractiveBG";
+
 
 // Utils
 import { getBoardStateAtMove } from "../utils/boardLogic";
@@ -34,7 +34,7 @@ const BattleChat = ({ messages, systemMessage, onSend, myUsername }) => {
 
   return (
     <div className="tech-panel chat-module">
-      <div className="panel-label">Match Comms</div>
+      <div className="panel-label">Chat</div>
       <div className="chat-messages" ref={messagesRef}>
         {systemMessage && (
           <div className="chat-line system">
@@ -118,7 +118,7 @@ export default function GamePage() {
   if (loading || !gameState) {
     return (
       <div className="game-root">
-        <div className="loading-gate">Synchronizing Match Data...</div>
+        <div className="loading-gate">Loading game…</div>
       </div>
     );
   }
@@ -137,7 +137,7 @@ export default function GamePage() {
 
   return (
     <div className="game-root">
-      <InteractiveBG />
+
       
       {gameResultModal && (
         <GameEndModal 
@@ -152,7 +152,7 @@ export default function GamePage() {
         
         {/* Header */}
         <header className="game-header">
-            <button className="exit-btn" onClick={() => navigate('/dashboard')}>Back to Arena</button>
+            <button className="exit-btn" onClick={() => navigate('/dashboard')}>Back to play</button>
             <div className="header-status">
               <span>Match ID: {gameId.slice(0,8)}</span>
               <span className="status-indicator">● LIVE</span>
@@ -174,7 +174,7 @@ export default function GamePage() {
             <div className="hud-status-node">
                 <div className="node-label">Match Status</div>
                 <div className={`simulation-status ${isMyTurn ? 'active-status' : ''}`}>
-                  {gameState.gameWinner ? "Concluded" : (isMyTurn ? "Your Turn" : "Wait")}
+                  {gameState.gameWinner ? "Game over" : (isMyTurn ? "Your Turn" : "Their turn")}
                 </div>
             </div>
             
