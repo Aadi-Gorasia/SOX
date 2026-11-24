@@ -593,7 +593,12 @@ export default function ReviewPage() {
                     {annotation?.explanation || 'This move was reviewed against the available legal continuations.'}
                   </p>
 
-                  {annotation?.quality !== 'best' && annotation?.bestMove != null && (
+                  {annotation?.principalVariation?.length > 1 && (
+                    <p className="review-insight-card__explanation">
+                      Best line found: {annotation.principalVariation.map(formatMove).join(' → ')}
+                    </p>
+                  )}
+                  {annotation?.analysisComplete !== false && annotation?.quality !== 'best' && annotation?.bestMove != null && (
                     <div className="review-recommendation">
                       <span className="review-recommendation__icon"><Lightbulb size={17} /></span>
                       <div>
@@ -607,6 +612,8 @@ export default function ReviewPage() {
                   <div className="review-insight-facts">
                     <div><span>Move quality</span><strong>{quality.label}</strong></div>
                     <div><span>Strategic theme</span><strong>{annotation?.theme || 'Positioning'}</strong></div>
+                    {annotation?.searchDepth != null && <div><span>Search depth</span><strong>{annotation.searchDepth} plies</strong></div>}
+                    {annotation?.analysisComplete != null && <div><span>Analysis</span><strong>{annotation.solved ? 'Proven outcome' : annotation.analysisComplete ? 'Best line found' : 'Limited search'}</strong></div>}
                     {annotation?.regret != null && (
                       <div><span>Engine gap</span><strong>{annotation.regret === 0 ? 'Top choice' : `${annotation.regret} pts`}</strong></div>
                     )}

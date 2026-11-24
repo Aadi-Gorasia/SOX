@@ -22,9 +22,11 @@ communicates with an Express and Socket.IO API backed by MongoDB.
 - **Authentication:** email/password accounts and optional Google or Facebook
   sign-in when provider credentials are configured.
 
-> **Engine note:** Puzzle and review analysis use SOX's strategic
-> Ultimate-Tic-Tac-Toe heuristics. They are intended as learning guidance, not
-> as deep-search or tournament-grade engine evaluations.
+> **Engine:** SOX uses a dedicated iterative-deepening, principal-variation
+> search with tactical extensions and routing-aware evaluation. CPU work runs
+> in bounded worker threads. Hints return a searched continuation; reviews
+> distinguish estimated play from a proven terminal outcome. This is not
+> Stockfish-level strength or a fully solved game. See [engine notes](server/engine/README.md).
 
 ## Tech stack
 

@@ -5,6 +5,7 @@ const authMiddleware = require('../middleware/auth');
 const Game = require('../models/Game');
 const User = require('../models/User');
 const {
+  ENGINE_VERSION,
   annotateGame,
   buildReviewSummary,
   generatePuzzlesFromAnnotations,
@@ -144,7 +145,7 @@ router.post('/hint', authMiddleware, async (req, res) => {
 
     const user = await User.findById(req.user.id).select('elo');
     if (!user) return res.status(404).json({ msg: 'User not found' });
-    const result = await getBestMove(moves, user.elo || 1200);
+    const result = await getBestMove(moves, 3500, { bestOnly: true, nodeLimit: 200000, timeLimitMs: 1500 });
     res.json(result);
   } catch (err) {
     console.error('[Live Match Optimization Extraction Mistake]:', err.message);
@@ -194,7 +195,7 @@ router.get('/:id([0-9a-fA-F]{24})/review', authMiddleware, async (req, res) => {
         Number.isFinite(annotation.positionEvaluation) &&
         Number.isFinite(annotation.positionEvaluationAfter)
       );
-    if (game.reviewedAt && hasCompleteAnnotations) {
+    if (game.reviewedAt && hasCompleteAnnotations && game.reviewSummary?.engineVersion === ENGINE_VERSION) {
       return res.json({
         annotations:   game.annotations,
         reviewSummary: game.reviewSummary,
@@ -233,7 +234,7 @@ async function reviewPuzzles(req, res) {
     );
     if (!isPlayer) return res.status(403).json({ msg: 'Access denied' });
 
-    if (!game.reviewedAt || game.annotations.length === 0) {
+    if (!game.reviewedAt || game.annotations.length === 0 || game.reviewSummary?.engineVersion !== ENGINE_VERSION) {
       return res.status(400).json({ msg: 'Please call the baseline review pipeline endpoint first.' });
     }
 

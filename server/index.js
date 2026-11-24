@@ -56,6 +56,7 @@ app.use(express.json({ limit: '1mb' }));
 app.get('/health', (req, res) => {
   res.status(200).json({
     status: 'ok',
+    engineVersion: require('./services/engineService').ENGINE_VERSION,
     database: mongoose.connection.readyState === 1
       ? 'connected'
       : 'disconnected'

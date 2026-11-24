@@ -2,16 +2,17 @@
  * Ultimate Tic-Tac-Toe search engine used by hints, reviews, and training.
  * Positions are derived through the shared engine rules.
  */
+const ENGINE_VERSION = 'sox-search-2';
 const clamp = (value, min, max) => Math.max(min, Math.min(max, value));
 const { WIN_LINES } = require('../engine/constants');
+const { searchAsync } = require('../engine/asyncSearch');
 const {
   other,
   emptyState,
   legalMoves,
   applyMove,
   deriveState,
-  evaluateState,
-  searchPosition
+  evaluateState
 } = require('../engine');
 
 function microThreats(board, player) {
@@ -33,7 +34,7 @@ function scoreMove(state, move) {
   const previousForks = countMacroForks(state, player);
   const nextForks = countMacroForks(next, player);
   const capturesSector = next.winners[macro] === player && state.winners[macro] !== player;
-  const createsMacroFork = nextForks > previousForks;
+  const createsMacroFork = nextForks >= 2 && nextForks > previousForks;
   const remainingOpponentThreats = microThreats(next.boards[macro], opponent);
   const blockedThreats = microThreats(before, opponent) - remainingOpponentThreats;
   let score = 0;
@@ -57,7 +58,7 @@ function scoreMove(state, move) {
   }
   if (cell === 4) score += 60;
   if ([0, 2, 6, 8].includes(cell)) score += 35;
-  if (next.activeBoard === null) score += 75;
+  if (next.activeBoard === null) score -= 75;
   if (next.activeBoard !== null) {
     const forcedBoard = next.boards[next.activeBoard];
     const ownThreats = microThreats(forcedBoard, player);
@@ -66,6 +67,7 @@ function scoreMove(state, move) {
     if (ownThreats) theme = 'Forced vector';
   }
 
+  if (next.gameWinner === player) theme = 'Macro checkmate';
   return {
     score,
     theme,
@@ -76,10 +78,14 @@ function scoreMove(state, move) {
 }
 
 function countMacroForks(state, player) {
-  return WIN_LINES.filter(line =>
-    line.filter(index => state.winners[index] === player).length === 2 &&
-    line.filter(index => state.winners[index] === null).length === 1
-  ).length;
+  const threats = new Set();
+  for (const line of WIN_LINES) {
+    if (line.filter(i => state.winners[i] === player).length === 2) {
+      const target = line.find(i => state.winners[i] === null);
+      if (target !== undefined) threats.add(target);
+    }
+  }
+  return threats.size;
 }
 
 function evaluatePosition(positionSequence = []) {
@@ -92,19 +98,23 @@ async function getBestMove(positionSequence = [], difficultyRating = 1500, optio
   const state = deriveState(positionSequence);
   if (!state) return { bestMove: -1, score: 0, theme: 'Invalid position' };
   const nodeLimit = options.nodeLimit ?? (
-    difficultyRating < 900 ? 1000
-      : difficultyRating < 1500 ? 4000
-        : difficultyRating < 2200 ? 9000 : 16000
+    difficultyRating < 900 ? 10000
+      : difficultyRating < 1500 ? 30000
+        : difficultyRating < 2200 ? 60000 : 120000
   );
-  const search = searchPosition(state, {
-    maxDepth: options.maxDepth ?? 8,
-    nodeLimit
+  const search = await searchAsync(state, {
+    maxDepth: options.maxDepth ?? 16,
+    nodeLimit,
+    timeLimitMs: options.timeLimitMs ?? 1000,
+    tacticalDepth: options.tacticalDepth ?? 2,
+    bestOnly: Boolean(options.bestOnly)
   });
   if (!search.moveScores.length) return { bestMove: -1, score: 0, theme: 'No legal moves' };
   const candidates = search.moveScores.map(result => ({
     ...scoreMove(state, result.move),
     move: result.move,
-    score: result.score
+    score: result.score,
+    scoreBound: result.scoreBound ?? 'exact'
   }));
   const bestCandidate = candidates.find(candidate => candidate.move === search.bestMove) || candidates[0];
   const bestScore = bestCandidate.score;
@@ -116,19 +126,27 @@ async function getBestMove(positionSequence = [], difficultyRating = 1500, optio
     moveScores: candidates.map(candidate => ({
       move: candidate.move,
       score: candidate.score,
+      scoreBound: candidate.scoreBound,
       theme: candidate.theme,
       winsGame: candidate.winsGame,
       capturesSector: candidate.capturesSector,
       createsMacroFork: candidate.createsMacroFork
     })),
     acceptableMoves: candidates
-      .filter(candidate => bestScore - candidate.score <= 5)
+      .filter(candidate => (search.depth > 0 || search.solved) && candidate.scoreBound === 'exact' && bestScore - candidate.score <= 5)
       .map(candidate => candidate.move),
-    margin: candidates.length > 1
+    margin: options.bestOnly ? null : candidates.length > 1
       ? bestScore - Math.max(...candidates.filter(candidate => candidate.move !== bestCandidate.move).map(candidate => candidate.score))
       : bestScore,
     searchDepth: search.depth,
-    nodesSearched: search.nodes
+    nodesSearched: search.nodes,
+    principalVariation: search.principalVariation,
+    solved: search.solved,
+    mateInPlies: search.mateInPlies,
+    analysisTimeMs: search.elapsedMs,
+    analysisComplete: search.depth > 0 || search.solved,
+    engineVersion: ENGINE_VERSION,
+    scoreType: search.scoreType
   };
 }
 
@@ -170,7 +188,7 @@ async function generateAdaptivePuzzle(rating = 1200) {
     if (state.gameWinner || legalMoves(state).length < 2) continue;
     // eslint-disable-next-line no-await-in-loop
     const evaluation = await getBestMove(position, normalizedRating);
-    if (evaluation.bestMove < 0) continue;
+    if (evaluation.bestMove < 0 || !evaluation.analysisComplete) continue;
     if (evaluation.score < minimumTacticalScore || evaluation.theme === 'Sector control') continue;
     return {
       difficulty: difficulty.label,
@@ -195,7 +213,7 @@ async function checkPuzzleAnswer(position = [], answer = -1, rating = 1500) {
 
   const evaluation = await getBestMove(position, rating);
   return {
-    correct: evaluation.acceptableMoves?.includes(answer) || false,
+    correct: evaluation.analysisComplete && evaluation.acceptableMoves?.includes(answer) || false,
     bestMove: evaluation.bestMove,
     score: evaluation.score,
     theme: evaluation.theme,
@@ -208,7 +226,7 @@ async function annotateGame(moves = [], evaluationElo = 3500) {
   const runningSequence = [];
   for (let i = 0; i < moves.length; i += 1) {
     const movePlayed = typeof moves[i] === 'number' ? moves[i] : moves[i].idx;
-    const evaluation = await getBestMove(runningSequence, evaluationElo, { nodeLimit: 700 });
+    const evaluation = await getBestMove(runningSequence, evaluationElo, { nodeLimit: 15000, timeLimitMs: 250 });
     const played = evaluation.moveScores?.find(candidate =>
       candidate.move === movePlayed
     );
@@ -222,7 +240,9 @@ async function annotateGame(moves = [], evaluationElo = 3500) {
     const nextState = deriveState(runningSequence);
     const nextMoveState = nextState && applyMove(nextState, movePlayed);
     const missedImmediateWin = Boolean(best?.winsGame && !played?.winsGame);
-    const quality = classifyMove({
+    const quality = evaluation.analysisComplete === false
+      ? { code: 'unrated', ...MOVE_QUALITY.unrated }
+      : classifyMove({
       played,
       best,
       regret,
@@ -275,7 +295,12 @@ async function annotateGame(moves = [], evaluationElo = 3500) {
       mistake: quality.code === 'mistake',
       inaccuracy: quality.code === 'inaccuracy',
       isEnginePick: wasOptimal,
-      mateIn: null,
+      mateIn: evaluation.mateInPlies ?? null,
+      searchDepth: evaluation.searchDepth,
+      nodesSearched: evaluation.nodesSearched,
+      principalVariation: evaluation.principalVariation,
+      solved: Boolean(evaluation.solved),
+      analysisComplete: Boolean(evaluation.analysisComplete),
       moveWinsGame: Boolean(played?.winsGame),
       moveCapturesSector: Boolean(played?.capturesSector),
       createsMacroFork: Boolean(played?.createsMacroFork),
@@ -337,7 +362,7 @@ function explainMove({ quality, theme, recommendation, regret, missedImmediateWi
     return `There was a winning continuation. ${recommendation} would have completed the macro line.`;
   }
   if (quality.code === 'brilliant') {
-    return 'A strong tactical idea: this move creates two macro-board winning threats at once.';
+    return 'A strong tactical idea: this move creates threats against multiple macro-board sectors.';
   }
   if (quality.code === 'great') {
     return played.winsGame
@@ -363,6 +388,7 @@ function explainMove({ quality, theme, recommendation, regret, missedImmediateWi
 function buildReviewSummary(annotations = []) {
   if (!annotations.length) {
     return {
+      engineVersion: ENGINE_VERSION,
       accuracy: 0,
       tacticalMissesCount: 0,
       blunders: [],
@@ -433,6 +459,7 @@ function buildReviewSummary(annotations = []) {
     blunders: annotations.filter(annotation => annotation.blunder).map(annotation => annotation.moveNumber),
     mistakes: annotations.filter(annotation => annotation.mistake).map(annotation => annotation.moveNumber),
     inaccuracies: annotations.filter(annotation => annotation.inaccuracy).map(annotation => annotation.moveNumber),
+    engineVersion: ENGINE_VERSION,
     compiledAtTimestamp: new Date().toISOString()
   };
 }
@@ -453,6 +480,7 @@ function generatePuzzlesFromAnnotations(moves = [], annotations = []) {
 }
 
 module.exports = {
+  ENGINE_VERSION,
   getBestMove,
   evaluatePosition,
   checkPuzzleAnswer,

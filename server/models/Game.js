@@ -46,7 +46,12 @@ const AnnotationSchema = new mongoose.Schema({
   moveWinsGame: { type: Boolean },
   moveCapturesSector: { type: Boolean },
   createsMacroFork: { type: Boolean },
-  mateIn:      { type: Number },  // null or N if forced mate detected
+  searchDepth: { type: Number },
+  nodesSearched: { type: Number },
+  principalVariation: { type: [Number], default: undefined },
+  solved: { type: Boolean },
+  analysisComplete: { type: Boolean },
+  mateIn:      { type: Number },  // signed plies to a proven win/loss, otherwise null
 }, { _id: false });
 
 const GameSchema = new mongoose.Schema({
@@ -63,6 +68,7 @@ const GameSchema = new mongoose.Schema({
   annotations: { type: [AnnotationSchema], default: [] },
   reviewedAt:  { type: Date, default: null },
   reviewSummary: {
+    engineVersion: { type: String },
     blunders:    { type: [Number], default: [] }, // move numbers that were blunders
     mistakes:    { type: [Number], default: [] },
     inaccuracies:{ type: [Number], default: [] },

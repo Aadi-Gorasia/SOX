@@ -1,60 +1,79 @@
 const { WIN_LINES, WIN_SCORE } = require('./constants');
+const LINES = WIN_LINES.map(line => line.reduce((mask, i) => mask | (1 << i), 0));
+const cache = new Map();
+const popcount = n => { let count = 0; for (; n; n &= n - 1) count++; return count; };
 
-const MACRO_WEIGHTS = [0, 100, 430, 0];
-const MICRO_WEIGHTS = [0, 4, 22, 0];
-const CENTER_BONUS = [0, 4, 12, 0];
-const CORNERS = [0, 2, 6, 8];
-
-function linePotential(cells, player, weights) {
-  let score = 0;
-  for (const [a, b, c] of WIN_LINES) {
-    const line = [cells[a], cells[b], cells[c]];
-    if (line.some(mark => mark && mark !== player)) continue;
-    const count = line.filter(mark => mark === player).length;
-    if (count) score += weights[count];
+// Only 3^9 legal local-board configurations. Cache static geometry, not turns.
+function localInfo(board) {
+  let x = 0, o = 0;
+  for (let i = 0; i < 9; i++) {
+    if (board[i] === 'X') x |= 1 << i;
+    if (board[i] === 'O') o |= 1 << i;
   }
-  return score;
+  const key = x | (o << 9);
+  if (cache.has(key)) return cache.get(key);
+  function side(own, enemy) {
+    let score = 0, wins = 0;
+    for (const mask of LINES) {
+      if (mask & enemy) continue;
+      const count = popcount(mask & own);
+      score += [0, 4, 24, 0][count];
+      if (count === 2) wins |= mask & ~(own | enemy);
+    }
+    score += (own & 16 ? 5 : 0) + popcount(own & 325) * 2;
+    // Distinct winning squares, rather than counting the same threat twice.
+    if (popcount(wins) > 1) score += 35;
+    return { score, wins };
+  }
+  const info = { X: side(x, o), O: side(o, x) };
+  cache.set(key, info);
+  return info;
+}
+
+function macroImportance(state, sector, player) {
+  let weight = 1;
+  for (const line of WIN_LINES) {
+    if (!line.includes(sector)) continue;
+    const rest = line.filter(i => i !== sector).map(i => state.winners[i]);
+    if (rest.some(mark => mark && mark !== player)) continue;
+    weight += [0.15, 0.6, 2.5][rest.filter(mark => mark === player).length];
+  }
+  return weight;
+}
+
+function deadMacro(state) {
+  // Locked sectors never change owner; if every line is blocked for both sides,
+  // no future sequence can win. This is an exact draw, not an evaluation guess.
+  return WIN_LINES.every(line =>
+    line.some(i => state.winners[i] && state.winners[i] !== 'X') &&
+    line.some(i => state.winners[i] && state.winners[i] !== 'O'));
 }
 
 function evaluateState(state) {
   if (state.gameWinner === 'X') return WIN_SCORE;
   if (state.gameWinner === 'O') return -WIN_SCORE;
-  if (state.gameWinner === 'D') return 0;
-
+  if (state.gameWinner === 'D' || deadMacro(state)) return 0;
   let score = 0;
-  score += linePotential(state.winners, 'X', MACRO_WEIGHTS);
-  score -= linePotential(state.winners, 'O', MACRO_WEIGHTS);
-
-  for (let macro = 0; macro < 9; macro += 1) {
-    if (state.winners[macro]) continue;
-    const board = state.boards[macro];
-    score += linePotential(board, 'X', MICRO_WEIGHTS);
-    score -= linePotential(board, 'O', MICRO_WEIGHTS);
-
-    if (board[4] === 'X') score += CENTER_BONUS[1];
-    if (board[4] === 'O') score -= CENTER_BONUS[1];
-    for (const corner of CORNERS) {
-      if (board[corner] === 'X') score += CENTER_BONUS[0] + 1;
-      if (board[corner] === 'O') score -= CENTER_BONUS[0] + 1;
+  for (const line of WIN_LINES) {
+    const marks = line.map(i => state.winners[i]);
+    if (!marks.some(m => m && m !== 'X')) score += [0, 100, 500, 0][marks.filter(m => m === 'X').length];
+    if (!marks.some(m => m && m !== 'O')) score -= [0, 100, 500, 0][marks.filter(m => m === 'O').length];
+  }
+  let routingBonus = 0;
+  for (let sector = 0; sector < 9; sector++) {
+    if (state.winners[sector]) continue;
+    const info = localInfo(state.boards[sector]);
+    const wx = macroImportance(state, sector, 'X');
+    const wo = macroImportance(state, sector, 'O');
+    score += info.X.score * wx - info.O.score * wo;
+    // Only the side actually allowed into a sector can cash in its threat now.
+    if (state.activeBoard === null || state.activeBoard === sector) {
+      const side = info[state.turn];
+      const weight = state.turn === 'X' ? wx : wo;
+      if (side.wins) routingBonus = Math.max(routingBonus, 70 * weight);
     }
-
-    const macroRow = Math.floor(macro / 3);
-    const macroColumn = macro % 3;
-    const macroPositionWeight = macroRow === 1 && macroColumn === 1 ? 3
-      : macroRow === 1 || macroColumn === 1 ? 2 : 1;
-    score += linePotential(board, 'X', MICRO_WEIGHTS) * (macroPositionWeight - 1) * 0.15;
-    score -= linePotential(board, 'O', MICRO_WEIGHTS) * (macroPositionWeight - 1) * 0.15;
   }
-
-  if (state.activeBoard !== null && !state.winners[state.activeBoard]) {
-    const forcedBoard = state.boards[state.activeBoard];
-    const threatWeights = [0, 0, 1, 0];
-    const xThreats = linePotential(forcedBoard, 'X', threatWeights);
-    const oThreats = linePotential(forcedBoard, 'O', threatWeights);
-    score += (xThreats - oThreats) * 5;
-    score += state.turn === 'X' ? 3 : -3;
-  }
+  score += (state.turn === 'X' ? 1 : -1) * (routingBonus + (state.activeBoard === null ? 18 : 3));
   return Math.round(score);
 }
-
-module.exports = { evaluateState };
+module.exports = { evaluateState, localInfo, macroImportance, deadMacro };

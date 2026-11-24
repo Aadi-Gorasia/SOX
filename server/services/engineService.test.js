@@ -1,6 +1,7 @@
 const assert = require('node:assert/strict');
 const test = require('node:test');
 const {
+  ENGINE_VERSION,
   checkPuzzleAnswer,
   difficultyForRating,
   getBestMove,
@@ -49,6 +50,9 @@ test('review annotations and summary fields survive game schema serialization', 
   }).toObject();
 
   assert.equal(persistedGame.annotations.length, annotations.length);
+  assert.equal(persistedGame.reviewSummary.engineVersion, ENGINE_VERSION);
+  assert.equal(persistedGame.annotations[0].searchDepth, annotations[0].searchDepth);
+  assert.deepEqual(persistedGame.annotations[0].principalVariation, annotations[0].principalVariation);
   assert.deepEqual(persistedGame.annotations[4].positionStateBefore, [40, 39, 27, 0]);
   assert.equal(persistedGame.reviewSummary.tacticalMissesCount, reviewSummary.tacticalMissesCount);
   assert.equal(

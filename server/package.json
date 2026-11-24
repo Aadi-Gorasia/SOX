@@ -4,7 +4,8 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "start": "node index.js"
+    "start": "node index.js",
+    "test": "node --test engine/*.test.js services/*.test.js classes/*.test.js"
   },
   "keywords": [],
   "author": "",
@@ -20,5 +21,4 @@
     "socket.io": "^4.7.5",
     "uuid": "^9.0.1"
   }
-  
 }
