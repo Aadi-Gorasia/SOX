@@ -83,6 +83,7 @@ console.log('[DEBUG] Working directory:', process.cwd());
 const gamesRouter = require('./routes/games');
 
 app.use('/api/games', gamesRouter);
+app.use('/api/bots', require('./routes/bots'));
 app.use('/api/puzzles', gamesRouter);
 
 // ─── SOCKET.IO ────────────────────────────────────────────────────────────────

@@ -46,6 +46,8 @@ const AnnotationSchema = new mongoose.Schema({
   moveWinsGame: { type: Boolean },
   moveCapturesSector: { type: Boolean },
   createsMacroFork: { type: Boolean },
+  allowsMacroWin: { type: Boolean },
+  givesFreeChoice: { type: Boolean },
   searchDepth: { type: Number },
   nodesSearched: { type: Number },
   principalVariation: { type: [Number], default: undefined },
@@ -56,6 +58,10 @@ const AnnotationSchema = new mongoose.Schema({
 
 const GameSchema = new mongoose.Schema({
   // ── Existing fields (keep exactly as-is) ────────────────────────────────────
+  gameType: { type: String, enum: ['multiplayer', 'computer'], default: 'multiplayer' },
+  botOwner: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+  bot: { name: String, rating: Number, humanSide: { type: String, enum: ['X','O'] } },
+  botResult: { type: String, enum: ['win','loss','draw'] },
   players:     [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],
   winner:      { type: mongoose.Schema.Types.ObjectId, ref: 'User', default: null },
   status:      { type: String, enum: ['ONGOING', 'COMPLETED', 'DRAW', 'ABANDONED'], default: 'ONGOING' },
@@ -69,6 +75,7 @@ const GameSchema = new mongoose.Schema({
   reviewedAt:  { type: Date, default: null },
   reviewSummary: {
     engineVersion: { type: String },
+    coaching: { type: mongoose.Schema.Types.Mixed },
     blunders:    { type: [Number], default: [] }, // move numbers that were blunders
     mistakes:    { type: [Number], default: [] },
     inaccuracies:{ type: [Number], default: [] },
@@ -84,4 +91,5 @@ const GameSchema = new mongoose.Schema({
 
 }, { timestamps: true });
 
+GameSchema.index({ botOwner: 1 }, { unique: true, partialFilterExpression: { gameType: 'computer', status: 'ONGOING' } });
 module.exports = mongoose.model('Game', GameSchema);

@@ -1,0 +1,28 @@
+const test=require('node:test'),assert=require('node:assert/strict');
+const http=require('node:http'),express=require('express'),jwt=require('jsonwebtoken');
+const Game=require('../models/Game');
+const router=require('../routes/bots');
+const id='000000000000000000000011',owner='000000000000000000000001',stranger='000000000000000000000002';
+test('computer endpoints validate moves, ownership, stale requests and saved resumption',async t=>{
+ const secret=process.env.JWT_SECRET;process.env.JWT_SECRET='bot-route-test-only';
+ const original={findOne:Game.findOne,create:Game.create,findOneAndUpdate:Game.findOneAndUpdate};let stored=null;
+ Game.findOne=async q=>stored&&(!q._id||q._id===id)&&q.botOwner===stored.botOwner&&(!q.status||q.status===stored.status)?structuredClone(stored):null;
+ Game.create=async doc=>(stored={...structuredClone(doc),_id:id});
+ Game.findOneAndUpdate=async(q,update)=>{if(!stored||q.botOwner!==stored.botOwner||q.status!==stored.status||(q.moves&&q.moves.$size!==stored.moves.length))return null;stored={...stored,...update.$set};return structuredClone(stored)};
+ const app=express();app.use(express.json());app.use('/api/bots',router);const server=http.createServer(app);await new Promise(resolve=>server.listen(0,'127.0.0.1',resolve));
+ t.after(async()=>{Object.assign(Game,original);if(secret===undefined)delete process.env.JWT_SECRET;else process.env.JWT_SECRET=secret;await new Promise(resolve=>server.close(resolve))});
+ const call=(path,body,user=owner)=>fetch(`http://127.0.0.1:${server.address().port}/api/bots${path}`,{method:body?'POST':'GET',headers:{'Content-Type':'application/json',...(user?{'x-auth-token':jwt.sign({user:{id:user}},process.env.JWT_SECRET)}:{})},body:body?JSON.stringify(body):undefined});
+ assert.equal((await call('/catalog',null,null)).status,401);
+ assert.equal((await call('/',{rating:9000})).status,400);
+ let r=await call('/',{rating:500,side:'O',botId:'pip'});assert.equal(r.status,201);let data=await r.json();assert.equal(data.game.moves.length,1);assert.equal(data.state.turn,'O');
+ r=await call('/',{rating:2600,side:'X'});assert.equal((await r.json()).game._id,id);assert.equal(stored.bot.rating,500);
+ assert.equal((await call('/'+id,null,stranger)).status,404);
+ const {legalMoves}=require('../engine');const move=legalMoves(data.state)[0];
+ assert.equal((await call('/'+id+'/move',{move,expectedPly:0})).status,409);
+ assert.equal((await call('/'+id+'/move',{move:stored.moves[0].idx,expectedPly:1})).status,400);
+ r=await call('/'+id+'/move',{move,expectedPly:1});assert.equal(r.status,200);data=await r.json();assert.equal(data.game.moves.length,3);assert.equal(data.state.turn,'O');
+ assert.equal((await call('/'+id+'/move',{move,expectedPly:1})).status,409);
+ r=await call('/'+id+'/resign',{});assert.equal(r.status,200);assert.equal((await r.json()).game.botResult,'loss');
+ assert.equal((await call('/'+id+'/move',{move,expectedPly:3})).status,409);
+ assert.equal((await call('/'+id,null)).status,200);
+});

@@ -17,8 +17,8 @@ communicates with an Express and Socket.IO API backed by MongoDB.
   updates.
 - **Puzzles:** generated Ultimate Tic-Tac-Toe positions with difficulty based
   on the player's competitive rating, plus puzzles drawn from reviewed games.
-- **Game review:** replay a completed game, navigate through its moves, see
-  strategic move grades and suggested alternatives, and revisit key moments.
+- **Play computer:** six opponents, a custom 400–2600 difficulty slider, side selection, and saved, unrated games. Bot ratings are approximate.
+- **Game review:** responsive replay with a searched advantage bar, move grades, suggested lines, and personalised engine coaching linked to actual moves.
 - **Authentication:** email/password accounts and optional Google or Facebook
   sign-in when provider credentials are configured.
 

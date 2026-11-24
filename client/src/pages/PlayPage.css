@@ -385,4 +385,4 @@
   .play-body { grid-template-columns: 1fr; }
   .deploy-card { padding: 2rem; }
   .deploy-bg-text { font-size: 100px; }
-}
+}.play-computer-entry{display:flex;justify-content:space-between;align-items:center;gap:20px;padding:22px 26px;margin:24px 0;background:#273b2d;border:1px solid #76966a;border-radius:8px;color:#e0efd6;text-decoration:none}.play-computer-entry strong{display:block;font-size:19px}.play-computer-entry small{display:block;color:#b1c3a8;font-size:12px;margin-top:7px}.play-computer-entry>span:last-child{font-size:13px}@media(max-width:600px){.play-computer-entry{display:block}.play-computer-entry>span:last-child{display:block;margin-top:18px}}

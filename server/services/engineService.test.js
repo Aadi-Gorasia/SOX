@@ -78,13 +78,13 @@ test('move review distinguishes tactical wins, top choices, and missed wins', ()
     best,
     regret: 0,
     wasOptimal: true
-  }).code, 'brilliant');
+  }).code, 'best');
   assert.equal(classifyMove({
     played: { score: 100, capturesSector: true },
     best,
     regret: 0,
     wasOptimal: true
-  }).code, 'great');
+  }).code, 'best');
   assert.equal(classifyMove({
     played: { score: -200, capturesSector: true },
     best: { score: 100 },
@@ -159,10 +159,10 @@ test('review analysis assigns guidance to every move in a complete legal sequenc
       evaluated.moveScores.some(candidate => candidate.move === annotation.bestMove),
       `suggested move ${annotation.bestMove} at ply ${index + 1} must be legal`
     );
-    assert.equal(annotation.positionEvaluation, evaluatePosition(moves.slice(0, index)));
+    assert.equal(annotation.positionEvaluation, annotation.scoreBefore * (index % 2 === 0 ? 1 : -1));
     assert.equal(
       annotation.positionEvaluationAfter,
-      evaluatePosition(moves.slice(0, index + 1))
+      annotation.positionalScore * (index % 2 === 0 ? 1 : -1)
     );
   }
   assert.equal(
@@ -186,4 +186,12 @@ test('review puzzles expose a valid prior position and engine solution', () => {
     solution: 1,
     theme: 'Tactical improvement'
   }]);
+});
+
+test('brilliant and great require forced-outcome evidence, not a routine capture',()=>{
+  const alternatives=[{score:-99995},{score:-99997}];
+  assert.equal(classifyMove({played:{score:99995,allowsSectorCapture:true},regret:0,alternatives}).code,'brilliant');
+  assert.equal(classifyMove({played:{score:99995},regret:0,alternatives}).code,'great');
+  assert.equal(classifyMove({played:{score:99999,winsGame:true},regret:0,alternatives}).code,'textbook');
+  assert.equal(classifyMove({played:{score:300,allowsSectorCapture:true},regret:0,best:{score:300}}).code,'best');
 });

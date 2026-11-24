@@ -119,7 +119,7 @@ export default function GamesHistoryPage() {
                       {result.label}
                     </span>
                     <div className="games-history-opponent">
-                      <strong>vs {opponent?.username || 'Unknown opponent'}</strong>
+                      <strong>vs {game.bot?.name || opponent?.username || 'Unknown opponent'}</strong>
                       <span>{formatDate(game.endDate || game.createdAt)}</span>
                     </div>
                     <div className="games-history-details">

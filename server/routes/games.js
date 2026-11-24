@@ -28,7 +28,7 @@ router.get('/history', authMiddleware, async (req, res) => {
       return res.status(400).json({ msg: 'Invalid game history pagination.' });
     }
 
-    const games = await Game.find({ players: req.user.id })
+    const games = await Game.find({ players: req.user.id, status: { $ne: 'ONGOING' } })
       .sort({ endDate: -1 })
       .skip(offset)
       .limit(limit)
@@ -185,6 +185,7 @@ router.get('/:id([0-9a-fA-F]{24})/review', authMiddleware, async (req, res) => {
     const isPlayer = game.players.some(p => p.toString() === req.user.id);
     if (!isPlayer) return res.status(403).json({ msg: 'Access Denied: Player mismatch error' });
 
+    if (game.status === 'ONGOING') return res.status(409).json({ msg: 'Finish the game before requesting a review.' });
     const hasCompleteAnnotations = game.annotations.length === game.moves.length &&
       game.annotations.length > 0 &&
       game.annotations.every(annotation =>
@@ -192,8 +193,8 @@ router.get('/:id([0-9a-fA-F]{24})/review', authMiddleware, async (req, res) => {
         typeof annotation.quality === 'string' &&
         typeof annotation.explanation === 'string' &&
         typeof annotation.recommendation === 'string' &&
-        Number.isFinite(annotation.positionEvaluation) &&
-        Number.isFinite(annotation.positionEvaluationAfter)
+        (annotation.analysisComplete === false || (Number.isFinite(annotation.positionEvaluation) &&
+        Number.isFinite(annotation.positionEvaluationAfter)))
       );
     if (game.reviewedAt && hasCompleteAnnotations && game.reviewSummary?.engineVersion === ENGINE_VERSION) {
       return res.json({

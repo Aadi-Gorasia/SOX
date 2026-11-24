@@ -22,6 +22,7 @@ import OAuthCallbackPage from './pages/OAuthCallbackPage';
 import DashboardPage from './pages/DashboardPage';
 import ProfilePage from './pages/ProfilePage';
 import PlayPage from './pages/PlayPage';
+import ComputerPage from './pages/ComputerPage';
 import GamePage from './pages/GamePage';
 import SettingsPage from './pages/SettingsPage';
 import TournamentPage from './pages/TournamentPage';
@@ -68,6 +69,8 @@ const AppContent = () => {
         <Route path="/dashboard"                          element={<DashboardPage />} />
         <Route path="/profile/:username"                  element={<ProfilePage />} />
         <Route path="/games/history"                      element={<GamesHistoryPage />} />
+        <Route path="/play/computer" element={<ComputerPage />} />
+        <Route path="/play/computer/:gameId" element={<ComputerPage />} />
         <Route path="/play"                               element={<PlayPage />} />
         <Route path="/settings"                           element={<SettingsPage />} />
         <Route path="/tournament"                         element={<PrivateRoute><TournamentPage /></PrivateRoute>} />

@@ -2,9 +2,12 @@
  * Ultimate Tic-Tac-Toe search engine used by hints, reviews, and training.
  * Positions are derived through the shared engine rules.
  */
-const ENGINE_VERSION = 'sox-search-2';
+const ENGINE_VERSION = 'sox-search-3';
 const clamp = (value, min, max) => Math.max(min, Math.min(max, value));
 const { WIN_LINES } = require('../engine/constants');
+const { explainAnalysis, coachReport } = require('./coachService');
+const { localInfo } = require('../engine/evaluation');
+const { globalWinner } = require('../engine/state');
 const { searchAsync } = require('../engine/asyncSearch');
 const {
   other,
@@ -67,13 +70,25 @@ function scoreMove(state, move) {
     if (ownThreats) theme = 'Forced vector';
   }
 
+  const replies = legalMoves(next);
+  const sectorCaptures = replies.filter(reply => localInfo(next.boards[Math.floor(reply / 9)])[opponent].wins & (1 << (reply % 9)));
+  const allowsMacroWin = sectorCaptures.some(reply => {
+    const winners = [...next.winners]; winners[Math.floor(reply / 9)] = opponent;
+    return globalWinner(winners) === opponent;
+  });
+  const threatWinners = [...state.winners]; threatWinners[macro] = opponent;
+  const blocksMacroThreat = blockedThreats > 0 && globalWinner(threatWinners) === opponent;
   if (next.gameWinner === player) theme = 'Macro checkmate';
   return {
     score,
     theme,
     winsGame: next.gameWinner === player,
     capturesSector,
-    createsMacroFork
+    createsMacroFork,
+    allowsSectorCapture: sectorCaptures.length > 0,
+    allowsMacroWin, blocksMacroThreat,
+    givesFreeChoice: next.activeBoard === null && !next.gameWinner,
+    destination: next.activeBoard
   };
 }
 
@@ -130,7 +145,12 @@ async function getBestMove(positionSequence = [], difficultyRating = 1500, optio
       theme: candidate.theme,
       winsGame: candidate.winsGame,
       capturesSector: candidate.capturesSector,
-      createsMacroFork: candidate.createsMacroFork
+      createsMacroFork: candidate.createsMacroFork,
+      allowsSectorCapture: candidate.allowsSectorCapture,
+      allowsMacroWin: candidate.allowsMacroWin,
+      blocksMacroThreat: candidate.blocksMacroThreat,
+      givesFreeChoice: candidate.givesFreeChoice,
+      destination: candidate.destination
     })),
     acceptableMoves: candidates
       .filter(candidate => (search.depth > 0 || search.solved) && candidate.scoreBound === 'exact' && bestScore - candidate.score <= 5)
@@ -226,7 +246,7 @@ async function annotateGame(moves = [], evaluationElo = 3500) {
   const runningSequence = [];
   for (let i = 0; i < moves.length; i += 1) {
     const movePlayed = typeof moves[i] === 'number' ? moves[i] : moves[i].idx;
-    const evaluation = await getBestMove(runningSequence, evaluationElo, { nodeLimit: 15000, timeLimitMs: 250 });
+    const evaluation = await getBestMove(runningSequence, evaluationElo, { nodeLimit: 30000, timeLimitMs: 500 });
     const played = evaluation.moveScores?.find(candidate =>
       candidate.move === movePlayed
     );
@@ -247,21 +267,15 @@ async function annotateGame(moves = [], evaluationElo = 3500) {
       best,
       regret,
       wasOptimal,
-      missedImmediateWin
+      missedImmediateWin,
+      alternatives: evaluation.moveScores?.filter(candidate => candidate.move !== movePlayed)
     });
     const recommendation = formatMove(evaluation.bestMove);
-    const explanation = explainMove({
-      quality,
-      theme: evaluation.theme,
-      recommendation,
-      regret,
-      missedImmediateWin,
-      played
-    });
-    const positionEvaluation = evaluatePosition(runningSequence);
-    const positionEvaluationAfter = nextMoveState
-      ? evaluatePosition([...runningSequence, movePlayed])
-      : positionEvaluation;
+    const explanation = explainAnalysis({ played, best, quality: quality.code, regret,
+      moveNumber: i + 1, side: i % 2, depth: evaluation.searchDepth });
+    const moverSign = i % 2 === 0 ? 1 : -1;
+    const positionEvaluation = evaluation.analysisComplete ? moverSign * evaluation.score : null;
+    const positionEvaluationAfter = evaluation.analysisComplete && played ? moverSign * played.score : null;
     annotations.push({
       moveNumber: i + 1,
       idx: movePlayed,
@@ -304,6 +318,8 @@ async function annotateGame(moves = [], evaluationElo = 3500) {
       moveWinsGame: Boolean(played?.winsGame),
       moveCapturesSector: Boolean(played?.capturesSector),
       createsMacroFork: Boolean(played?.createsMacroFork),
+      allowsMacroWin: Boolean(played?.allowsMacroWin),
+      givesFreeChoice: Boolean(played?.givesFreeChoice),
       nextPositionValid: Boolean(nextMoveState)
     });
     runningSequence.push(movePlayed);
@@ -317,7 +333,8 @@ const MOVE_QUALITY = {
   best: { label: 'Best', points: 96 },
   excellent: { label: 'Excellent', points: 91 },
   good: { label: 'Good', points: 84 },
-  fine: { label: 'Fine', points: 74 },
+  fine: { label: 'Okay', points: 74 },
+  textbook: { label: 'Textbook', points: 96 },
   inaccuracy: { label: 'Inaccuracy', points: 58 },
   mistake: { label: 'Mistake', points: 32 },
   blunder: { label: 'Blunder', points: 10 },
@@ -325,15 +342,18 @@ const MOVE_QUALITY = {
   unrated: { label: 'Unrated', points: null }
 };
 
-function classifyMove({ played, best, regret, wasOptimal, missedImmediateWin }) {
+function classifyMove({ played, best, regret, wasOptimal, missedImmediateWin, alternatives = [] }) {
   if (!played) return { code: 'unrated', ...MOVE_QUALITY.unrated };
   if (missedImmediateWin) return { code: 'miss', ...MOVE_QUALITY.miss };
-  if (played.createsMacroFork && regret <= 130) {
+  const uniqueWin = played.score >= 99000 && alternatives.length > 0 && alternatives.every(m => m.score <= -99000);
+  const onlyDefense = played.score > -99000 && alternatives.length > 0 && alternatives.every(m => m.score <= -99000);
+  if (regret === 0 && uniqueWin && !played.winsGame && played.allowsSectorCapture) {
     return { code: 'brilliant', ...MOVE_QUALITY.brilliant };
   }
-  if (played.winsGame || (played.capturesSector && regret <= 130)) {
+  if (regret === 0 && !played.winsGame && (uniqueWin || onlyDefense)) {
     return { code: 'great', ...MOVE_QUALITY.great };
   }
+  if (regret <= 5 && (played.winsGame || played.blocksMacroThreat)) return { code: 'textbook', ...MOVE_QUALITY.textbook };
   if (wasOptimal || (best && regret === 0)) return { code: 'best', ...MOVE_QUALITY.best };
   if (regret <= 25) return { code: 'excellent', ...MOVE_QUALITY.excellent };
   if (regret <= 70) return { code: 'good', ...MOVE_QUALITY.good };
@@ -356,34 +376,6 @@ function formatMove(move) {
   return `${macroName} · ${cellName}`;
 }
 
-function explainMove({ quality, theme, recommendation, regret, missedImmediateWin, played }) {
-  if (quality.code === 'unrated') return 'This move could not be evaluated from the recorded position.';
-  if (missedImmediateWin) {
-    return `There was a winning continuation. ${recommendation} would have completed the macro line.`;
-  }
-  if (quality.code === 'brilliant') {
-    return 'A strong tactical idea: this move creates threats against multiple macro-board sectors.';
-  }
-  if (quality.code === 'great') {
-    return played.winsGame
-      ? 'This move completes a winning macro line and ends the game.'
-      : 'This move captures a sector and strengthens your route to a macro-board win.';
-  }
-  if (quality.code === 'best') return `This is the engine’s top-scoring move. ${theme}.`;
-  if (quality.code === 'excellent' || quality.code === 'good') {
-    return `A strong choice, close to the top continuation (${regret} evaluation points behind).`;
-  }
-  if (quality.code === 'fine') {
-    return `Playable, but it gives up a small amount of initiative. ${recommendation} keeps more pressure.`;
-  }
-  if (quality.code === 'inaccuracy') {
-    return `This softens your position. ${recommendation} was the more active continuation.`;
-  }
-  if (quality.code === 'mistake') {
-    return `A missed opportunity that gives away useful momentum. ${recommendation} was stronger.`;
-  }
-  return `A major drop in the position. ${recommendation} was the best way to protect your macro-board chances.`;
-}
 
 function buildReviewSummary(annotations = []) {
   if (!annotations.length) {
@@ -447,7 +439,7 @@ function buildReviewSummary(annotations = []) {
       return sum + (MOVE_QUALITY[qualityCodeFor(annotation)]?.points ?? 0);
     }, 0) / rated.length)
     : 0;
-  const optimalCount = qualityCounts.best + qualityCounts.great + qualityCounts.brilliant;
+  const optimalCount = qualityCounts.best + qualityCounts.textbook + qualityCounts.great + qualityCounts.brilliant;
   return {
     accuracy,
     tacticalMissesCount: annotations.length - optimalCount,
@@ -459,6 +451,7 @@ function buildReviewSummary(annotations = []) {
     blunders: annotations.filter(annotation => annotation.blunder).map(annotation => annotation.moveNumber),
     mistakes: annotations.filter(annotation => annotation.mistake).map(annotation => annotation.moveNumber),
     inaccuracies: annotations.filter(annotation => annotation.inaccuracy).map(annotation => annotation.moveNumber),
+    coaching: { X: coachReport(annotations, 0), O: coachReport(annotations, 1) },
     engineVersion: ENGINE_VERSION,
     compiledAtTimestamp: new Date().toISOString()
   };

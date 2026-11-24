@@ -156,6 +156,7 @@ const PlayPage = () => {
                   </div>
                 </header>
 
+                <Link to="/play/computer" className="play-computer-entry"><span><strong>Play with a computer</strong><small>Six bots · custom difficulty · personalized game review</small></span><span>Choose your opponent →</span></Link>
                 <div className="play-body">
                     
                     {/* LEFT: MATCH SETTINGS */}
