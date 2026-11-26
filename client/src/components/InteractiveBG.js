@@ -3,7 +3,7 @@ import { ThemeContext } from '../context/ThemeContext';
 
 const InteractiveBG = () => {
   const canvasRef = useRef(null);
-  const { preferences, theme } = useContext(ThemeContext);
+  const { preferences, resolvedTheme } = useContext(ThemeContext);
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -70,7 +70,7 @@ const InteractiveBG = () => {
       window.removeEventListener('mousemove', trackMouse);
       cancelAnimationFrame(frameId);
     };
-  }, [preferences.backgroundAnimations, preferences.reducedMotion, theme]);
+  }, [preferences.backgroundAnimations, preferences.reducedMotion, resolvedTheme]);
 
   return (
     <canvas 

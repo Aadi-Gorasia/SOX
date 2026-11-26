@@ -1,31 +1,42 @@
-import React, { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
+import React, { createContext, useCallback, useContext, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import axios from 'axios';
 import { AuthContext } from './AuthContext';
-import { DEFAULT_PREFERENCES, DEFAULT_THEME, THEME_BY_ID, THEMES } from '../themes/themeCatalog';
+import { DEFAULT_PREFERENCES, DEFAULT_THEME, THEME_BY_ID, THEMES, BOARD_BY_ID, BACKGROUNDS, PRESETS, normalizePreferences } from '../themes/themeCatalog';
 
 export const ThemeContext = createContext(null);
 
 function readPreferences() {
   try {
     const saved = JSON.parse(localStorage.getItem('site-preferences') || '{}');
-    return { ...DEFAULT_PREFERENCES, ...saved };
+    return normalizePreferences(saved);
   } catch {
     return { ...DEFAULT_PREFERENCES };
   }
 }
 
 function readTheme() {
-  const savedTheme = localStorage.getItem('site-theme');
-  if (THEME_BY_ID[savedTheme]) return savedTheme;
+  let savedTheme;try{savedTheme=localStorage.getItem('site-theme')}catch{}
+  if (THEME_BY_ID[savedTheme] || savedTheme==='system') return savedTheme;
   return DEFAULT_THEME;
 }
 
 function applyThemeToDocument(theme, preferences) {
   const root = document.documentElement;
   const { tokens } = theme;
+  const board=BOARD_BY_ID[preferences.boardTheme]||BOARD_BY_ID.green;
+  const background=BACKGROUNDS.find(item=>item.id===preferences.backgroundTheme)||BACKGROUNDS[0];
   const secondaryText = preferences.highContrast ? tokens.text : tokens.muted;
   const border = preferences.highContrast ? tokens.text : tokens.line;
   const variables = {
+    '--board-light':board.light,
+    '--board-dark':board.dark,
+    '--board-frame':board.frame,
+    '--board-highlight':board.highlight,
+    '--board-texture':board.texture||'none',
+    '--board-x':'#203b52',
+    '--board-o':'#71341d',
+    '--app-background-image':background.image,
+    '--on-primary':theme.id==='dark'?'#20251b':'#ffffff',
     '--bg': tokens.bg,
     '--void': tokens.bg,
     '--bg-app': tokens.bg,
@@ -88,130 +99,97 @@ function applyThemeToDocument(theme, preferences) {
   };
   Object.entries(variables).forEach(([name, value]) => root.style.setProperty(name, value));
   root.dataset.theme = theme.id;
+  root.dataset.board = preferences.boardTheme;
+  root.dataset.pieces = preferences.pieceSet;
+  root.dataset.background = preferences.backgroundTheme;
   root.dataset.motion = preferences.reducedMotion ? 'reduced' : 'full';
   root.dataset.density = preferences.density;
   root.dataset.largerText = preferences.largerText ? 'true' : 'false';
   root.style.colorScheme = theme.id;
+  const browserColour=document.querySelector('meta[name="theme-color"]');
+  if(browserColour)browserColour.content=tokens.bg;
 }
 
-export function ThemeProvider({ children }) {
-  const { token, user } = useContext(AuthContext);
-  const [theme, setTheme] = useState(readTheme);
-  const [preferences, setPreferences] = useState(readPreferences);
-  const [saving, setSaving] = useState(false);
-  const [saveError, setSaveError] = useState('');
-  const saveQueue = useRef(Promise.resolve());
-  const pendingSaves = useRef(0);
-  const migrationAttempts = useRef(new Set());
-  const currentTheme = THEME_BY_ID[theme] || THEME_BY_ID[DEFAULT_THEME];
+const API=process.env.REACT_APP_API_URL||'';
+const pendingKey='site-appearance-pending';
+function readPending(){try{return JSON.parse(localStorage.getItem(pendingKey)||'null')}catch{return null}}
+function writePending(value){try{localStorage.setItem(pendingKey,JSON.stringify(value))}catch{}}
 
-  useEffect(() => {
-    applyThemeToDocument(currentTheme, preferences);
-  }, [currentTheme, preferences]);
+function storeAppearance(theme,preferences){
+ try{localStorage.setItem('site-theme',theme);localStorage.setItem('site-preferences',JSON.stringify(preferences))}catch{/* Storage can be blocked; the in-memory choice still works. */}
+}
+export function ThemeProvider({children}){
+ const {token,user}=useContext(AuthContext);
+ const [theme,setTheme]=useState(readTheme);
+ const [preferences,setPreferences]=useState(readPreferences);
+ const [systemDark,setSystemDark]=useState(()=>window.matchMedia('(prefers-color-scheme: dark)').matches);
+ const [saving,setSaving]=useState(false),[saveError,setSaveError]=useState('');
+ const current=useRef({theme,preferences});
+ const queue=useRef(Promise.resolve()),pending=useRef(0),hydrated=useRef(null),editVersion=useRef(0);
+ const auth=useRef(token);auth.current=token;
+ const resolvedTheme=theme==='system'?(systemDark?'dark':'light'):theme;
+ useEffect(()=>{const media=window.matchMedia('(prefers-color-scheme: dark)');const change=e=>setSystemDark(e.matches);media.addEventListener('change',change);return()=>media.removeEventListener('change',change)},[]);
+ useLayoutEffect(()=>{applyThemeToDocument(THEME_BY_ID[resolvedTheme]||THEME_BY_ID.dark,preferences)},[resolvedTheme,preferences]);
+ const applyLocal=useCallback((nextTheme,nextPreferences)=>{
+  current.current={theme:nextTheme,preferences:nextPreferences};setTheme(nextTheme);setPreferences(nextPreferences);storeAppearance(nextTheme,nextPreferences);
+ },[]);
+ // Hydrate once per signed-in account, never on an unrelated user/profile update.
+ useEffect(()=>{
+  if(!token||!user){hydrated.current=null;return}
+  const identity=`${token}:${user._id||user.id||user.username}`;
+  if(hydrated.current===identity)return;
+  hydrated.current=identity;
+  const saved=readPending(),owner=String(user._id||user.id||user.username);
+  const unsynced=saved?.owner===owner?saved:null;
+  const requested=unsynced?.theme||user.themePreference;
+  const nextTheme=THEME_BY_ID[requested]||requested==='system'?requested:readTheme();
+  const nextPreferences=normalizePreferences(unsynced?.preferences||{...readPreferences(),...(user.preferences||{})});
+  setSaveError(unsynced?'Saved on this device. Account sync is pending; retry when connected.':'');
 
-  useEffect(() => {
-    if (!token || !user) return;
-    const savedTheme = THEME_BY_ID[user.themePreference] ? user.themePreference : readTheme();
-    const savedPreferences = {
-      ...readPreferences(),
-      ...Object.fromEntries(
-        Object.keys(DEFAULT_PREFERENCES)
-          .filter(key => key in (user.preferences || {}))
-          .map(key => [key, user.preferences[key]])
-      )
-    };
-    setTheme(savedTheme);
-    setPreferences(savedPreferences);
-    localStorage.setItem('site-theme', savedTheme);
-    localStorage.setItem('site-preferences', JSON.stringify(savedPreferences));
-  }, [token, user]);
-
-  const persistAccountSettings = useCallback((nextTheme, nextPreferences) => {
-    if (!token) return Promise.resolve();
-    pendingSaves.current += 1;
-    const save = saveQueue.current.catch(() => {}).then(async () => {
-      setSaving(true);
-      try {
-        await axios.put('/api/users/preferences', {
-          themePreference: nextTheme,
-          preferences: nextPreferences
-        }, { headers: { 'x-auth-token': token } });
-      } catch (error) {
-        const message = error.response?.data?.msg || error.message || 'Unable to save account preferences.';
-        setSaveError(message);
-        throw new Error(message);
-      } finally {
-        pendingSaves.current -= 1;
-        if (pendingSaves.current === 0) setSaving(false);
-      }
-    });
-    saveQueue.current = save;
-    return save;
-  }, [token]);
-
-  useEffect(() => {
-    if (!token || !user || THEME_BY_ID[user.themePreference]) return;
-    const userId = user._id || user.id || user.username;
-    const migrationKey = `${token}:${userId}`;
-    if (migrationAttempts.current.has(migrationKey)) return;
-    migrationAttempts.current.add(migrationKey);
-    const savedPreferences = {
-      ...readPreferences(),
-      ...Object.fromEntries(
-        Object.keys(DEFAULT_PREFERENCES)
-          .filter(key => key in (user.preferences || {}))
-          .map(key => [key, user.preferences[key]])
-      )
-    };
-    persistAccountSettings(readTheme(), savedPreferences).catch(() => {});
-  }, [persistAccountSettings, token, user]);
-
-  const applyTheme = useCallback(async id => {
-    if (!THEME_BY_ID[id]) throw new Error('Choose one of the available themes.');
-    setSaveError('');
-    setTheme(id);
-    localStorage.setItem('site-theme', id);
-    await persistAccountSettings(id, preferences);
-  }, [persistAccountSettings, preferences]);
-
-  const updatePreference = useCallback((key, value) => {
-    if (!Object.prototype.hasOwnProperty.call(DEFAULT_PREFERENCES, key)) return;
-    const next = { ...preferences, [key]: value };
-    setPreferences(next);
-    localStorage.setItem('site-preferences', JSON.stringify(next));
-    setSaveError('');
-    persistAccountSettings(theme, next).catch(() => {});
-  }, [persistAccountSettings, preferences, theme]);
-
-  const resetAppearance = useCallback(async () => {
-    const nextPreferences = {
-      ...preferences,
-      density: DEFAULT_PREFERENCES.density,
-      reducedMotion: DEFAULT_PREFERENCES.reducedMotion,
-      highContrast: DEFAULT_PREFERENCES.highContrast,
-      largerText: DEFAULT_PREFERENCES.largerText,
-      backgroundAnimations: DEFAULT_PREFERENCES.backgroundAnimations
-    };
-    setPreferences(nextPreferences);
-    setTheme(DEFAULT_THEME);
-    localStorage.setItem('site-theme', DEFAULT_THEME);
-    localStorage.setItem('site-preferences', JSON.stringify(nextPreferences));
-    setSaveError('');
-    await persistAccountSettings(DEFAULT_THEME, nextPreferences);
-  }, [persistAccountSettings, preferences]);
-
-  const clearSaveError = useCallback(() => setSaveError(''), []);
-  const value = useMemo(() => ({
-    theme,
-    themes: THEMES,
-    preferences,
-    saving,
-    saveError,
-    clearSaveError,
-    applyTheme,
-    updatePreference,
-    resetAppearance
-  }), [applyTheme, clearSaveError, preferences, resetAppearance, saveError, saving, theme, updatePreference]);
-
-  return <ThemeContext.Provider value={value}>{children}</ThemeContext.Provider>;
+  applyLocal(nextTheme,nextPreferences);
+ },[token,user,applyLocal]);
+ useEffect(()=>{const receive=e=>{if(e.key==='site-theme'||e.key==='site-preferences'){const nextTheme=readTheme(),nextPreferences=readPreferences();current.current={theme:nextTheme,preferences:nextPreferences};setTheme(nextTheme);setPreferences(nextPreferences)}};window.addEventListener('storage',receive);return()=>window.removeEventListener('storage',receive)},[]);
+ const persist=useCallback((nextTheme,nextPreferences)=>{
+  const version=++editVersion.current,session=token;
+  if(!session)return Promise.resolve();
+  const owner=String(user?._id||user?.id||user?.username||'');
+  const snapshot={owner,theme:nextTheme,preferences:nextPreferences};
+  writePending(snapshot);
+  pending.current++;setSaving(true);
+  const task=queue.current.catch(()=>{}).then(async()=>{
+   if(auth.current!==session){pending.current--;if(pending.current===0)setSaving(false);return;}
+   try{
+    const response=await axios.put(`${API}/api/users/preferences`,{themePreference:nextTheme,preferences:nextPreferences},{headers:{'x-auth-token':session}});
+    if(response.data?.themePreference!==nextTheme||Object.entries(nextPreferences).some(([key,value])=>response.data?.preferences?.[key]!==value))throw new Error('The server did not confirm your settings.');
+    if(version===editVersion.current&&auth.current===session){
+     setSaveError('');
+     if(JSON.stringify(readPending())===JSON.stringify(snapshot)){try{localStorage.removeItem(pendingKey)}catch{}}
+    }
+   }catch(error){
+    if(auth.current===session&&version===editVersion.current)setSaveError('Saved on this device. Account sync failed; retry when connected.');
+    throw error;
+   }finally{pending.current--;if(pending.current===0)setSaving(false)}
+  });
+  // A queued task skipped after sign-out must also release its pending count.
+  queue.current=task;return task;
+ },[token,user]);
+ const changeAppearance=useCallback((nextTheme,patch={})=>{
+  if(!THEME_BY_ID[nextTheme]&&nextTheme!=='system')return Promise.reject(new Error('Choose an available interface.'));
+  const next=normalizePreferences({...current.current.preferences,...patch});
+  applyLocal(nextTheme,next);setSaveError('');return persist(nextTheme,next);
+ },[applyLocal,persist]);
+ const applyTheme=useCallback(id=>changeAppearance(id),[changeAppearance]);
+ const updatePreference=useCallback((key,value)=>{
+  if(!Object.prototype.hasOwnProperty.call(DEFAULT_PREFERENCES,key))return;
+  changeAppearance(current.current.theme,{[key]:value}).catch(()=>{});
+ },[changeAppearance]);
+ const applyPreset=useCallback(id=>{
+  const preset=PRESETS.find(item=>item.id===id);if(!preset)return Promise.reject(new Error('Choose an available preset.'));
+  return changeAppearance(preset.theme,{boardTheme:preset.boardTheme,pieceSet:preset.pieceSet,backgroundTheme:preset.backgroundTheme});
+ },[changeAppearance]);
+ const resetAppearance=useCallback(()=>changeAppearance(DEFAULT_THEME,Object.fromEntries(['boardTheme','pieceSet','backgroundTheme','density','reducedMotion','highContrast','largerText','backgroundAnimations'].map(key=>[key,DEFAULT_PREFERENCES[key]]))),[changeAppearance]);
+ const retrySave=useCallback(()=>persist(current.current.theme,current.current.preferences),[persist]);
+ const clearSaveError=useCallback(()=>setSaveError(''),[]);
+ const value=useMemo(()=>({theme,resolvedTheme,themes:THEMES,preferences,saving,saveError,clearSaveError,applyTheme,applyPreset,updatePreference,resetAppearance,retrySave}),[theme,resolvedTheme,preferences,saving,saveError,clearSaveError,applyTheme,applyPreset,updatePreference,resetAppearance,retrySave]);
+ return <ThemeContext.Provider value={value}>{children}</ThemeContext.Provider>;
 }

@@ -1,5 +1,6 @@
 // client/src/components/Cell.js
 import React from 'react';
+import GameMark from './GameMark';
 import './Cell.css';
 
 const Cell = ({ value, onCellClick, isActive }) => {
@@ -17,7 +18,7 @@ const Cell = ({ value, onCellClick, isActive }) => {
     >
       {value && (
         <span className={`cell-mark ${value === 'X' ? 'cell-x' : 'cell-o'}`}>
-          {value}
+          <GameMark value={value}/>
         </span>
       )}
     </button>

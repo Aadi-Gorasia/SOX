@@ -99,7 +99,7 @@ router.put('/preferences', auth, async (req, res) => {
   const { themePreference, preferences } = req.body && typeof req.body === 'object'
     ? req.body
     : {};
-  if (!['light', 'dark'].includes(themePreference) ||
+  if (!['light', 'dark', 'system'].includes(themePreference) ||
       !preferences || typeof preferences !== 'object' || Array.isArray(preferences)) {
     return res.status(400).json({ msg: 'Invalid theme or preferences.' });
   }
@@ -111,7 +111,10 @@ router.put('/preferences', auth, async (req, res) => {
   const enumPreferences = {
     landingPage: ['dashboard', 'play', 'history'],
     defaultGameMode: ['online', 'private'],
-    density: ['comfortable', 'compact']
+    density: ['comfortable', 'compact'],
+    boardTheme: ['green','brown','blue','walnut','slate','purple','rose','contrast'],
+    pieceSet: ['classic','bold','sharp','serif'],
+    backgroundTheme: ['plain','linen','wood','grid']
   };
   const cleanPreferences = {};
   for (const key of booleanPreferences) {

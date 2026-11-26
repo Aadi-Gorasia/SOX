@@ -11,6 +11,7 @@ import { ThemeProvider } from './context/ThemeContext';
 
 // --- Components & Layouts ---
 import Navbar from './components/Navbar';
+import {ThemeSwitcher} from './components/ThemePicker';
 import PrivateRoute from './routing/PrivateRoute';
 import GameLayout from './layouts/GameLayout';
 
@@ -111,6 +112,7 @@ function App() {
             <div className="App">
               <AppContent />
               <LegalLinks />
+              <ThemeSwitcher />
             </div>
           </Router>
         </ThemeProvider>

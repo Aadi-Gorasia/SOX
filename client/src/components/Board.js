@@ -1,5 +1,6 @@
 // client/src/components/Board.js
 import React from 'react';
+import GameMark from './GameMark';
 import Cell from './Cell';
 import './Board.css';
 
@@ -22,7 +23,7 @@ const Board = ({ winner, squares, onPlay, isTurn, isTarget }) => {
         <div className={`winner-overlay ${winner === 'D' ? 'draw-overlay' : ''}`}>
           {winner !== 'D' && (
             <span className={`winner-mark ${winner === 'X' ? 'winner-x' : 'winner-o'}`}>
-              {winner}
+              <GameMark value={winner}/>
             </span>
           )}
         </div>

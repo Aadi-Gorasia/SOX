@@ -3,21 +3,18 @@ import axios from 'axios';
 import {
   Accessibility,
   Bell,
-  Check,
   ChevronRight,
   CircleHelp,
   Gamepad2,
   LockKeyhole,
-  Moon,
   Palette,
-  RotateCcw,
   SlidersHorizontal,
-  Sun,
   Volume2
 } from 'lucide-react';
 import { AuthContext } from '../context/AuthContext';
 import { ThemeContext } from '../context/ThemeContext';
 import './SettingsPage.css';
+import ThemePicker from '../components/ThemePicker';
 
 const SECTIONS = [
   { id: 'general', label: 'General', icon: SlidersHorizontal },
@@ -63,9 +60,7 @@ function SettingsPage() {
     saving,
     saveError,
     clearSaveError,
-    applyTheme,
     updatePreference,
-    resetAppearance
   } = useContext(ThemeContext);
   const [activeSection, setActiveSection] = useState('appearance');
   const [status, setStatus] = useState('');
@@ -76,26 +71,6 @@ function SettingsPage() {
     updatePreference(key, value);
   };
 
-  const chooseTheme = async id => {
-    setStatus('');
-    try {
-      await applyTheme(id);
-      setStatus(`The ${id} theme is now active.`);
-    } catch (error) {
-      setStatus(`Theme applied on this device, but account sync failed: ${error.message}`);
-    }
-  };
-
-  const resetTheme = async () => {
-    setStatus('');
-    try {
-      await resetAppearance();
-      setStatus('Appearance reset to the Light theme.');
-    } catch (error) {
-      setStatus(`Appearance reset on this device, but account sync failed: ${error.message}`);
-    }
-  };
-
   const saveIdentity = async event => {
     event.preventDefault();
     const formData = new FormData(event.currentTarget);
@@ -103,7 +78,7 @@ function SettingsPage() {
     const password = formData.get('password');
     if (password) body.password = password;
     try {
-      await axios.put('/api/users/update-identity', body, {
+      await axios.put(`${process.env.REACT_APP_API_URL||''}/api/users/update-identity`, body, {
         headers: { 'x-auth-token': token }
       });
       setStatus('Account details saved.');
@@ -111,84 +86,6 @@ function SettingsPage() {
       setStatus(error.response?.data?.msg || 'Unable to save account details.');
     }
   };
-
-  const renderThemes = () => (
-    <section className="settings-section settings-theme-section">
-      <header className="settings-section__heading">
-        <span className="settings-kicker">TWO THEMES</span>
-        <h2>Choose your board.</h2>
-        <p>One consistent interface, in Light or Dark. Select a theme to apply it immediately.</p>
-      </header>
-      <div className="settings-theme-gallery">
-        {themes.map(item => {
-          const isActive = theme === item.id;
-          const ThemeIcon = item.id === 'dark' ? Moon : Sun;
-          const previewStyles = {
-            '--preview-bg': item.tokens.bg,
-            '--preview-surface': item.tokens.panel,
-            '--preview-card': item.tokens.card,
-            '--preview-text': item.tokens.text,
-            '--preview-muted': item.tokens.muted,
-            '--preview-accent': item.tokens.accent,
-            '--preview-line': item.tokens.line,
-            '--preview-x': item.tokens.x,
-            '--preview-o': item.tokens.o
-          };
-          return (
-            <article
-              className={`settings-theme-card settings-theme-card--${item.id} ${isActive ? 'is-current' : ''}`}
-              style={previewStyles}
-              key={item.id}
-            >
-              <div
-                className="settings-theme-card__preview"
-                aria-hidden="true"
-              >
-                <div className="settings-theme-preview__top">
-                  <span className="settings-theme-preview__logo">SOX</span>
-                  <span className="settings-theme-preview__tag">GAME REVIEW</span>
-                </div>
-                <div className="settings-theme-preview__content">
-                  <div className="settings-theme-preview__board">
-                    {['X', '', 'O', '', 'X', '', 'O', '', ''].map((mark, index) => (
-                      <span className={mark ? `mark-${mark.toLowerCase()}` : ''} key={index}>{mark}</span>
-                    ))}
-                  </div>
-                  <div className="settings-theme-preview__panel">
-                    <i />
-                    <i />
-                    <b>YOUR MOVE</b>
-                    <span />
-                  </div>
-                </div>
-              </div>
-              <div className="settings-theme-card__details">
-                <div className="settings-theme-card__title">
-                  <span className="settings-theme-card__icon"><ThemeIcon size={17} /></span>
-                  <div>
-                    <h3>{item.name}</h3>
-                    <p>{item.description}</p>
-                  </div>
-                </div>
-                <button
-                  type="button"
-                  className={`settings-button ${isActive ? 'settings-button--current' : ''}`}
-                  onClick={() => chooseTheme(item.id)}
-                  disabled={isActive || saving}
-                  aria-pressed={isActive}
-                >
-                  {isActive ? <><Check size={15} /> Current theme</> : `Use ${item.name}`}
-                </button>
-              </div>
-            </article>
-          );
-        })}
-      </div>
-      <button className="settings-button settings-button--quiet" type="button" onClick={resetTheme} disabled={saving}>
-        <RotateCcw size={14} /> Reset appearance
-      </button>
-    </section>
-  );
 
   const renderPanel = () => {
     switch (activeSection) {
@@ -203,7 +100,7 @@ function SettingsPage() {
           </SettingsSection>
         );
       case 'appearance':
-        return renderThemes();
+        return <ThemePicker/>;
       case 'gameplay':
         return (
           <SettingsSection title="Gameplay" description="Choose board feedback and how new matches begin.">
@@ -253,7 +150,7 @@ function SettingsPage() {
         return (
           <SettingsSection title="About SOX" description="A strategy game built around one board that sends you to another.">
             <div className="settings-about-row"><span>Application version</span><strong>{process.env.REACT_APP_VERSION || '1.0.0'}</strong></div>
-            <div className="settings-about-row"><span>Current theme</span><strong>{themes.find(item => item.id === theme)?.name || 'Light'}</strong></div>
+            <div className="settings-about-row"><span>Current theme</span><strong>{theme === 'system' ? 'System' : themes.find(item => item.id === theme)?.name || 'Dark'}</strong></div>
             <div className="settings-about-row"><span>Changelog</span><strong>Theme settings update</strong></div>
           </SettingsSection>
         );
@@ -280,7 +177,7 @@ function SettingsPage() {
         </nav>
         <div className={`settings-content settings-content--${activeSection}`}>
           {renderPanel()}
-          {(saveError || status) && <p className={`settings-feedback ${saveError && !status ? 'is-error' : ''}`} role="status">{status || saveError}</p>}
+          {activeSection !== 'appearance' && (saveError || status) && <p className={`settings-feedback ${saveError && !status ? 'is-error' : ''}`} role="status">{status || saveError}</p>}
         </div>
       </div>
     </main>

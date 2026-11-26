@@ -1,0 +1,37 @@
+/* Loaded after page styles. All boards share this palette and piece renderer. */
+:root{--board-light:#eeeed2;--board-dark:#a3b981;--board-frame:#526345;--board-highlight:#f1d96d;--board-texture:none;--board-x:#203b52;--board-o:#71341d;--on-primary:#20251b;--app-background-image:none}
+body,.game-root,.pz-clean-layout,.gh-page,.games-history-page{background-color:var(--color-background);background-image:var(--app-background-image);background-size:28px 28px}
+.app-background{background:var(--color-background);background-image:var(--app-background-image);background-size:28px 28px}
+.eng-page{--eng-bg:var(--color-background);--eng-panel:var(--color-surface);--eng-line:var(--color-border);--eng-text:var(--color-text-primary);--eng-muted:var(--color-text-secondary);--eng-accent:var(--color-primary)}
+.App:has(.eng-page) .glass-nav-inner{background:var(--color-surface);border-color:var(--color-border)}
+.App:has(.eng-page) .glass-nav-inner a,.App:has(.eng-page) .nav-btn-logout{color:var(--color-text-primary)}
+.eng-primary,.bot-config fieldset button.selected{color:var(--on-primary)!important}
+.eng-board,.super-board{background:var(--board-frame);border-color:var(--board-frame)}
+.eng-sector,.eng-sector--active,.board-container,.board-container.is-active-target,.board-container.is-opponent-target{background:var(--board-frame);border-color:var(--board-frame);box-shadow:none;animation:none;transform:none}
+.eng-sector{padding:4px}.board{gap:2px;background:var(--board-frame)}
+.eng-sector--active,.board-container.is-active-target,.board-container.is-opponent-target{outline:2px solid var(--board-highlight)!important;outline-offset:1px}
+.game-root .board-container.is-active-target{outline-color:var(--board-highlight)}
+.is-active-target::before,.is-active-target::after,.is-opponent-target::before,.is-opponent-target::after{display:none}
+.eng-sector-label{background:var(--board-frame);color:var(--board-light)}
+.eng-cell,.eng-sector--active .eng-cell,.cell,.cell:disabled:hover{background-color:var(--board-light)!important;background-image:var(--board-texture)!important;border:0}
+.eng-cell:nth-of-type(even),.eng-sector--active .eng-cell:nth-of-type(even),.cell:nth-child(even),.cell:nth-child(even):disabled:hover{background-color:var(--board-dark)!important}
+.eng-cell:not(:disabled):hover,.cell-active:hover{background-color:var(--board-highlight)!important}
+.eng-cell--last,.eng-sector--active .eng-cell--last{background-color:var(--board-highlight)!important;box-shadow:inset 0 0 0 2px var(--board-frame)}
+.eng-cell--best{box-shadow:inset 0 0 0 3px var(--board-x)!important;color:var(--board-x)}
+.eng-cell--x,.cell-x{color:var(--board-x)!important;text-shadow:none}.eng-cell--o,.cell-o{color:var(--board-o)!important;text-shadow:none}
+.cell-mark{display:grid;place-items:center;width:100%;height:100%}.eng-cell{display:grid;place-items:center}
+.game-mark{display:inline-flex;align-items:center;justify-content:center;width:72%;height:72%;vertical-align:middle;line-height:1;flex:none;pointer-events:none}
+.game-mark--x{color:var(--board-x)}.game-mark--o{color:var(--board-o)}
+.game-mark__lines{display:var(--mark-lines,block);width:100%;height:100%;fill:none;stroke:currentColor;stroke-width:var(--mark-stroke,7);stroke-linecap:var(--mark-cap,round);stroke-linejoin:round;overflow:visible}
+[data-pieces]{--mark-stroke:7;--mark-cap:round;--mark-lines:block;--mark-serif:none}
+[data-pieces="bold"]{--mark-stroke:12}
+[data-pieces="sharp"]{--mark-stroke:6;--mark-cap:square}
+[data-pieces="serif"]{--mark-lines:none;--mark-serif:block}
+.game-mark__serif{display:var(--mark-serif,none);font-family:Georgia,'Times New Roman',serif;font-size:1em;font-weight:700}
+.eng-sector-result,.winner-overlay{background:color-mix(in srgb,var(--board-light) 94%,transparent)!important}.eng-sector-result--o,.winner-overlay:has(.winner-o){background:color-mix(in srgb,var(--board-dark) 94%,transparent)!important}.eng-sector-result--d,.draw-overlay{background:color-mix(in srgb,var(--board-frame) 86%,transparent)!important;color:var(--board-light)}
+.winner-mark{display:grid;place-items:center;width:80%;height:80%;text-shadow:none}.winner-x{color:var(--board-x)}.winner-o{color:var(--board-o)}
+[data-pieces="serif"] .cell-mark{font-size:clamp(18px,3vw,38px)}
+[data-theme="light"] .eng-error{background:color-mix(in srgb,var(--color-danger) 8%,var(--color-surface));color:var(--color-text-primary)}
+.hp-root,.dash-root,.auth-root,.tourney-root,.games-history-page,.game-root,.pz-clean-layout{background-image:var(--app-background-image);background-size:28px 28px}
+/* Keep inactive sectors readable; the legal-sector outline supplies turn feedback. */
+.not-playable{filter:none}.not-playable .cell-mark{opacity:1}.winner-overlay{backdrop-filter:none}

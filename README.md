@@ -19,6 +19,7 @@ communicates with an Express and Socket.IO API backed by MongoDB.
   on the player's competitive rating, plus puzzles drawn from reviewed games.
 - **Play computer:** six opponents, a custom 400–2600 difficulty slider, side selection, and saved, unrated games. Bot ratings are approximate.
 - **Game review:** responsive replay with a searched advantage bar, move grades, suggested lines, and personalised engine coaching linked to actual moves.
+- **Appearance:** six visual presets, eight independent board palettes, four mark styles, background textures, and light/dark/system interfaces. Settings apply to every board and sync to the account; failed saves remain on-device with a retry option.
 - **Authentication:** email/password accounts and optional Google or Facebook
   sign-in when provider credentials are configured.
 

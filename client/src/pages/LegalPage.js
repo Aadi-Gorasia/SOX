@@ -10,6 +10,7 @@ export default function LegalPage({type}){
  <h2>Storage used by SOX</h2>
  <div className="legal-table"><table><thead><tr><th>Item</th><th>Purpose</th><th>Duration</th></tr></thead><tbody>
  <tr><td><code>token</code> (local storage)</td><td>Keeps you signed in by storing your authentication token.</td><td>Removed when you log out or the app rejects an expired or invalid token. You can also clear it in your browser.</td></tr>
+ <tr><td><code>site-appearance-pending</code> (local storage)</td><td>Keeps appearance changes for your account while a save is pending or has failed.</td><td>Removed after a successful save, or when you clear site data.</td></tr>
  <tr><td><code>site-theme</code> and <code>site-preferences</code> (local storage)</td><td>Remember your chosen theme and display preferences.</td><td>Remain until replaced or cleared in your browser.</td></tr>
  </tbody></table></div>
  <h2>Analytics</h2><p>SOX uses Vercel Web Analytics to understand visits and page usage. Vercel describes this service as cookie-free; it uses request-derived identifiers that are discarded after 24 hours. It may process page URLs, referrers, approximate location, and browser or device information for aggregate reports. See <a href="https://vercel.com/docs/analytics/privacy-policy" target="_blank" rel="noreferrer">Vercel’s Web Analytics privacy documentation</a>.</p>

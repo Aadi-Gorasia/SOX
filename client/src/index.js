@@ -6,6 +6,7 @@ import './styles/themes.css';
 import App from './App';
 import { Analytics } from '@vercel/analytics/react';
 import './responsive.css';
+import './styles/appearance.css';
 import reportWebVitals from './reportWebVitals';
 
 const root = ReactDOM.createRoot(document.getElementById('root'));

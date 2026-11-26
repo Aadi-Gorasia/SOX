@@ -35,7 +35,7 @@
 
 .player-elo {
   font-size: 0.9rem;
-  color: #B0BEC5;
+  color: var(--color-text-primary);
 }
 
 .timer-container {
@@ -46,7 +46,7 @@
 }
 
 .timer {
-  background-color: #263238;
+  background-color: var(--color-surface);
   padding: 0;
   border-radius: 6px;
   font-size: 1.8rem;
@@ -69,7 +69,7 @@
   top: 0;
   left: 0;
   height: 100%;
-  background-color: #455A64;
+  background-color: var(--color-border);
   border-radius: 6px;
   transition: width 0.5s linear;
 }
@@ -81,7 +81,7 @@
 }
 
 .timer.low-time .time-bar {
-  background-color: #E57373;
+  background-color: var(--color-o);
 }
 
 .player-info-bar-placeholder {
