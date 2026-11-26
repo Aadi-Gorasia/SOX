@@ -220,7 +220,7 @@ export default function PuzzlePage() {
         <button className="pz-back-btn" onClick={() => navigate(-1)}>
           <ChevronLeft size={18} /> Back
         </button>
-        <div className="pz-header-title">Tactical Training</div>
+        <div className="pz-header-title">Puzzles</div>
         <div className="pz-rating-badge">
           Puzzle rating <span className="font-bold">{userRating}</span>
         </div>
@@ -265,8 +265,8 @@ export default function PuzzlePage() {
         <div className="pz-sidebar-column">
           {!result ? (
             <div className="pz-panel pz-panel-pending">
-              <h2>Your Turn</h2>
-              <p className="pz-text-muted mb-4">Find the move that forces the opponent into a closed or disadvantageous sector.</p>
+              <h2>Your turn</h2>
+              <p className="pz-text-muted mb-4">Find the strongest move. Consider both the small board and where your opponent will play next.</p>
               <div className="pz-difficulty">
                 <span>{puzzle?.difficulty || 'Training'}</span>
                 <span>{puzzle?.theme || 'Tactical position'}</span>

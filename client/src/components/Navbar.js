@@ -1,45 +1,37 @@
-import React, { useContext } from 'react';
-import { Link, useLocation, useNavigate } from 'react-router-dom';
+import React, { useContext, useEffect, useState } from 'react';
+import { Link, NavLink, useLocation, useNavigate } from 'react-router-dom';
 import { AuthContext } from '../context/AuthContext';
 import './Navbar.css';
 
-const Navbar = () => {
+export default function Navbar() {
   const { isAuthenticated, user, logout } = useContext(AuthContext);
+  const [open, setOpen] = useState(false);
   const location = useLocation();
   const navigate = useNavigate();
-
-  const handleLogout = () => {
-    logout();
-    navigate('/');
-  };
-
-  const isActive = (path) => location.pathname === path;
-
-  return (
-    <header className="glass-nav-container">
-      <div className="glass-nav-inner">
-        <div className="nav-logo">
-          <Link to={isAuthenticated ? "/dashboard" : "/"}>SOX</Link>
-        </div>
-
-        <nav className="nav-links-group">
-          {isAuthenticated && user ? (
-            <>
-              <Link to="/play" className={isActive('/play') ? 'active' : ''}>PLAY</Link>
-              <Link to={`/profile/${user.username}`} className={isActive(`/profile/${user.username}`) ? 'active' : ''}>PROFILE</Link>
-              <Link to="/settings" className={isActive('/settings') ? 'active' : ''}>SETTINGS</Link>
-              <button onClick={handleLogout} className="nav-btn-logout">LOGOUT</button>
-            </>
-          ) : (
-            <>
-              <Link to="/login" className={isActive('/login') ? 'active' : ''}>LOGIN</Link>
-              <Link to="/register" className="nav-cta-btn">INITIALIZE</Link>
-            </>
-          )}
-        </nav>
-      </div>
-    </header>
-  );
-};
-
-export default Navbar;
+  useEffect(() => { setOpen(false); }, [location.pathname]);
+  useEffect(() => {
+    const close = e => { if (e.key === 'Escape') setOpen(false); };
+    window.addEventListener('keydown', close);
+    return () => window.removeEventListener('keydown', close);
+  }, []);
+  return <header className="glass-nav-container">
+    <div className="glass-nav-inner">
+      <div className="nav-logo"><Link aria-label="SOX home" to={isAuthenticated ? '/dashboard' : '/'}>SOX<span className="nav-wordmark-caption">Ultimate tic-tac-toe</span></Link></div>
+      <button className="nav-menu-toggle" aria-expanded={open} aria-controls="primary-navigation" onClick={() => setOpen(!open)}>{open ? 'Close' : 'Menu'}</button>
+      <nav id="primary-navigation" aria-label="Main navigation" className={`nav-links-group ${open ? 'is-open' : ''}`}>
+        {isAuthenticated && user ? <>
+          <NavLink to="/play">Play</NavLink>
+          <NavLink to="/puzzles">Puzzles</NavLink>
+          <NavLink to="/games/history">Games</NavLink>
+          <NavLink to={`/profile/${encodeURIComponent(user.username)}`}>Profile</NavLink>
+          <NavLink to="/settings">Settings</NavLink>
+          <button onClick={() => { logout(); navigate('/'); }} className="nav-btn-logout">Sign out</button>
+        </> : <>
+          <a href="/#rules">How to play</a>
+          <NavLink to="/login">Sign in</NavLink>
+          <Link to="/register" className="nav-cta-btn">Create account</Link>
+        </>}
+      </nav>
+    </div>
+  </header>;
+}

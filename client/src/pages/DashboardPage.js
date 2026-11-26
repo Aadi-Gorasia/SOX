@@ -35,7 +35,6 @@ const DashboardPage = () => {
   const [gamesLoading, setGamesLoading] = useState(true);
   const [gamesError, setGamesError] = useState('');
   const [userRefreshError, setUserRefreshError] = useState('');
-  const [health, setHealth] = useState(null);
   const [isSearching, setIsSearching] = useState(false);
   const [searchTc,    setSearchTc]    = useState(null);
   const [searchTimer, setSearchTimer] = useState(0);
@@ -110,25 +109,6 @@ const DashboardPage = () => {
       window.removeEventListener('focus', fetchHistory);
     };
   }, [user]);
-
-  useEffect(() => {
-    let active = true;
-    const refreshHealth = async () => {
-      try {
-        const response = await axios.get(`${API_BASE}/health`);
-        if (active) setHealth(response.data);
-      } catch (error) {
-        console.error('Service health check failed:', error);
-        if (active) setHealth({ status: 'unavailable', database: 'unknown' });
-      }
-    };
-    refreshHealth();
-    const interval = setInterval(refreshHealth, 60000);
-    return () => {
-      active = false;
-      clearInterval(interval);
-    };
-  }, []);
 
   useEffect(() => {
     if (!socket) return;
@@ -216,7 +196,7 @@ const DashboardPage = () => {
 
         {userRefreshError && <p className="dashboard-data-notice" role="status">{userRefreshError}</p>}
 
-        <header className="dash-header">
+        <header className="dash-header"><div><h1 className="product-title">Your next move</h1><p className="product-subtitle">Play a match. Find a better move. Come back stronger.</p></div>
 
           <div className="header-right">
             <div className={`latency-badge ${latencyClass}`}>
@@ -266,32 +246,6 @@ const DashboardPage = () => {
             </div>
 
             <div className="sidebar-card">
-              <div className="sidebar-card-label">System</div>
-              <div className="sys-rows">
-                <div className="sys-row">
-                  <span className="sys-key">Ping</span>
-                  <span className={`sys-val ${latency !== null && latency > 100 ? 'sys-warn' : latency !== null ? 'sys-ok' : ''}`}>{latencyDisplay}</span>
-                </div>
-                <div className="sys-row">
-                  <span className="sys-key">API</span>
-                  <span className={`sys-val ${health?.status === 'ok' ? 'sys-ok' : health ? 'sys-warn' : ''}`}>
-                    {health?.status === 'ok' ? 'Online' : health?.status === 'unavailable' ? 'Offline' : 'Checking'}
-                  </span>
-                </div>
-                <div className="sys-row">
-                  <span className="sys-key">Database</span>
-                  <span className={`sys-val ${health?.database === 'connected' ? 'sys-ok' : health?.database === 'disconnected' ? 'sys-warn' : ''}`}>
-                    {health?.database || 'Checking'}
-                  </span>
-                </div>
-                <div className="sys-row">
-                  <span className="sys-key">Recent games</span>
-                  <span className="sys-val">{gamesLoading ? '…' : games.length}</span>
-                </div>
-              </div>
-            </div>
-
-            <div className="sidebar-card">
               <div className="sidebar-card-label">Puzzle training</div>
               <div className="daily-title">{Number(currentUser.puzzleRating) || 1200} rating</div>
               <p className="tip-text">Practice tactical positions and track your puzzle rating.</p>
@@ -304,7 +258,7 @@ const DashboardPage = () => {
             <section className="arena-section">
               <div className="arena-title-row">
                 <div>
-                  <h1 className="arena-title">Play</h1>
+                  <h2 className="arena-title">Play online</h2>
                   <p className="arena-sub">Choose a time control to find a ranked match</p>
                 </div>
                 <button className="quickstart-btn" onClick={() => handleFindGame('10+0')}>
@@ -331,6 +285,7 @@ const DashboardPage = () => {
               </div>
 
               <div className="alt-modes">
+                <Link to="/play/computer" className="alt-mode-btn">Play a computer</Link>
                 <Link to="/play" className="alt-mode-btn">Play a friend</Link>
                 <Link to="/tournament" className="alt-mode-btn">Tournament</Link>
                 <Link to="/puzzles" className="alt-mode-btn">Practice puzzles</Link>
@@ -369,7 +324,7 @@ const DashboardPage = () => {
                   return (
                     <div key={g._id} className={`history-row history-row--${result}`}>
                       <div className={`result-tag result-tag--${result}`}>{resultLabel}</div>
-                      <div className="history-opp">vs {opponent?.username || 'Unknown'}</div>
+                      <div className="history-opp">vs {g.bot?.name || opponent?.username || 'Player'}</div>
                       <div className="history-tc">{timeControl}</div>
                       <div className="history-date">{dateLabel}</div>
                       {!isOngoing && g.moves?.length > 0
@@ -400,29 +355,6 @@ const DashboardPage = () => {
                 : <Link to="/puzzles" className="daily-btn">Practice puzzles</Link>}
             </div>
 
-            <div className="sidebar-card">
-              <div className="sidebar-card-label">Your performance</div>
-              <div className="perf-stat">
-                <span className="perf-label">Win rate</span>
-                <span className="perf-val perf-accent">{winRate}%</span>
-              </div>
-              <div className="perf-stat">
-                <span className="perf-label">Total games</span>
-                <span className="perf-val">{totalGames}</span>
-              </div>
-              <div className="perf-stat">
-                <span className="perf-label">Current ELO</span>
-                <span className="perf-val">{elo}</span>
-              </div>
-              <div className="perf-stat">
-                <span className="perf-label">Wins</span>
-                <span className="perf-val perf-accent">{wins}</span>
-              </div>
-              <div className="perf-stat">
-                <span className="perf-label">Losses</span>
-                <span className="perf-val perf-loss">{losses}</span>
-              </div>
-            </div>
           </aside>
 
         </div>

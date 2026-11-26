@@ -9,12 +9,20 @@ const API_BASE = process.env.REACT_APP_API_URL || '';
 const LoginPage = () => {
   const navigate = useNavigate();
   const { login, isAuthenticated, user } = useContext(AuthContext);
+  const [error, setError] = useState('');
+  const [busy, setBusy] = useState(false);
   const [formData, setFormData] = useState({ email: '', password: '' });
 
   const onSubmit = async (e) => {
     e.preventDefault();
-    const result = await login(formData);
-    if (!result.success) alert('Sign in failed: ' + result.message);
+    if (busy) return;
+    setError('');
+    setBusy(true);
+    try {
+      const result = await login(formData);
+      if (!result.success) setError(result.message || 'Unable to sign in. Please try again.');
+    } catch { setError('Unable to connect. Please try again.'); }
+    finally { setBusy(false); }
   };
 
   const handleSocialAuth = (provider) => {
@@ -44,26 +52,27 @@ const LoginPage = () => {
 
         <header className="auth-header">
           <h1 className="auth-title">Welcome back</h1>
-          <p className="auth-subtitle">Sign in to access your arena dashboard</p>
+          <p className="auth-subtitle">Your games, your progress, your next move.</p>
         </header>
 
         <form onSubmit={onSubmit}>
+          {error && <p className="auth-error" role="alert">{error}</p>}
           <div className="auth-input-group">
-            <label>Email Address</label>
+            <label htmlFor="auth-email">Email Address</label>
             <input 
-              type="email" name="email" placeholder="name@example.com" 
+              type="email" name="email" id="auth-email" autoComplete="email" placeholder="name@example.com"
               onChange={(e) => setFormData({...formData, email: e.target.value})} required 
             />
           </div>
           <div className="auth-input-group">
-            <label>Password</label>
+            <label htmlFor="auth-password">Password</label>
             <input 
-              type="password" name="password" placeholder="••••••••" 
+              type="password" name="password" id="auth-password" autoComplete="current-password" placeholder="••••••••"
               onChange={(e) => setFormData({...formData, password: e.target.value})} required 
             />
           </div>
           
-          <button type="submit" className="auth-btn-primary">Sign in</button>
+          <button type="submit" disabled={busy} className="auth-btn-primary">{busy ? 'Please wait…' : 'Sign in'}</button>
         </form>
 
         <div className="auth-divider">

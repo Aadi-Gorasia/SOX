@@ -2,8 +2,8 @@ import React, { useContext, useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import axios from 'axios';
 import { AuthContext } from '../context/AuthContext';
-import DisplayBoard from '../components/DisplayBoard';
-import InteractiveBG from '../components/InteractiveBG';
+import EngineBoard from '../components/EngineBoard';
+import { replay } from '../utils/engineView';
 import './HomePage.css';
 
 const API_BASE = process.env.REACT_APP_API_URL || '';
@@ -12,7 +12,9 @@ const HomePage = () => {
   const { isAuthenticated } = useContext(AuthContext);
   const [leaderboard, setLeaderboard] = useState([]);
   const [leaderboardStatus, setLeaderboardStatus] = useState('loading');
-  const [apiStatus, setApiStatus] = useState('checking');
+  const [step, setStep] = useState(1);
+  const demoMoves = [40, 36, 4, 37, 13, 39];
+  const demo = replay(demoMoves.slice(0, step));
   const primaryPath = isAuthenticated ? '/dashboard' : '/register';
   const primaryLabel = isAuthenticated ? 'Go to dashboard' : 'Create your free account';
 
@@ -33,200 +35,51 @@ const HomePage = () => {
         if (active) setLeaderboardStatus('error');
       });
 
-    axios.get(`${API_BASE}/health`)
-      .then(response => {
-        if (active) {
-          setApiStatus(response.data.status === 'ok' ? 'online' : 'unavailable');
-        }
-      })
-      .catch(error => {
-        console.error('Public API health check failed:', error);
-        if (active) setApiStatus('unavailable');
-      });
-
-    return () => {
-      active = false;
-    };
+    return () => { active = false; };
   }, []);
 
-  return (
-    <div className="hp-root">
-      <InteractiveBG />
-
-      <div className="hp-ui-layer">
-        <header className="hp-section hp-hero">
-          <div className="hp-hero-content">
-            <div className="hp-badge hp-mono">
-              <span className="hp-dot" />
-              Ultimate tic-tac-toe · Free to play
-            </div>
-            <h1 className="hp-title">
-              EVERY MOVE
-              <br />
-              SHAPES THE
-              <br />
-              <span className="text-crimson">WHOLE BOARD</span>
-            </h1>
-            <p className="hp-desc">
-              A strategy game played across nine boards. Every square you choose sends
-              your opponent to their next board.
-            </p>
-            <div className="hp-hero-btns">
-              <Link to={primaryPath} className="hp-btn-crimson">{primaryLabel}</Link>
-              <a href="#rules" className="hp-btn-outline">How to play</a>
-            </div>
-            <p className="hp-signin-prompt">
-              {isAuthenticated ? (
-                <>Ready for a match? <Link to="/play">Choose a game mode</Link>.</>
-              ) : (
-                <>Already have an account? <Link to="/login">Sign in</Link>.</>
-              )}
-            </p>
-          </div>
-          <div className="hp-hero-visual" aria-label="Ultimate tic-tac-toe board preview">
-            <div className="hp-board-label hp-mono">THE 9 × 9 BATTLEFIELD</div>
-            <div className="hp-monolith-frame">
-              <DisplayBoard />
-            </div>
-            <div className="hp-board-caption hp-mono">
-              WIN THREE SMALL BOARDS IN A ROW TO WIN THE MATCH
-            </div>
-          </div>
-        </header>
-
-        <section id="rules" className="hp-section hp-rules">
-          <div className="hp-section-header">
-            <span className="hp-mono text-sulfur">A QUICK INTRODUCTION</span>
-            <h2 className="hp-section-title">Easy to learn. Hard to master.</h2>
-            <p className="hp-section-copy">
-              It starts like tic-tac-toe, but each move decides where the next one can happen.
-            </p>
-          </div>
-          <div className="hp-rules-grid">
-            <article className="hp-rule-card">
-              <div className="hp-rule-num">01</div>
-              <h3>Play a small board</h3>
-              <p>Each of the nine squares contains its own tic-tac-toe game.</p>
-            </article>
-            <article className="hp-rule-card active-crimson">
-              <div className="hp-rule-num">02</div>
-              <h3>Send your opponent</h3>
-              <p>The square you play in sends your opponent to the matching small board.</p>
-            </article>
-            <article className="hp-rule-card active-sulfur">
-              <div className="hp-rule-num">03</div>
-              <h3>Win the big board</h3>
-              <p>Claim three small boards in a row to take the match.</p>
-            </article>
-          </div>
-        </section>
-
-        <section className="hp-section hp-depth">
-          <div className="hp-depth-grid">
-            <div className="hp-depth-text">
-              <span className="hp-mono text-crimson">PLAN AHEAD</span>
-              <h2 className="hp-section-title">One move.<br />Two decisions.</h2>
-              <p className="hp-desc">
-                Choose where to make your mark—and where your opponent has to respond.
-                Turn that constraint into a plan for the whole board.
-              </p>
-              <ul className="hp-feature-list">
-                <li>Control the next board your opponent can play</li>
-                <li>Set up wins across multiple small boards</li>
-                <li>Review completed matches move by move</li>
-              </ul>
-            </div>
-            <div className="hp-radar-ui">
-              <img src="/gameplay.png" alt="A match in progress on the SOX game board" />
-            </div>
-          </div>
-        </section>
-
-        <section id="rankings" className="hp-section hp-rankings">
-          <div className="hp-section-header hp-section-header--row">
-            <div>
-              <span className="hp-mono text-silver">THE COMMUNITY</span>
-              <h2 className="hp-section-title">Top players</h2>
-            </div>
-            <div className={`hp-api-status hp-api-status--${apiStatus}`} role="status">
-              <span className="hp-dot" />
-              {apiStatus === 'online' ? 'Game service online' : apiStatus === 'unavailable' ? 'Game service unavailable' : 'Checking game service'}
-            </div>
-          </div>
-          <div className="hp-table-container" aria-live="polite">
-            {leaderboardStatus === 'loading' && (
-              <p className="hp-table-message">Loading current rankings…</p>
-            )}
-            {leaderboardStatus === 'error' && (
-              <p className="hp-table-message" role="alert">Rankings are temporarily unavailable. Please try again later.</p>
-            )}
-            {leaderboardStatus === 'ready' && leaderboard.length === 0 && (
-              <p className="hp-table-message">No ranked players yet. Be the first to join.</p>
-            )}
-            {leaderboardStatus === 'ready' && leaderboard.map((player, index) => (
-              <div key={player._id || player.username} className="hp-table-row">
-                <span className="hp-table-rank">{String(index + 1).padStart(2, '0')}</span>
-                <span className="hp-table-name">{player.username || 'Player'}</span>
-                <span className="hp-table-elo">
-                  {Number.isFinite(Number(player.elo)) ? Number(player.elo) : '—'}
-                  <span className="hp-mono hp-table-elo-label"> ELO</span>
-                </span>
-              </div>
-            ))}
-          </div>
-        </section>
-
-        <section className="hp-section hp-features">
-          <div className="hp-section-header">
-            <span className="hp-mono text-sulfur">BUILT FOR YOUR NEXT MATCH</span>
-            <h2 className="hp-section-title">Play. Improve. Repeat.</h2>
-          </div>
-          <div className="hp-feature-grid">
-            <article className="hp-feature-card">
-              <h3>Ranked matches</h3>
-              <p>Find an opponent, play a full match, and build your rating.</p>
-            </article>
-            <article className="hp-feature-card">
-              <h3>Game review</h3>
-              <p>Replay completed games and explore stronger moves with engine analysis.</p>
-            </article>
-            <article className="hp-feature-card">
-              <h3>Puzzle practice</h3>
-              <p>Work through tactical positions and track your puzzle rating.</p>
-            </article>
-          </div>
-        </section>
-
-        <section className="hp-section hp-cta-void">
-          <div className="hp-cta-content">
-            <span className="hp-mono text-sulfur">{isAuthenticated ? 'YOUR NEXT MATCH IS READY' : 'YOUR FIRST MATCH STARTS HERE'}</span>
-            <h2 className="hp-cta-title">Ready to play?</h2>
-            <Link to={primaryPath} className="hp-btn-massive">{primaryLabel}</Link>
-          </div>
-        </section>
-
-        <footer className="hp-footer">
-          <div className="hp-footer-top">
-            <div className="hp-footer-brand">
-              <div className="hp-logo-large">SO<span className="text-sulfur">X</span></div>
-              <p>A strategy game of nine boards and one big decision.</p>
-            </div>
-            <nav className="hp-footer-links" aria-label="Footer">
-              <a href="#rules">How to play</a>
-              <a href="#rankings">Top players</a>
-              {isAuthenticated
-                ? <Link to="/dashboard">Dashboard</Link>
-                : <Link to="/login">Sign in</Link>}
-            </nav>
-          </div>
-          <div className="hp-footer-bottom">
-            <span>© {new Date().getFullYear()} SOX</span>
-            <span>Ultimate tic-tac-toe, made for thoughtful play.</span>
-          </div>
-        </footer>
+  return <main className="hp-root">
+    <section className="hp-hero">
+      <div className="hp-hero-copy">
+        <span className="hp-eyebrow">SOX / Ultimate tic-tac-toe</span>
+        <h1>Small boards.<br/>Big decisions.</h1>
+        <p className="hp-lead">The square you choose decides where your opponent plays next. Nine boards, two players, and a different game every time.</p>
+        <div className="hp-actions"><Link className="hp-primary" to={primaryPath}>{isAuthenticated ? 'Back to your games' : 'Start playing'} <span aria-hidden="true">↗</span></Link><a className="hp-secondary" href="#rules">Learn the rules</a></div>
+        <p className="hp-footnote">Free to play. Ranked matches, friendly games, and computer opponents.</p>
       </div>
-    </div>
-  );
+      <figure className="hp-demo">
+        <div className="hp-demo-heading"><span>A move changes the whole game</span><span>{step} / {demoMoves.length}</span></div>
+        <EngineBoard state={demo} playedMove={demoMoves[step - 1]}/>
+        <figcaption aria-live="polite"><strong>{demo.turn} plays next.</strong> The outlined board is where they must go.</figcaption>
+        <button className="hp-demo-next" onClick={() => setStep(step === demoMoves.length ? 1 : step + 1)}>{step === demoMoves.length ? 'Replay the sequence' : 'See the next move'} <span aria-hidden="true">→</span></button>
+      </figure>
+    </section>
+    <section id="rules" className="hp-section">
+      <div className="hp-section-heading"><span className="hp-eyebrow">The rules</span><h2>Familiar game. A new way to think.</h2></div>
+      <div className="hp-rules-grid">{[
+        ['01','Win a small board','Make a line of three marks to claim one of the nine small boards.'],
+        ['02','Send the next move','Your square sends your opponent to the matching board. If that board is closed, they can choose any open board.'],
+        ['03','Connect the big picture','Win three small boards in a row, column, or diagonal to win the match.']
+      ].map(([number,title,copy]) => <article key={number}><span className="hp-rule-number">{number}</span><h3>{title}</h3><p>{copy}</p></article>)}</div>
+    </section>
+    <section className="hp-section hp-practice">
+      <div className="hp-section-heading"><span className="hp-eyebrow">Find your rhythm</span><h2>A good game deserves a second look.</h2><p>Play at your pace. Then see what you missed.</p></div>
+      <div className="hp-paths">{[
+        ['/play','01 / Play people','A friend or a fresh challenge','Choose a clock, share a private invite, or find a ranked opponent.'],
+        ['/play/computer','02 / Play a computer','Meet Bob. Work your way up.','Six opponents, adjustable difficulty, and time to think between moves.'],
+        ['/games/history','03 / Review and improve','Learn from the moves you made','Replay your games, explore alternatives, and find the turning points.']
+      ].map(([path,label,title,copy]) => <Link key={path} to={isAuthenticated ? path : '/register'}><span className="hp-eyebrow">{label}</span><h3>{title}</h3><p>{copy}</p><span className="hp-path-arrow" aria-hidden="true">↗</span></Link>)}</div>
+    </section>
+    <section id="rankings" className="hp-section hp-rankings">
+      <div className="hp-section-heading"><span className="hp-eyebrow">The players</span><h2>Climbing the board.</h2><p>The current ranked leaderboard.</p></div>
+      <div className="hp-ranking-list" aria-live="polite">
+        {leaderboardStatus === 'loading' && <p>Loading rankings…</p>}
+        {leaderboardStatus === 'error' && <p role="status">Rankings are temporarily unavailable.</p>}
+        {leaderboardStatus === 'ready' && !leaderboard.length && <p>Your first ranked game could start something.</p>}
+        {leaderboardStatus === 'ready' && leaderboard.map((player,index) => <div className="hp-ranking-row" key={player._id || player.username}><span>{String(index+1).padStart(2,'0')}</span><strong>{player.username || 'Player'}</strong><span>{Number.isFinite(Number(player.elo)) ? Number(player.elo) : '—'} <small>Elo</small></span></div>)}
+      </div>
+    </section>
+    <footer className="hp-footer"><Link to={primaryPath}>{primaryLabel} <span aria-hidden="true">→</span></Link><span>SOX · Nine boards. One game.</span><nav aria-label="Footer"><Link to="/terms">Terms</Link><Link to="/cookie-policy">Cookie policy</Link></nav></footer>
+  </main>;
 };
-
 export default HomePage;

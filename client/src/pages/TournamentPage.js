@@ -199,6 +199,12 @@ const TournamentPage = () => {
           </>
         )}
 
+        {!bracket && status !== 'ACTIVE' && <section className="tourney-explainer" aria-label="How tournaments work">
+          <article><span>01</span><h2>Take your seat</h2><p>Join the queue. The bracket is ready when four players have entered.</p></article>
+          <article><span>02</span><h2>Win your semifinal</h2><p>Two matches decide which players go through to the final.</p></article>
+          <article><span>03</span><h2>Play for the title</h2><p>The two semifinal winners meet in one deciding match.</p></article>
+        </section>}
+
         {status === 'ACTIVE' && stateLoaded && !bracket && (
           <div className="tourney-empty-state">
             Tournament state isn’t available yet. Try refreshing this page.

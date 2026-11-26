@@ -10,7 +10,6 @@ const PlayPage = () => {
     const socket = useSocket();
     const navigate = useNavigate();
     const { preferences } = useContext(ThemeContext);
-    const [latency, setLatency] = useState(0);
     
     // UI CORE STATE
     const [lobbyState, setLobbyState] = useState('IDLE'); // IDLE, QUEUING, PRIVATE
@@ -30,20 +29,8 @@ const PlayPage = () => {
         { tc: '3+2', m: 3, s: 2, label: 'BLITZ' },
         { tc: '5+0', m: 5, s: 0, label: 'RAPID' },
         { tc: '10+0', m: 10, s: 0, label: 'RAPID' },
-        { tc: '30+0', m: 30, s: 0, label: 'ZENITH' },
+        { tc: '30+0', m: 30, s: 0, label: 'CLASSICAL' },
     ];
-
-    useEffect(() => {
-      if (!socket) return;
-      const measure = () => {
-        const start = Date.now();
-        socket.emit('ping_latency');
-        socket.once('pong_latency', () => setLatency(Date.now() - start));
-      };
-      const interval = setInterval(measure, 5000);
-      measure();
-      return () => clearInterval(interval);
-    },[socket]);
 
     // SOCKET SYNC
     useEffect(() => {
@@ -92,7 +79,6 @@ const PlayPage = () => {
         });
     }, [socket, config]);
 
-    const latencyClass = latency === 0 ? '' : latency > 100 ? 'latency-high' : 'latency-ok';
 
     return (
         <div className="dash-root">
@@ -119,8 +105,8 @@ const PlayPage = () => {
                             </>
                         ) : (
                             <>
-                                <p className="search-label">Secure Channel Established</p>
-                                <h2 className="search-tc" style={{ fontSize: '32px', marginBottom: '10px' }}>Awaiting Opponent</h2>
+                                <p className="search-label">Invite ready</p>
+                                <h2 className="search-tc" style={{ fontSize: '32px', marginBottom: '10px' }}>Waiting for your friend</h2>
                                 <p className="search-label" style={{ textTransform: 'none' }}>Share this link to invite your opponent.</p>
                                 
                                 <div className="link-box">
@@ -133,7 +119,7 @@ const PlayPage = () => {
                             </>
                         )}
 
-                        <button className="search-abort" onClick={cancelMatchmaking}>Cancel Search</button>
+                        <button className="search-abort" onClick={cancelMatchmaking}>Cancel</button>
                     </div>
                 </div>
             )}
@@ -141,27 +127,14 @@ const PlayPage = () => {
             <div className="dash-wrap">
                 
                 {/* Header Match with Dashboard */}
-                <header className="dash-header">
-                  <Link to="/dashboard" style={{ textDecoration: 'none' }}>
-                    <div className="header-logo">
-                        
-                        <span className="logo-text">SOX</span>
-                    </div>
-                  </Link>
-                  <div className="header-right">
-                    <div className={`latency-badge ${latencyClass}`}>
-                        <span className="latency-dot" />
-                        {latency === 0 ? '—' : `${latency}ms`}
-                    </div>
-                  </div>
-                </header>
+                <header className="dash-header"><div><h1 className="product-title">Choose your game</h1><p className="product-subtitle">Set the clock, choose a side, and take your seat.</p></div></header>
 
                 <Link to="/play/computer" className="play-computer-entry"><span><strong>Play with a computer</strong><small>Six bots · custom difficulty · personalized game review</small></span><span>Choose your opponent →</span></Link>
                 <div className="play-body">
                     
                     {/* LEFT: MATCH SETTINGS */}
                     <aside className="config-section">
-                        <div className="config-label">Match Settings</div>
+                        <div className="config-label">Match settings</div>
                         
                         {/* SYMBOL SELECT */}
                         <div className="symbol-grid">
@@ -181,7 +154,7 @@ const PlayPage = () => {
                             </button>
                         </div>
                         
-                        <div className="config-label">Time Control</div>
+                        <div className="config-label">Time control</div>
                         
                         {/* PRESETS */}
                         <div className="preset-grid">
@@ -204,7 +177,7 @@ const PlayPage = () => {
                                 <span className="slider-val">{config.time}m</span>
                             </div>
                             <input 
-                                type="range" min="1" max="60" value={config.time} 
+                                aria-label="Minutes per side" type="range" min="1" max="60" value={config.time}
                                 onChange={(e) => setConfig({...config, time: parseInt(e.target.value)})}
                                 className="play-slider"
                             />
@@ -216,7 +189,7 @@ const PlayPage = () => {
                                 <span className="slider-val">{config.inc}s</span>
                             </div>
                             <input 
-                                type="range" min="0" max="30" value={config.inc} 
+                                aria-label="Increment in seconds" type="range" min="0" max="30" value={config.inc}
                                 onChange={(e) => setConfig({...config, inc: parseInt(e.target.value)})}
                                 className="play-slider"
                             />
@@ -231,10 +204,10 @@ const PlayPage = () => {
                             <div className="deploy-card deploy-card--global">
                                 <div className="deploy-bg-text">PLAY</div>
                                 <div className="deploy-content">
-                                    <h3 className="deploy-title">Ranked Match</h3>
+                                    <h3 className="deploy-title">Ranked match</h3>
                                     <p className="deploy-desc">Find an opponent in the global matchmaking pool. Your rating will be affected.</p>
                                     <button className="btn-deploy btn-deploy--primary" onClick={triggerMatchmaking}>
-                                        Play Ranked{preferences.defaultGameMode === 'online' ? ' · Default' : ''}
+                                        Play ranked{preferences.defaultGameMode === 'online' ? ' · Default' : ''}
                                     </button>
                                 </div>
                             </div>
@@ -243,10 +216,10 @@ const PlayPage = () => {
                             <div className="deploy-card">
                                 <div className="deploy-bg-text">PVP</div>
                                 <div className="deploy-content">
-                                    <h3 className="deploy-title">Play a Friend</h3>
-                                    <p className="deploy-desc">Generate a secure link to play an unranked match against someone you know.</p>
+                                    <h3 className="deploy-title">Play a friend</h3>
+                                    <p className="deploy-desc">Create a private link to play an unranked match against someone you know.</p>
                                     <button className="btn-deploy btn-deploy--secondary" onClick={triggerPrivate}>
-                                        Create Invite Link{preferences.defaultGameMode === 'private' ? ' · Default' : ''}
+                                        Create invite link{preferences.defaultGameMode === 'private' ? ' · Default' : ''}
                                     </button>
                                 </div>
                             </div>
@@ -258,7 +231,7 @@ const PlayPage = () => {
     <div className="deploy-bg-text">TRN</div>
     <div className="deploy-content">
         <h3 className="deploy-title">Tournament</h3>
-        <p className="deploy-desc">Enter a 4-player Sit & Go bracket. Winner takes all ELO stakes.</p>
+        <p className="deploy-desc">Enter a 4-player Sit & Go bracket. Win a semifinal and the final to take the title.</p>
         <button className="btn-deploy btn-deploy--secondary" onClick={() => navigate('/tournament')}>
             Enter Lobby
         </button>

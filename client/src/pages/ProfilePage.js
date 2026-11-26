@@ -97,7 +97,7 @@ function buildEloTimeline(games, userId) {
       change: Number(ratingChange.change ?? ratingChange.after - ratingChange.before),
       result,
       date: dateFor(game),
-      opponent: opponent?.username || 'Unknown'
+      opponent: game.bot?.name || opponent?.username || 'Player'
     }];
   });
 }
@@ -263,7 +263,7 @@ const ProfilePage = () => {
             <div key={i} className="loading-cell" style={{ animationDelay: `${i * 0.1}s` }} />
           ))}
         </div>
-        <p className="loading-text">Decrypting profile...</p>
+        <p className="loading-text">Loading profile…</p>
       </div>
     </div>
   );
@@ -299,18 +299,7 @@ const ProfilePage = () => {
       <div className="dash-wrap">
         
         {/* Header (Matching Dashboard) */}
-        <header className="dash-header">
-          <Link to="/dashboard" style={{ textDecoration: 'none' }}>
-            <div className="header-logo">
-              <span className="logo-text">SOX</span>
-            </div>
-          </Link>
-          <div className="header-right">
-            <Link to="/dashboard" className="alt-mode-btn" style={{ padding: '8px 16px', textDecoration: 'none' }}>
-              Back to Arena
-            </Link>
-          </div>
-        </header>
+        <header className="dash-header"><div><h2 className="product-title">Player profile</h2><p className="product-subtitle">Results, rating, and recent form.</p></div></header>
 
         {loadError && <p className="dashboard-data-notice" role="status">Could not refresh profile data: {loadError}</p>}
 
@@ -340,7 +329,7 @@ const ProfilePage = () => {
             </div>
 
             <div className="sidebar-card">
-              <div className="sidebar-card-label">Core Metrics</div>
+              <div className="sidebar-card-label">Match results</div>
               <div className="player-stats" style={{ marginBottom: '1.5rem' }}>
                 <div className="pstat">
                   <div className="pstat-val pstat-win">{wins}</div>
@@ -382,9 +371,9 @@ const ProfilePage = () => {
               <ProfileGraph data={timeline} />
               <div className="graph-header" style={{ marginTop: '1rem', marginBottom: 0 }}>
                 <span className="graph-title" style={{ color: 'var(--text-3)' }}>
-                  {timeline.length ? `FIRST RECORDED: ${timeline[0].before}` : 'ELO RECORDING STARTS WITH YOUR NEXT GAME'}
+                  {timeline.length ? `First recorded: ${timeline[0].before}` : 'Rating history starts with your next rated game'}
                 </span>
-                <span className="graph-title" style={{ color: 'var(--text-1)' }}>CURRENT: {elo}</span>
+                <span className="graph-title" style={{ color: 'var(--text-1)' }}>Current: {elo}</span>
               </div>
             </div>
 
@@ -409,7 +398,7 @@ const ProfilePage = () => {
                   return (
                     <div key={g._id} className={`history-row history-row--${result}`}>
                       <div className={`result-tag result-tag--${result}`}>{resultLabel}</div>
-                      <div className="history-opp">vs {opponent?.username || 'Unknown'}</div>
+                      <div className="history-opp">vs {g.bot?.name || opponent?.username || 'Player'}</div>
                       <div className="history-date">{gameDate ? gameDate.toLocaleDateString() : 'Date unavailable'}</div>
                       {isOwnProfile && resultCode && g.moves?.length > 0 && (
                         <Link to={`/review/${g._id}`} className="history-replay">Review</Link>
@@ -417,7 +406,7 @@ const ProfilePage = () => {
                     </div>
                   );
                 }) : (
-                  <div className="history-empty">No transaction logs found.</div>
+                  <div className="history-empty">No games played yet.</div>
                 )}
               </div>
             </div>
