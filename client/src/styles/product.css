@@ -34,3 +34,26 @@ button:disabled{cursor:default}
 .tourney-explainer{display:grid;grid-template-columns:repeat(3,1fr);gap:32px;padding:36px 0}.tourney-explainer article{max-width:340px}.tourney-explainer span{font:500 12px var(--font-mono);color:var(--color-primary)}.tourney-explainer h2{font:600 17px var(--font-heading);margin:16px 0 8px}.tourney-explainer p{font:400 14px/1.7 var(--font-body);color:var(--color-text-secondary);margin:0}
 @media(min-width:701px){.hp-demo{width:100%;max-width:440px;justify-self:end}.hp-hero{padding-top:10px}.hp-root{padding-top:100px}}
 @media(max-width:600px){.tourney-explainer{grid-template-columns:1fr;gap:28px}}
+
+/* Give playing boards the available space before allocating side panels. */
+@media (min-width:701px) {
+  .game-root .game-layout {grid-template-columns:minmax(150px,.55fr) minmax(0,2.4fr) minmax(210px,.85fr);gap:12px;padding:8px 0}
+  .game-root .battle-area {padding:0}
+  .game-root .super-board {width:min(100%,calc(100dvh - 140px));max-height:calc(100dvh - 140px)}
+  .computer-room--match {max-width:none;width:100%;padding:78px 16px 28px}
+  .computer-room--match .eng-top {min-height:34px}
+  .computer-room--match .bot-match {grid-template-columns:minmax(0,1fr) minmax(260px,30%);gap:20px;margin-top:8px}
+  .computer-room--match .bot-match>section {max-width:min(100%,calc(100dvh - 224px))}
+  .computer-room--match .eng-player {min-height:36px;padding:3px 0}
+}
+@media (min-width:701px) and (max-width:1000px) {
+  .game-root .game-layout {grid-template-columns:minmax(0,1fr) 210px;grid-template-rows:auto minmax(0,1fr);gap:10px}
+  .game-root .super-board {width:min(100%,calc(100dvh - 205px));max-height:calc(100dvh - 205px)}
+  .computer-room--match .bot-match {grid-template-columns:minmax(0,1fr) 240px;gap:14px}
+}
+@media (max-width:700px) {
+  .computer-room--match {padding-inline:8px}
+  .computer-room--match .bot-match>section {max-width:none}
+  .game-root .battle-area {padding-inline:0}
+  .game-root .super-board-container {padding-inline:0}
+}
