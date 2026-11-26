@@ -19,3 +19,31 @@
 @media(prefers-reduced-motion:reduce){.eng-page *{animation:none!important;transition:none!important}}
 
 @media(min-width:701px){.bot-match,.review-workspace{grid-template-rows:minmax(0,1fr)}}
+
+/* The review is a full-width workspace, not a constrained content page. */
+.review-studio{max-width:none;width:100%;padding-inline:16px}
+.App:has(.review-studio) .glass-nav-container{width:calc(100% - 32px);max-width:none}
+.review-studio .review-analysis>.review-graph{flex:none;margin:8px 12px 10px}
+.review-studio .review-analysis>.review-graph .review-graph-bars{height:32px}
+.review-transport{margin-left:24px;display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.15fr);gap:8px;margin-top:8px}
+.review-transport .review-board-switch,.review-transport .review-controls{margin:0;min-width:0}
+.review-transport button{min-width:0;min-height:40px;padding:5px 2px}
+@media(min-width:701px){
+ .review-studio{padding-top:80px;padding-bottom:30px}
+ .review-studio .eng-top{min-height:36px}
+ .review-studio .review-matchline{padding:6px 0}
+ .review-studio .review-workspace{grid-template-columns:minmax(0,1fr) minmax(300px,36%);gap:20px}
+ .review-studio .review-board-column{max-width:min(100%,calc(100dvh - 204px));align-self:center}
+ .review-studio .review-position-head{margin-bottom:8px}
+ .review-studio .review-board-switch button{font-size:10px}
+}
+@media(min-width:701px) and (max-width:900px){
+ .review-studio .review-workspace{grid-template-columns:minmax(0,1fr) minmax(280px,38%);gap:14px}
+ .review-studio .review-board-switch button{font-size:9px}
+}
+@media(max-width:700px){
+ .review-studio{padding-inline:12px}
+ .review-studio .review-board-column{max-width:none}
+ .review-transport{grid-template-columns:1fr;gap:6px}
+ .review-transport button{min-height:40px}
+}
