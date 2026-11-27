@@ -33,6 +33,7 @@ const DashboardPage = () => {
   const [dashboardUser, setDashboardUser] = useState(user);
   const [games,       setGames]       = useState([]);
   const [gamesLoading, setGamesLoading] = useState(true);
+  const [matchError, setMatchError] = useState('');
   const [gamesError, setGamesError] = useState('');
   const [userRefreshError, setUserRefreshError] = useState('');
   const [isSearching, setIsSearching] = useState(false);
@@ -116,8 +117,13 @@ const DashboardPage = () => {
       setIsSearching(false);
       navigate(`/game/${data.gameId}`);
     };
+const onMatchError = data => { setMatchError(data?.message || 'Connection lost. Please try again.'); setIsSearching(false); };
+    socket.on('matchmakingError', onMatchError);
+    socket.on('disconnect', onMatchError);
     socket.on('gameStarted', onGameStarted);
     return () => {
+    socket.off('matchmakingError', onMatchError);
+    socket.off('disconnect', onMatchError);
       socket.off('gameStarted', onGameStarted);
       socket.emit('cancelFindGame');
     };
@@ -134,7 +140,8 @@ const DashboardPage = () => {
   }, [isSearching]);
 
   const handleFindGame = (tc) => {
-    if (!socket) return;
+    if (!socket?.connected) { setMatchError('Connecting to the game service. Please try again.'); return; }
+    setMatchError('');
     setIsSearching(true);
     setSearchTc(tc);
     socket.emit('findGame', { timeControl: tc, preferredSymbol: 'X' });
@@ -193,6 +200,7 @@ const DashboardPage = () => {
       )}
 
       <div className="dash-wrap">
+        {matchError && <p className="dashboard-data-notice" role="alert">{matchError}</p>}
 
         {userRefreshError && <p className="dashboard-data-notice" role="status">{userRefreshError}</p>}
 

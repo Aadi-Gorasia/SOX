@@ -27,8 +27,8 @@ const PlayerHUD = ({ player = {}, time = 0, isActive = false, symbol = "X", base
     <div className={`hud-player ${isActive ? "active" : ""} ${isEmergency ? "low-time" : ""}`}>
       <header className="hud-player-header">
         <div className="hud-user-info">
-          <span className="hud-name">{player.username || "Unknown"}</span>
-          <span className="hud-elo">ELO: {player.elo ?? 1000}</span>
+          <span className="hud-name">{player?.username || "Waiting for player"}</span>
+          <span className="hud-elo">ELO: {player?.elo ?? "—"}</span>
         </div>
         <div className={`hud-symbol-indicator ${symbol.toLowerCase()}`}>{symbol}</div>
       </header>

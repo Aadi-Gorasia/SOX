@@ -57,6 +57,7 @@ app.get('/health', (req, res) => {
   res.status(200).json({
     status: 'ok',
     engineVersion: require('./services/engineService').ENGINE_VERSION,
+    revision: process.env.RENDER_GIT_COMMIT || null,
     database: mongoose.connection.readyState === 1
       ? 'connected'
       : 'disconnected'
@@ -283,6 +284,7 @@ io.on('connection', (socket) => {
 
       if (!player) return;
 
+      if (game.chat.length >= 200) game.chat.shift();
       game.chat.push({
         user: player.username,
         text: message.trim()

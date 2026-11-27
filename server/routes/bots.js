@@ -20,7 +20,7 @@ router.post('/',async(req,res)=>{
     const humanSide=side==='random'?(Math.random()<.5?'X':'O'):side;
     const preset=BOTS.find(b=>b.id===botId&&b.rating===rating);
     const moves=[];if(humanSide==='O')moves.push({idx:await botMove([],rating),side:0});
-    const game=await Game.create({players:[req.user.id],botOwner:req.user.id,gameType:'computer',
+    const game=await Game.create({players:[req.user.id],botOwner:req.user.id,gameType:'computer',rated:false,
       bot:{name:preset?.name||'Custom bot',rating,humanSide},moves,status:'ONGOING',timeControl:'Untimed'});
     res.status(201).json(payload(game));
   }catch(e){

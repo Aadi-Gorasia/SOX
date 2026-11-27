@@ -53,7 +53,7 @@ const VictoryLine = ({ lineIndex, winner, animate }) => {
   );
 };
 
-const SuperBoard = ({ allBoards, activeBoard, boardWinners, gameWinner, isMyTurn, gameId, onPlay }) => {
+const SuperBoard = ({ onHoverCell, allBoards, activeBoard, boardWinners, gameWinner, isMyTurn, gameId, onPlay }) => {
   const socket = useSocket();
   const { preferences } = useContext(ThemeContext);
 
@@ -67,7 +67,7 @@ const SuperBoard = ({ allBoards, activeBoard, boardWinners, gameWinner, isMyTurn
     }
 
     // ─── LIVE STREAM ROUTE (MULTIPLAYER SOCKETS) ───
-    if (!socket) {
+    if (!socket?.connected) {
       console.warn("[SuperBoard] Action blocked: Socket layer disconnected.");
       return;
     }
@@ -83,6 +83,8 @@ const SuperBoard = ({ allBoards, activeBoard, boardWinners, gameWinner, isMyTurn
     return (
       <Board
         key={i}
+        sector={i}
+        onHoverCell={onHoverCell}
         winner={boardWinners[i]}
         squares={allBoards[i]}
         onPlay={(cellIndex) => handlePlay(i, cellIndex)}

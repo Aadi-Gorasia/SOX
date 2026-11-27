@@ -5,7 +5,7 @@ const Game = require('../models/Game');
 // Called by GameManager when a game ends.
 // gameData now accepts an optional `moves` array: [{ idx, side }, ...]
 async function saveGameResult(gameData) {
-  const { playerDetails, gameWinner, timeControl, moves = [], ratingChanges = [] } = gameData;
+  const { playerDetails, gameWinner, timeControl, moves = [], ratingChanges = [], rated = true } = gameData;
 
   const getWinnerId = () => {
     if (gameWinner === 'X') return playerDetails[0].id;
@@ -15,6 +15,7 @@ async function saveGameResult(gameData) {
 
   try {
     const newGame = new Game({
+      rated,
       players:     playerDetails.map(p => p.id),
       winner:      getWinnerId(),
       status:      gameWinner === 'D' ? 'DRAW' : 'COMPLETED',

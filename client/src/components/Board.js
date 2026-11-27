@@ -4,7 +4,7 @@ import GameMark from './GameMark';
 import Cell from './Cell';
 import './Board.css';
 
-const Board = ({ winner, squares, onPlay, isTurn, isTarget }) => {
+const Board = ({ winner, squares, onPlay, isTurn, isTarget, sector, onHoverCell }) => {
   const handleCellClick = (cellIndex) => {
     if (!isTurn || !isTarget || winner || squares[cellIndex]) return;
     onPlay(cellIndex);
@@ -34,6 +34,8 @@ const Board = ({ winner, squares, onPlay, isTurn, isTarget }) => {
           <Cell
             key={i}
             value={mark}
+            label={`Board ${sector + 1}, square ${i + 1}`}
+            onHover={active => onHoverCell?.(active ? sector : null, active ? i : null)}
             onCellClick={() => handleCellClick(i)}
             // Hover effects only work if it's YOUR turn
             isActive={isTurn && isTarget && !winner}

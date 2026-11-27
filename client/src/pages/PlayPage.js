@@ -12,6 +12,7 @@ const PlayPage = () => {
     const { preferences } = useContext(ThemeContext);
     
     // UI CORE STATE
+  const [matchError, setMatchError] = useState('');
     const [lobbyState, setLobbyState] = useState('IDLE'); // IDLE, QUEUING, PRIVATE
     const [config, setConfig] = useState({
         time: 10,
@@ -36,9 +37,14 @@ const PlayPage = () => {
     useEffect(() => {
         if (!socket) return;
         const onStart = ({ gameId }) => navigate(`/game/${gameId}`);
+const onMatchError = data => { setMatchError(data?.message || 'Connection lost. Please try again.'); setLobbyState('IDLE'); };
+    socket.on('matchmakingError', onMatchError);
+    socket.on('disconnect', onMatchError);
         socket.on('gameStarted', onStart);
         socket.on('friendJoined', onStart);
         return () => {
+    socket.off('matchmakingError', onMatchError);
+    socket.off('disconnect', onMatchError);
             socket.off('gameStarted', onStart);
             socket.off('friendJoined', onStart);
             socket.emit('cancelFindGame');
@@ -58,7 +64,8 @@ const PlayPage = () => {
 
     // ACTIONS
     const triggerMatchmaking = useCallback(() => {
-        if (!socket) return;
+        if (!socket?.connected) { setMatchError('Connecting to the game service. Please try again.'); return; }
+        setMatchError('');
         const tc = `${config.time}+${config.inc}`;
         socket.emit('findGame', { timeControl: tc, preferredSymbol: config.symbol });
         setLobbyState('QUEUING');
@@ -70,10 +77,11 @@ const PlayPage = () => {
     };
 
     const triggerPrivate = useCallback(() => {
-        if (!socket) return;
+        if (!socket?.connected) { setMatchError('Connecting to the game service. Please try again.'); return; }
+        setMatchError('');
         const tc = `${config.time}+${config.inc}`;
         socket.emit('createFriendGame', { timeControl: tc, preferredSymbol: config.symbol }, ({ gameId, error }) => {
-            if (error) return console.error(error);
+            if (error) { setMatchError(error); return; }
             setGameId(gameId);
             setLobbyState('PRIVATE');
         });
@@ -125,6 +133,7 @@ const PlayPage = () => {
             )}
 
             <div className="dash-wrap">
+        {matchError && <p className="dashboard-data-notice" role="alert">{matchError}</p>}
                 
                 {/* Header Match with Dashboard */}
                 <header className="dash-header"><div><h1 className="product-title">Choose your game</h1><p className="product-subtitle">Set the clock, choose a side, and take your seat.</p></div></header>

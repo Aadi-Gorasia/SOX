@@ -19,6 +19,9 @@ export default function OAuthCallbackPage() {
         landingPage = 'dashboard';
       }
       const destinations = { dashboard: '/dashboard', play: '/play', history: '/games/history' };
+      const returnTo = sessionStorage.getItem('sox-auth-return');
+      sessionStorage.removeItem('sox-auth-return');
+      if (returnTo?.startsWith('/') && !returnTo.startsWith('//') && !returnTo.includes('\\')) { navigate(returnTo, { replace: true }); return; }
       navigate(destinations[landingPage] || '/dashboard', { replace: true });
       return;
     }

@@ -1,4 +1,4 @@
-const { v4: uuidv4 } = require('uuid');
+const { randomUUID: uuidv4 } = require('node:crypto');
 const { updateEloAndStats, getPotentialChanges } = require('../services/eloService');
 const { saveGameResult } = require('../services/gameService');
 const User = require('../models/User');
@@ -33,8 +33,11 @@ function parseTimeControl(timeControl) {
 }
 
 class GameManager {
-  constructor(io) {
+  constructor(io, services = {}) {
     this.io = io;
+    this.now = services.now || (() => Date.now());
+    this.saveResult = services.saveGameResult || saveGameResult;
+    this.updateRatings = services.updateEloAndStats || updateEloAndStats;
     this.games = new Map();
     this.activeUserGames = new Map();
     this.pendingUserGames = new Set();
@@ -170,8 +173,8 @@ class GameManager {
       gameWinner: null,
       timeControl,
       playerTimes: [timeControl.base, timeControl.base],
-      lastMoveTimestamp: Date.now(),
-      lastTickTimestamp: Date.now(),
+      lastMoveTimestamp: this.now(),
+      lastTickTimestamp: this.now(),
       chat: [],
       moves: [],
       engineMoves: [], 
@@ -179,8 +182,8 @@ class GameManager {
     };
 
     this.games.set(gameId, newGame);
-    detailsInOrder.forEach(u => this.activeUserGames.set(u.id, gameId));
-    detailsInOrder.forEach(u => this.pendingUserGames.delete(u.id));
+    detailsInOrder.forEach(u => this.activeUserGames.set(String(u._id), gameId));
+    detailsInOrder.forEach(u => this.pendingUserGames.delete(String(u._id)));
     sockets.forEach(s => s.join(gameId));
 
     this.io.to(gameId).emit('gameStarted', { gameId });
@@ -235,12 +238,13 @@ class GameManager {
       gameWinner: null,
       timeControl,
       playerTimes: [timeControl.base, timeControl.base],
-      lastMoveTimestamp: Date.now(),
-      lastTickTimestamp: Date.now(),
+      lastMoveTimestamp: this.now(),
+      lastTickTimestamp: this.now(),
       chat: [],
       moves: [],
       engineMoves: [],
       drawOffer: null,
+      rated: false,
       waitingForOpponent: true
     };
 
@@ -281,6 +285,11 @@ class GameManager {
         throw new Error('Unable to find the joining player');
       }
 
+      if (socket.disconnected || this.games.get(gameId) !== game) {
+        delete game.joiningUserId;
+        this.pendingUserGames.delete(String(socket.userId));
+        return null;
+      }
       const userDetails = {
         id: user._id.toString(),
         username: user.username,
@@ -293,6 +302,8 @@ class GameManager {
       this.activeUserGames.set(userDetails.id, game.id);
       this.pendingUserGames.delete(userDetails.id);
       game.playerToMove = game.players[0];
+      game.lastTickTimestamp = this.now();
+      game.lastMoveTimestamp = this.now();
     } else if (playerIndex === -1) {
       return null;
     } else {
@@ -302,12 +313,13 @@ class GameManager {
     }
 
     socket.join(gameId);
-    if (!game.waitingForOpponent) {
+    if (!game.waitingForOpponent && !game.gameWinner) {
       this.io.to(gameId).emit('gameStarted', { gameId });
       this.sendPlayerStakes(gameId, socket);
       this.startGameTimer(gameId);
     }
     this.io.to(gameId).emit('updateGame', game);
+    if (game.result) socket.emit('gameEnded', game.result);
     return game;
   }
 
@@ -333,6 +345,7 @@ class GameManager {
     if (!game) return;
 
     // Identify player via User ID (safe) or Socket ID (fallback)
+    if (game.rated === false) { socket.emit('personalStakes', { rated: false }); return; }
     const myId = socket.userId; 
     const p1 = game.playerDetails[0];
     const p2 = game.playerDetails[1];
@@ -378,6 +391,8 @@ class GameManager {
     if (pIdx === -1) return;
     const symbol = pIdx === 0 ? 'X' : 'O';
 
+    // Settle elapsed time before a move can earn increment or change turns.
+    if (!this.settleClock(game)) return;
     game.drawOffer = null;
 
     // 1. Save Move to History
@@ -387,7 +402,7 @@ class GameManager {
       boardIndex,
       cellIndex,
       moveNumber: game.moves.length + 1,
-      timestamp: Date.now()
+      timestamp: this.now()
     });
 
     if (!game.engineMoves) game.engineMoves = [];
@@ -399,8 +414,8 @@ game.engineMoves.push({
     // 2. Update Board & Time
     game.allBoards[boardIndex][cellIndex] = symbol;
     game.playerTimes[pIdx] += game.timeControl.increment;
-    game.lastMoveTimestamp = Date.now();
-    game.lastTickTimestamp = Date.now();
+    game.lastMoveTimestamp = this.now();
+    game.lastTickTimestamp = this.now();
 
     // 3. Check Small Board
     const smallWin = calculateWinner(game.allBoards[boardIndex]);
@@ -443,11 +458,12 @@ game.engineMoves.push({
     
     let eloResult = null;
     try {
-      if (result.winner === 'D') eloResult = await updateEloAndStats(p1.id, p2.id, true);
+      if (game.rated === false) { /* Private matches do not affect ranked statistics. */ }
+      else if (result.winner === 'D') eloResult = await this.updateRatings(p1.id, p2.id, true);
       else {
         const wId = result.winner === 'X' ? p1.id : p2.id;
         const lId = result.winner === 'X' ? p2.id : p1.id;
-        eloResult = await updateEloAndStats(wId, lId, false);
+        eloResult = await this.updateRatings(wId, lId, false);
       }
       const ratingChanges = eloResult
         ? [eloResult.p1, eloResult.p2].map(({ id, oldElo, newElo, change }) => ({
@@ -457,13 +473,15 @@ game.engineMoves.push({
           change
         }))
         : [];
-      await saveGameResult({
+      const savedId = await this.saveResult({
+        rated: game.rated !== false,
         playerDetails: game.playerDetails,
         gameWinner: game.gameWinner,
         timeControl: game.timeControl,
         moves: game.engineMoves || [],
         ratingChanges
       });
+      game.savedGameId = savedId ? String(savedId) : null;
     } catch (e) { console.error(e); }
 
     // Prepare Payload
@@ -481,9 +499,13 @@ game.engineMoves.push({
     const payload = {
       winner: game.gameWinner,
       reason: result.reason,
+      rated: game.rated !== false,
+      savedGameId: game.savedGameId || null,
+      saveFailed: !game.savedGameId,
       players: [p1Final, p2Final]
     };
 
+    game.result = payload;
     this.io.to(gameId).emit('gameEnded', payload);
     this.io.to(gameId).emit('updateGame', game);
     game.playerDetails.forEach(player => {
@@ -504,6 +526,20 @@ game.engineMoves.push({
   }
 
   // --- 6. UTILS ---
+  settleClock(game) {
+    if (game.gameWinner || game.waitingForOpponent) return false;
+    const now = this.now();
+    const delta = Math.max(0, now - (game.lastTickTimestamp ?? now));
+    game.lastTickTimestamp = now;
+    const activeIdx = game.players.indexOf(game.playerToMove);
+    if (activeIdx === -1) return false;
+    game.playerTimes[activeIdx] = Math.max(0, game.playerTimes[activeIdx] - delta);
+    if (game.playerTimes[activeIdx] > 0) return true;
+    this.endGame(game.id, { winner: activeIdx === 0 ? 'O' : 'X', reason: 'timeout' })
+      .catch(error => console.error(`[Game ${game.id}] Timeout handling failed:`, error));
+    return false;
+  }
+
   startGameTimer(gameId) {
     if (this.timers.has(gameId)) return;
     const interval = setInterval(() => {
@@ -514,23 +550,7 @@ game.engineMoves.push({
         return;
       }
       
-      const now = Date.now();
-      const delta = now - (game.lastTickTimestamp || now);
-      game.lastTickTimestamp = now;
-
-      if (game.players.includes(null)) return; 
-      const activeIdx = game.players.indexOf(game.playerToMove);
-      if (activeIdx === -1) return;
-
-      game.playerTimes[activeIdx] = Math.max(0, game.playerTimes[activeIdx] - delta);
-
-      if (game.playerTimes[activeIdx] <= 0) {
-        const winSym = activeIdx === 0 ? 'O' : 'X';
-        this.endGame(gameId, { winner: winSym, reason: 'timeout' })
-          .catch(error => console.error(`[Game ${gameId}] Timeout handling failed:`, error));
-      } else {
-        this.io.to(gameId).emit('updateGame', game);
-      }
+      if (this.settleClock(game)) this.io.to(gameId).emit('updateGame', game);
     }, 1000);
     this.timers.set(gameId, interval);
   }

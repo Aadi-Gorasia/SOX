@@ -20,7 +20,9 @@ export const GameProvider = ({ children }) => {
   useEffect(() => {
     if (!socket) return;
 
-    const gameId = window.location.pathname.split("/").pop();
+    const match = window.location.pathname.match(/^\/game\/([^/]+)$/);
+    if (!match) return;
+    const gameId = match[1];
 
     const handleConnect = () => {
       console.log("CLIENT: Connected, joining game", gameId);
@@ -29,9 +31,8 @@ export const GameProvider = ({ children }) => {
 
     if (socket.connected) {
       handleConnect();
-    } else {
-      socket.once("connect", handleConnect);
     }
+    socket.on("connect", handleConnect);
 
     const handleUpdateGame = (newGameState) => {
       console.log("CLIENT: Received game update", newGameState);
@@ -47,6 +48,7 @@ export const GameProvider = ({ children }) => {
     socket.on("timeUpdate", handleTimeUpdate);
 
     return () => {
+      socket.off("connect", handleConnect);
       socket.off("updateGame", handleUpdateGame);
       socket.off("timeUpdate", handleTimeUpdate);
     };

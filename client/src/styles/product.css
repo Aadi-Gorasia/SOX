@@ -57,3 +57,5 @@ button:disabled{cursor:default}
   .game-root .battle-area {padding-inline:0}
   .game-root .super-board-container {padding-inline:0}
 }
+
+.game-unavailable{max-width:480px;margin:15vh auto;padding:24px;color:var(--color-text-primary);text-align:center}.game-unavailable p{line-height:1.6;color:var(--color-text-secondary)}.game-unavailable button,.loading-gate>button{margin:12px;padding:12px;border:1px solid var(--color-border);background:var(--color-surface);color:var(--color-text-primary);border-radius:4px}.game-root .header-status .status-indicator{white-space:normal}

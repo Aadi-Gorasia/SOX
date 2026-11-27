@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate, useLocation, Link } from 'react-router-dom';
 import axios from 'axios';
 import InteractiveBG from '../components/InteractiveBG';
 import './AuthPage.css';
@@ -8,6 +8,7 @@ const API_BASE = process.env.REACT_APP_API_URL || '';
 
 const RegisterPage = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const[isCreated, setIsCreated] = useState(false);
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
@@ -27,6 +28,8 @@ const RegisterPage = () => {
   };
 
   const handleSocialAuth = (provider) => {
+    const returnTo = location.state?.from;
+    if (typeof returnTo === 'string' && returnTo.startsWith('/') && !returnTo.startsWith('//') && !returnTo.includes('\\')) sessionStorage.setItem('sox-auth-return', returnTo);
     window.location.href = `${API_BASE}/api/auth/${provider}`;
   };
 
@@ -52,7 +55,7 @@ const RegisterPage = () => {
             </p>
           </header>
 
-          <button className="auth-btn-outline" onClick={() => navigate('/login')}>
+          <button className="auth-btn-outline" onClick={() => navigate('/login', { state: location.state })}>
             Sign in
           </button>
         </div>
@@ -109,7 +112,7 @@ const RegisterPage = () => {
 
         <footer className="auth-footer">
           Already have an account?
-          <Link to="/login">Sign in</Link>
+          <Link to="/login" state={location.state}>Sign in</Link>
         </footer>
       </div>
     </div>

@@ -26,7 +26,7 @@ export default function ReviewPage(){
  const rows=annotations.map((a,i)=>({a,i})).filter(({a})=>filter==='all'||(filter==='mine'?(a.side===0?'X':'O')===yourSide:['mistake','blunder','miss','inaccuracy'].includes(a.quality)));
  return <main className="eng-page review-studio">
   <header className="eng-top"><Link to="/games/history">← Your games</Link><h1>Game review</h1><Link to="/play/computer">Play computer</Link></header>
-  <div className="review-matchline"><span>{game?`${nameFor('X')} vs ${nameFor('O')}`:'Loading game…'}</span><span>{game?.gameType==='computer'?'Computer · Unrated':'Completed match'} · {game?.moves?.length||0} moves</span></div>
+  <div className="review-matchline"><span>{game?`${nameFor('X')} vs ${nameFor('O')}`:'Loading game…'}</span><span>{game?.gameType==='computer'?'Computer · Unrated':game?.rated===false?'Private · Unrated':'Completed match'} · {game?.moves?.length||0} moves</span></div>
   {error&&<div className="eng-error" role="alert">{error} <button onClick={load}>Retry analysis</button></div>}
   {loading?<div className="review-loading" role="status"><span className="eng-pulse"/><h2>Analyzing your game</h2><p>Comparing each move with the alternatives.<br/>A full game can take about a minute.</p></div>:annotations.length>0?<div className="review-workspace">
    <section className="review-board-column">

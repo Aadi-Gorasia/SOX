@@ -58,6 +58,7 @@ const AnnotationSchema = new mongoose.Schema({
 
 const GameSchema = new mongoose.Schema({
   // ── Existing fields (keep exactly as-is) ────────────────────────────────────
+  rated: { type: Boolean, default: true },
   gameType: { type: String, enum: ['multiplayer', 'computer'], default: 'multiplayer' },
   botOwner: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
   bot: { name: String, rating: Number, humanSide: { type: String, enum: ['X','O'] } },

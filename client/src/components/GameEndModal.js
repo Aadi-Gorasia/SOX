@@ -61,8 +61,8 @@ const GameEndModal = ({
 
   // END REASONS
   const reasonMap = {
-    checkmate: 'Tactical Elimination',
-    resignation: 'Opponent Resigned',
+    checkmate: 'Three boards in a row',
+    resignation: iWon ? 'Opponent resigned' : 'You resigned',
     timeout: 'Time Expired',
     agreement: 'Mutual Agreement',
   };
@@ -85,7 +85,7 @@ const GameEndModal = ({
   };
 
   return (
-    <div className="end-modal-backdrop">
+    <div className="end-modal-backdrop" role="dialog" aria-modal="true" aria-label="Game result">
       <div className={`end-report-frame ${statusTheme}`}>
 
         {/* BACKGROUND GRID */}
@@ -176,6 +176,8 @@ const GameEndModal = ({
 
           </div>
 
+          {result.rated === false && <p>Private game · Your rating is unchanged.</p>}
+          {result.saveFailed && <p role="status">The result could not be saved. Game review is unavailable for this match.</p>}
           {/* ACTION BUTTONS */}
           <div className="end-actions">
 

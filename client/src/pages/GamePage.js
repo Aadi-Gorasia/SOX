@@ -73,35 +73,41 @@ export default function GamePage() {
   const[gameResultModal, setGameResultModal] = useState(null);
   const [stakesMsg, setStakesMsg] = useState(null); 
   const [hasClosedModal, setHasClosedModal] = useState(false);
+  const [connected, setConnected] = useState(false);
+  const [joinError, setJoinError] = useState('');
 
-  // Connection & Data Sync
+  // Rejoin on every connection, and only enable moves after fresh state arrives.
   useEffect(() => {
     if (!socket || !gameId) return;
-    
-    // Request join room & state immediately on load/reload
-    socket.emit("joinGame", gameId);
-    socket.emit("requestGameState", { gameId });
-    
-    socket.on("updateGame", (data) => {
-      if (data && (data.id === gameId || data._id === gameId)) {
-        setGameState(data);
-        setLoading(false);
-        if (data.chat) setChatMessages(data.chat);
-        if (data.gameWinner && !gameResultModal && !hasClosedModal) {
-          setGameResultModal({...data, winner: data.gameWinner});
-        }
-      }
-    });
-
-    socket.on("gameEnded", (res) => setGameResultModal(res));
-    socket.on("personalStakes", (d) => setStakesMsg(`Win: +${d.win} ELO | Loss: ${d.loss} ELO`));
-    
-    return () => { 
-      socket.off("updateGame"); 
-      socket.off("gameEnded"); 
-      socket.off("personalStakes"); 
+    setGameState(null); setLoading(true); setJoinError(''); setHasClosedModal(false);
+    const join = () => { setConnected(false); setJoinError(''); socket.emit('joinGame', gameId); };
+    const disconnect = () => setConnected(false);
+    const error = data => { setConnected(false); setLoading(false); setJoinError(data?.message || 'This game is unavailable.'); };
+    const update = data => {
+      if (!data || (data.id !== gameId && data._id !== gameId)) return;
+      setGameState(data); setLoading(false); setConnected(socket.connected); setJoinError('');
+      if (data.chat) setChatMessages(data.chat);
     };
-  }, [socket, gameId, gameResultModal, hasClosedModal]);
+    const ended = result => setGameResultModal(result);
+    const stakes = data => setStakesMsg(data.rated === false ? 'Private game · Unrated' : `Win: +${data.win} Elo | Loss: ${data.loss} Elo`);
+    socket.on('connect', join); socket.on('disconnect', disconnect);
+    socket.on('connect_error', disconnect); socket.on('gameJoinError', error);
+    socket.on('gameCancelled', error); socket.on('updateGame', update);
+    socket.on('gameEnded', ended); socket.on('personalStakes', stakes);
+    if (socket.connected) join();
+    return () => {
+      socket.off('connect', join); socket.off('disconnect', disconnect);
+      socket.off('connect_error', disconnect); socket.off('gameJoinError', error);
+      socket.off('gameCancelled', error); socket.off('updateGame', update);
+      socket.off('gameEnded', ended); socket.off('personalStakes', stakes);
+    };
+  }, [socket, gameId]);
+
+  useEffect(() => {
+    if (gameState?.gameWinner && !hasClosedModal) {
+      setGameResultModal(current => current || gameState.result || {...gameState, players: gameState.playerDetails, winner: gameState.gameWinner});
+    }
+  }, [gameState, hasClosedModal]);
 
   // Handle Archive/History viewing
   const displayedState = useMemo(() => {
@@ -115,10 +121,11 @@ export default function GamePage() {
     return { ...historical, playerToMove: null, isHistoryView: true };
   },[gameState, viewIndex]);
 
+  if (joinError) return <div className="game-root"><div className="game-unavailable" role="alert"><h1>Game unavailable</h1><p>{joinError}</p><button onClick={() => navigate('/play')}>Back to play</button><button onClick={() => window.location.reload()}>Try again</button></div></div>;
   if (loading || !gameState) {
     return (
       <div className="game-root">
-        <div className="loading-gate">Loading game…</div>
+        <div className="loading-gate">{socket?.connected ? 'Loading game…' : 'Connecting to your game…'}<button onClick={() => navigate('/play')}>Back to play</button></div>
       </div>
     );
   }
@@ -127,12 +134,12 @@ export default function GamePage() {
   // RELOAD SAFE TURN CHECK
   // Finds your index based on your DB ID, then checks if it's your socket's turn
   // ==========================================
-  const myIndex = gameState.playerDetails.findIndex(p => p.id === user?._id);
-  const isMyTurn = !gameState.gameWinner && (gameState.playerToMove === gameState.players[myIndex]);
+  const myIndex = gameState.playerDetails.findIndex(p => p && String(p.id) === String(user?._id));
+  const isMyTurn = connected && myIndex >= 0 && !gameState.waitingForOpponent && !gameState.gameWinner && (gameState.playerToMove === gameState.players[myIndex]);
   const drawOffer = gameState.drawOffer;
   const hasIncomingDrawOffer = drawOffer && String(drawOffer) !== String(user?._id);
   const drawOfferer = gameState.playerDetails.find(player =>
-    String(player.id) === String(drawOffer)
+    String(player?.id) === String(drawOffer)
   );
 
   return (
@@ -141,6 +148,7 @@ export default function GamePage() {
       
       {gameResultModal && (
         <GameEndModal 
+          gameId={gameResultModal.savedGameId || gameState.savedGameId}
           result={gameResultModal} 
           currentUser={user} 
           onNewGame={() => navigate('/play')} 
@@ -155,7 +163,7 @@ export default function GamePage() {
             <button className="exit-btn" onClick={() => navigate('/dashboard')}>Back to play</button>
             <div className="header-status">
               <span>Match ID: {gameId.slice(0,8)}</span>
-              <span className="status-indicator">● LIVE</span>
+              <span className="status-indicator" role="status">{connected ? (gameState.gameWinner ? 'Finished' : '● Live') : 'Reconnecting… moves paused'}</span>
             </div>
         </header>
 
@@ -174,7 +182,7 @@ export default function GamePage() {
             <div className="hud-status-node">
                 <div className="node-label">Match Status</div>
                 <div className={`simulation-status ${isMyTurn ? 'active-status' : ''}`}>
-                  {gameState.gameWinner ? "Game over" : (isMyTurn ? "Your Turn" : "Their turn")}
+                  {gameState.waitingForOpponent ? "Waiting for opponent" : gameState.gameWinner ? "Game over" : (isMyTurn ? "Your Turn" : "Their turn")}
                 </div>
             </div>
             
@@ -225,14 +233,14 @@ export default function GamePage() {
                 <button 
                   className="tactical-btn" 
                   onClick={() => socket.emit("offerDraw", { gameId })} 
-                  disabled={!!gameState.gameWinner || !!drawOffer}
+                  disabled={!connected || gameState.waitingForOpponent || !!gameState.gameWinner || !!drawOffer}
                 >
                   {drawOffer ? 'Draw pending' : 'Offer draw'}
                 </button>
                 <button 
                   className="tactical-btn resign" 
                   onClick={() => window.confirm("Are you sure you want to resign?") && socket.emit("resign", { gameId })} 
-                  disabled={!!gameState.gameWinner}
+                  disabled={!connected || gameState.waitingForOpponent || !!gameState.gameWinner}
                 >
                   Resign
                 </button>
@@ -248,13 +256,13 @@ export default function GamePage() {
                   <div className="game-draw-actions">
                     <button
                       className="tactical-btn"
-                      onClick={() => socket.emit('acceptDraw', { gameId })}
+                      disabled={!connected} onClick={() => socket.emit('acceptDraw', { gameId })}
                     >
                       Accept
                     </button>
                     <button
                       className="tactical-btn"
-                      onClick={() => socket.emit('declineDraw', { gameId })}
+                      disabled={!connected} onClick={() => socket.emit('declineDraw', { gameId })}
                     >
                       Decline
                     </button>
@@ -266,7 +274,7 @@ export default function GamePage() {
             <BattleChat 
               messages={chatMessages} 
               systemMessage={stakesMsg} 
-              onSend={(text) => socket.emit('sendChatMessage', { gameId, message: text })} 
+              onSend={(text) => connected && socket.emit('sendChatMessage', { gameId, message: text })}
               myUsername={user?.username} 
             />
             

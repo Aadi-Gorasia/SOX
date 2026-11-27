@@ -1,5 +1,5 @@
 import React, { useState, useContext, useEffect } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate, useLocation, Link } from 'react-router-dom';
 import { AuthContext } from '../context/AuthContext';
 import InteractiveBG from '../components/InteractiveBG';
 import './AuthPage.css';
@@ -8,6 +8,7 @@ const API_BASE = process.env.REACT_APP_API_URL || '';
 
 const LoginPage = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const { login, isAuthenticated, user } = useContext(AuthContext);
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
@@ -26,6 +27,8 @@ const LoginPage = () => {
   };
 
   const handleSocialAuth = (provider) => {
+    const returnTo = location.state?.from;
+    if (typeof returnTo === 'string' && returnTo.startsWith('/') && !returnTo.startsWith('//') && !returnTo.includes('\\')) sessionStorage.setItem('sox-auth-return', returnTo);
     window.location.href = `${API_BASE}/api/auth/${provider}`;
   };
 
@@ -40,8 +43,12 @@ const LoginPage = () => {
       }
     }
     const destinations = { dashboard: '/dashboard', play: '/play', history: '/games/history' };
+    const returnTo = location.state?.from;
+    if (typeof returnTo === 'string' && returnTo.startsWith('/') && !returnTo.startsWith('//') && !returnTo.includes('\\')) {
+      navigate(returnTo, { replace: true }); return;
+    }
     navigate(destinations[landingPage] || '/dashboard', { replace: true });
-  }, [isAuthenticated, navigate, user]);
+  }, [isAuthenticated, navigate, user, location.state]);
 
   return (
     <div className="auth-root">
@@ -86,7 +93,7 @@ const LoginPage = () => {
 
         <footer className="auth-footer">
           Don't have an account? 
-          <Link to="/register">Create one</Link>
+          <Link to="/register" state={location.state}>Create one</Link>
         </footer>
       </div>
     </div>

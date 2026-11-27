@@ -16,9 +16,11 @@ export const SocketProvider = ({ children }) => {
 
     const newSocket = io(process.env.REACT_APP_SOCKET_URL, {
       auth: { token },
-      transports: ["websocket"],
+      transports: ["websocket", "polling"],
+      tryAllTransports: true,
       reconnection: true,
-      reconnectionAttempts: 5,
+      reconnectionAttempts: Infinity,
+      reconnectionDelayMax: 5000,
       reconnectionDelay: 1000,
     });
 
@@ -34,11 +36,11 @@ export const SocketProvider = ({ children }) => {
       console.error("CLIENT: Socket connection error:", err.message);
     });
 
-    newSocket.on("reconnect", (attempt) => {
+    newSocket.io.on("reconnect", (attempt) => {
       console.log("CLIENT: Socket reconnected after", attempt, "attempts");
     });
 
-    newSocket.on("reconnect_failed", () => {
+    newSocket.io.on("reconnect_failed", () => {
       console.error("CLIENT: Socket reconnection failed");
     });
 

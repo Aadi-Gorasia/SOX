@@ -1,4 +1,4 @@
-const { v4: uuidv4 } = require('uuid');
+const { randomUUID: uuidv4 } = require('node:crypto');
 
 function playerId(player) {
   return String(player?.id ?? player?._id ?? '');
